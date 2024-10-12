@@ -13,12 +13,10 @@
     "node": ">=18",
     "homebridge": ">=1.7.0"
   },
-  "author": {
-    "name": "Toeffligang"
-  },
+  "author": "Toeffligang",
   "repository": {
     "type": "git",
-    "url": "git@github.com:holuspokus/homebridge-pioneer-avr-2025.git"
+    "url": "git://github.com/holuspokus/homebridge-pioneer-avr-2025.git"
   },
   "dependencies": {
     "net": "",
@@ -27,5 +25,13 @@
     "mkdirp": "",
     "persist-path": "",
     "request": ""
+  },
+  "bugs": {
+    "url": "https://github.com/holuspokus/homebridge-pioneer-avr-2025/issues"
+  },
+  "homepage": "https://github.com/holuspokus/homebridge-pioneer-avr-2025#readme",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
   }
 }
