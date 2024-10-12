@@ -1,0 +1,31 @@
+{
+  "name": "homebridge-pioneer-avr-2025",
+  "version": "0.0.1",
+  "description": "Pioneer AVR plugin for homebridge: https://github.com/nfarina/homebridge",
+  "license": "MIT",
+  "keywords": [
+    "homebridge-plugin",
+    "pioneer",
+    "tv",
+    "avr"
+  ],
+  "engines": {
+    "node": ">=18",
+    "homebridge": ">=1.7.0"
+  },
+  "author": {
+    "name": "Toeffligang"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:holuspokus/homebridge-pioneer-avr-2025.git"
+  },
+  "dependencies": {
+    "net": "",
+    "fs": "",
+    "deasync": "",
+    "mkdirp": "",
+    "persist-path": "",
+    "request": ""
+  }
+}
