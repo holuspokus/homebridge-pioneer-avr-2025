@@ -13,7 +13,7 @@ module.exports = function (homebridge) {
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
     homebridge.registerAccessory(
-        "homebridge-pioneer-avr",
+        "homebridge-pioneer-avr-2025",
         "pioneerAvrAccessory",
         pioneerAvrAccessory,
     );
@@ -35,7 +35,7 @@ function pioneerAvrAccessory(log, config) {
 
     log.debug("Preferences directory : %s", this.prefsDir);
     this.manufacturer = "Pioneer";
-    this.version = "0.8.2";
+    this.version = "0.0.2";
 
     // check if prefs directory ends with a /, if not then add it
     if (this.prefsDir.endsWith("/") === false) {
