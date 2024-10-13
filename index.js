@@ -98,21 +98,49 @@ function pioneerAvrAccessory(log, config) {
         this.log.debug("Input visibility file could not be created (%s)", err);
     }
 
-    this.avr = new PioneerAvr(this.log, this.host, this.port);
-    this.enabledServices = [];
+    // this.avr = new PioneerAvr(this.log, this.host, this.port);
+    // this.enabledServices = [];
+    //
+    // while (!this.avr || !this.avr.s || !this.avr.s.connectionReady) {
+    //     require("deasync").sleep(50);
+    // }
+    //
+    // require("deasync").sleep(1050);
+    // this.prepareInformationService();
+    // require("deasync").sleep(50);
+    // this.prepareTvService();
+    // require("deasync").sleep(50);
+    // this.prepareTvSpeakerService();
+    // require("deasync").sleep(50);
+    // this.prepareInputSourceService();
 
-    while (!this.avr || !this.avr.s || !this.avr.s.connectionReady) {
-        require("deasync").sleep(50);
-    }
+    let thisThis = this,
+      prepareTvServiceDate = Date.now()
+    setTimeout(()=>{
+      // automatic retry after 10min
+      while (!thisThis.avr || (thisThis.avr.isReady == false && Date.now() - prepareTvServiceDate > (10*60*1000))) {
+          // thisThis.enabledServices = [];
+          // thisThis.avr.inputMissing = []
+          // thisThis.avr.inputs = []
+          // thisThis.avr.initCount = 0
+          thisThis.avr = new PioneerAvr(this.log, this.host, this.port);
+          thisThis.enabledServices = [];
 
-    require("deasync").sleep(1050);
-    this.prepareInformationService();
-    require("deasync").sleep(50);
-    this.prepareTvService();
-    require("deasync").sleep(50);
-    this.prepareTvSpeakerService();
-    require("deasync").sleep(50);
-    this.prepareInputSourceService();
+          while (!this.avr || !this.avr.s || !this.avr.s.connectionReady) {
+              require("deasync").sleep(50);
+          }
+          require("deasync").sleep(1050);
+          thisThis.prepareInformationService();
+          require("deasync").sleep(50);
+          thisThis.prepareTvService();
+          require("deasync").sleep(50);
+          thisThis.prepareTvSpeakerService();
+          require("deasync").sleep(50);
+          thisThis.prepareInputSourceService();
+          prepareTvServiceDate = Date.now()
+      }
+    },0)
+
 }
 
 pioneerAvrAccessory.prototype.prepareInformationService = function () {

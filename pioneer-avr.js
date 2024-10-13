@@ -382,6 +382,8 @@ function PioneerAvr(log, host, port) {
         thisThis.sendCommand("0RML");
     }, 0);
 }
+
+
 module.exports = PioneerAvr;
 
 let inputBeingAdded = false,
