@@ -90,7 +90,11 @@ class TelnetAvr {
         } else {
             if (thisThis.socket === null && thisThis !== null) {
                 functioncallcounter++;
-                disconnectOnExitFunction = function () {
+                disconnectOnExitFunction = function (err) {
+                    if (err) {
+                      console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
+                      console.error(err.stack)
+                    }
                     if (connectionReady === true) {
                         // console.log(
                         //     "disconnecting from telnet",
