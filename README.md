@@ -1,4 +1,4 @@
-# homebridge-pioneer-vsx-2025
+# homebridge-pioneer-avr-2025
 homebridge-pioneer-avr Ready for Node 22 or lower
 
 This project was forked from [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr).
@@ -21,7 +21,7 @@ Declare your AVR as a homekit TV :
 ## Installation
 
 1. Install the homebridge framework using `npm install -g homebridge`
-2. Install **homebridge-pioneer-vsx-2025** using `npm i homebridge-pioneer-vsx-2025`
+2. Install **homebridge-pioneer-avr-2025** using `npm i homebridge-pioneer-avr-2025`
 3. Update your configuration file. See `sample-config.json` in this repository for a sample.
 
 ## Accessory configuration example
@@ -50,6 +50,9 @@ https://github.com/merdok/homebridge-webos-tv
 https://github.com/TG908/homebridge-vsx
 
 ## Release Notes
+
+### v0.0.4
+Plugin-Name in Readme fixed oO
 
 ### v0.0.3
 Input 46 -> AIRPLAY added
