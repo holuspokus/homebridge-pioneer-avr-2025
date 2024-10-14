@@ -17,9 +17,10 @@ let reconnectCounter = 0;
 let testInterval = null;
 let checkQueueInterval = null;
 
-let disconnectOnExitFunction = function (error, data) {
-    if (error) {
-        console.log(error, data);
+let disconnectOnExitFunction = function (err) {
+    if (err) {
+      console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
+      console.error(err.stack)
     }
     console.log("nothing to disconnect, connectionReady:", connectionReady);
 };
@@ -113,10 +114,10 @@ class TelnetAvr {
                 process.on("SIGUSR2", disconnectOnExitFunction.bind());
 
                 // catches uncaught exceptions
-                // process.on(
-                //     "uncaughtException",
-                //     disconnectOnExitFunction.bind(),
-                // );
+                process.on(
+                    "uncaughtException",
+                    disconnectOnExitFunction.bind(),
+                );
 
                 clearInterval(checkQueueInterval);
                 checkQueueInterval = setInterval(function () {

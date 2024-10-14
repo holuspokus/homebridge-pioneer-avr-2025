@@ -1,6 +1,8 @@
 # homebridge-pioneer-vsx-2025
 homebridge-pioneer-avr Ready for Node 22 or lower
+
 This project was forked from [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr).
+
 homebridge-pioneer-avr is a plugin made for [homebridge](https://github.com/nfarina/homebridge),
 which declare your Pioneer AVR as a TV in homekit.
 
@@ -17,8 +19,6 @@ Declare your AVR as a homekit TV :
 * Control AVR with Remote in Control Center on iOS
 
 ## Installation
-
-This plugin is not yet on NPM. Insatllation only via GitHub at the moment...
 
 1. Install the homebridge framework using `npm install -g homebridge`
 2. Install **homebridge-pioneer-vsx-2025** using `npm i homebridge-pioneer-vsx-2025`
@@ -44,10 +44,18 @@ This plugin is not yet on NPM. Insatllation only via GitHub at the moment...
 ## Links
 
 https://github.com/rwifall/pioneer-receiver-notes
+
 https://github.com/merdok/homebridge-webos-tv
+
 https://github.com/TG908/homebridge-vsx
 
 ## Release Notes
+
+### v0.0.3
+Input 46 -> AIRPLAY added
+
+### v0.0.2
+* Fixes
 
 ### v0.0.1
 * Enhanced performance and responsiveness of the Pioneer AVR receiver.
