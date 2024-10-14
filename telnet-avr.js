@@ -92,10 +92,10 @@ class TelnetAvr {
                 functioncallcounter++;
                 disconnectOnExitFunction = function () {
                     if (connectionReady === true) {
-                        console.log(
-                            "try to disconnect... connectionReady:",
-                            connectionReady,
-                        );
+                        // console.log(
+                        //     "disconnecting from telnet",
+                        //     connectionReady,
+                        // );
                         thisThis.disconnect();
                     }
                 };
