@@ -61,6 +61,8 @@ function PioneerAvr(log, host, port) {
     this.host = host;
     this.port = port;
 
+    this.lastInputDiscovered = null
+
     this.inputMissing = []
 
     // Current AV status
@@ -69,7 +71,8 @@ function PioneerAvr(log, host, port) {
         on: null,
         muted: null,
         input: null,
-        listeningMode: null
+        listeningMode: null,
+        lastGetPowerStatus: null
     };
 
     this.onData = function (error, data, callback) {
@@ -87,6 +90,21 @@ function PioneerAvr(log, host, port) {
                 thisThis.log.debug(e);
             }
             return;
+        }
+        // E06 is returned when input not exists, E06RGB is sperate
+        else if (data.startsWith("E06") && !data.startsWith("E06RGB")) {
+            try {
+                callback(String(data), data);
+            } catch (e) {
+                thisThis.log.debug(e);
+            }
+        } else if (data.startsWith("E") && !data.startsWith("E06RGB")) {
+            thisThis.log.debug("Receive error: " + String(data));
+            try {
+                callback(String(data), data);
+            } catch (e) {
+                thisThis.log.debug(e);
+            }
         } else if (
             data.indexOf("VD:SENT") > -1 ||
             data.indexOf("VU:SENT") > -1 ||
@@ -111,7 +129,7 @@ function PioneerAvr(log, host, port) {
                 thisThis.state.on ? "On" : "off",
                 data,
             );
-            lastGetPowerStatus = Date.now();
+            thisThis.state.lastGetPowerStatus = Date.now();
             try {
                 callback(error, data);
             } catch (e) {
@@ -129,7 +147,6 @@ function PioneerAvr(log, host, port) {
                 data[3],
                 data,
             );
-            lastGetPowerStatus = Date.now();
             try {
                 callback(error, data);
             } catch (e) {
@@ -153,11 +170,13 @@ function PioneerAvr(log, host, port) {
             data = data.substring(data.indexOf("VOL"));
             let vol = data.substr(3, 3);
             let volPctF = Math.floor((parseInt(vol) * 100) / 185);
-            thisThis.state.volume = Math.floor(volPctF);
+            if(vol.length === 3 && !isNaN(Math.floor(volPctF))){
+                thisThis.state.volume = Math.floor(volPctF);
+            }
             thisThis.log.debug(
                 "Volume is %s (%s%)",
                 vol,
-                thisThis.state.volume,
+                volPctF,
             );
             try {
                 callback(error, data);
@@ -213,17 +232,22 @@ function PioneerAvr(log, host, port) {
                     // );
                     delete inputToType[key];
 
+                    let indexMissing = thisThis.inputMissing.indexOf(String(thisid));
+                    if (indexMissing !== -1) {
+                        thisThis.inputMissing.splice(indexMissing, 1);
+                    }
+
                     if (String(inputBeingAdded) == String(key)) {
                         inputBeingAdded = false;
                         inputBeingAddedWaitCount = 0;
                     }
+
+                    if (thisThis.initCount == Object.keys(inputToType).length){
+                        thisThis.isReady = true;
+                    }
+
                     break;
                 }
-            }
-
-            let indexMissing = thisThis.inputMissing.indexOf(thisid);
-            if (indexMissing !== -1) {
-                thisThis.inputMissing.splice(indexMissing, 1);
             }
 
 
@@ -269,6 +293,7 @@ function PioneerAvr(log, host, port) {
                 }
 
                 if (!thisThis.isReady) {
+                    thisThis.lastInputDiscovered = Date.now()
                     thisThis.initCount = thisThis.initCount + 1;
                     thisThis.log.debug(
                         "Input [%s] discovered (id: %s, type: %s). InitCount=%s/%s, inputMissing: %s",
@@ -279,8 +304,6 @@ function PioneerAvr(log, host, port) {
                         Object.keys(inputToType).length,
                         thisThis.inputMissing,
                     );
-                    if (thisThis.initCount == Object.keys(inputToType).length)
-                        thisThis.isReady = true;
                 }
 
                 for (let x in thisThis.inputs) {
@@ -296,21 +319,7 @@ function PioneerAvr(log, host, port) {
             }
         }
 
-        // E06 is returned when input not exists, E06RGB is sperate
-        else if (data.startsWith("E06")) {
-            try {
-                callback(String(data), data);
-            } catch (e) {
-                thisThis.log.debug(e);
-            }
-        } else if (data.startsWith("E")) {
-            thisThis.log.debug("Receive error: " + String(data));
-            try {
-                callback(String(data), data);
-            } catch (e) {
-                thisThis.log.debug(e);
-            }
-        }
+
     };
 
     // Inputs' list
@@ -358,7 +367,8 @@ function PioneerAvr(log, host, port) {
             if (
                 thisThis.s.connectionReady &&
                 thisThis.isReady &&
-                thisThis.state.on == true
+                thisThis.state.on == true &&
+                thisThis.state.lastGetPowerStatus !== null
             ) {
                 thisThis.__updateVolume(() => {});
                 thisThis.__updateListeningMode(() => {});
@@ -374,7 +384,17 @@ function PioneerAvr(log, host, port) {
     setTimeout(function () {
         while (!thisThis.s || !thisThis.s.connectionReady) {
             try {
-              require("deasync").sleep(50);
+              require("deasync").sleep(250);
+            } catch (e) {
+                thisThis.log.debug(e);
+            }
+        }
+
+        thisThis.__updatePower(() => {});
+
+        while (!thisThis.s || !thisThis.s.connectionReady || thisThis.state.lastGetPowerStatus === null) {
+            try {
+              require("deasync").sleep(250);
             } catch (e) {
                 thisThis.log.debug(e);
             }
@@ -455,7 +475,7 @@ PioneerAvr.prototype.loadInputs = function (callback) {
 
 // Power methods
 
-let lastGetPowerStatus = null;
+
 PioneerAvr.prototype.__updatePower = function (callback) {
     this.sendCommand("?P", "PWR", callback);
 };
@@ -463,8 +483,8 @@ PioneerAvr.prototype.powerStatus = function (callback) {
     let thisThis = this;
 
     if (
-        lastGetPowerStatus !== null &&
-        Date.now() - lastGetPowerStatus < 10000
+        thisThis.state.lastGetPowerStatus !== null &&
+        Date.now() - thisThis.state.lastGetPowerStatus < 10000
     ) {
         try {
             callback(null, thisThis.state.on);

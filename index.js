@@ -99,16 +99,24 @@ function pioneerAvrAccessory(log, config) {
     }
 
 
-    let prepareTvServiceDate = Date.now()
-    // automatic retry after 10min to fix itself
-    while (!thisThis.avr || (thisThis.avr.isReady == false && Date.now() - prepareTvServiceDate > (10*60*1000))) {
+
+
+    while (!thisThis.avr || (thisThis.avr.isReady == false)) {
+
+      try {
+          if(thisThis.avr && thisThis.avr.s){
+              thisThis.avr.s.disconnect()
+          }
+      } catch (err) {
+          this.log.debug("error disconnecting before connecting", err);
+      }
 
       try {
 
           thisThis.avr = new PioneerAvr(thisThis.log, thisThis.host, thisThis.port);
           thisThis.enabledServices = [];
 
-          while (!thisThis.avr || !thisThis.avr.s || !thisThis.avr.s.connectionReady) {
+          while (!thisThis.avr || !thisThis.avr.s || !thisThis.avr.s.connectionReady || thisThis.avr.state.lastGetPowerStatus === null) {
               require("deasync").sleep(50);
           }
           require("deasync").sleep(1050);
@@ -119,11 +127,22 @@ function pioneerAvrAccessory(log, config) {
           thisThis.prepareTvSpeakerService();
           require("deasync").sleep(50);
           thisThis.prepareInputSourceService();
-          prepareTvServiceDate = Date.now()
-
       } catch (err) {
-          this.log.debug("new PioneerAvr Error (%s)", err);
+          this.log.debug("new PioneerAvr() Error (%s)", err);
       }
+
+      try {
+          if(!thisThis.avr.isReady){
+            // automatic retry after 5min to fix itself. maybe the receiver is disconnected or without power.
+            let prepareTvServiceDate = Date.now()
+            while(!thisThis.avr.isReady && Date.now() - prepareTvServiceDate < (5*60*1000)){
+                require("deasync").sleep(10000);
+            }
+          }
+      } catch (err) {
+          this.log.debug("new PioneerAvr retry-wait Error (%s)", err);
+      }
+
     }
 
 }
@@ -592,7 +611,13 @@ pioneerAvrAccessory.prototype.getServices = function () {
         }
     }
 
-    this.log.info("Accessory %s ready", this.name);
+    if (this.avr && this.avr.isReady == false) {
+        this.log.info("Accessory %s NOT ready", this.name);
+    }else{
+        this.log.info("Accessory %s ready", this.name);
+    }
+
+
     this.log.debug("Enabled services : %s", this.enabledServices.length);
 
     return this.enabledServices;

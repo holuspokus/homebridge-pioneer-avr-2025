@@ -18,9 +18,9 @@ let testInterval = null;
 let checkQueueInterval = null;
 
 let disconnectOnExitFunction = function (err) {
-    if (err) {
-      console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
-      console.error(err.stack)
+    if (err && String(err).length > 3) {
+        console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
+        console.error(err.stack)
     }
     console.log("nothing to disconnect, connectionReady:", connectionReady);
 };
@@ -77,23 +77,27 @@ class TelnetAvr {
             thisThis.socket !== null &&
             thisThis !== null
         ) {
-            this.socket.connect(thisThis.port, thisThis.host, () => {
-                require("deasync").sleep(1000);
-                connectionReady = true;
-                thisThis.connectionReady = true;
-                try {
-                    callback();
-                } catch (e) {
-                    console.error(e);
-                }
-            });
+            try {
+                this.socket.connect(thisThis.port, thisThis.host, () => {
+                    require("deasync").sleep(1000);
+                    connectionReady = true;
+                    thisThis.connectionReady = true;
+                    try {
+                        callback();
+                    } catch (e) {
+                        console.error(e);
+                    }
+                });
+            } catch (e) {
+                console.error(e);
+            }
         } else {
             if (thisThis.socket === null && thisThis !== null) {
                 functioncallcounter++;
                 disconnectOnExitFunction = function (err) {
-                    if (err) {
-                      console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
-                      console.error(err.stack)
+                    if (err && String(err).length > 3) {
+                        console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
+                        console.error(err.stack)
                     }
                     if (connectionReady === true) {
                         // console.log(
@@ -520,6 +524,7 @@ class TelnetAvr {
                         if (
                             thisThis.queueLock === true &&
                             !data.startsWith("FL") &&
+                            ["RGC","RGD","GBH","GHH","VTA","AUA","AUB","GEH"].indexOf(data.substr(0, 3)) === -1 &&
                             thisThis.queue.length > 0
                         ) {
                             let callbackKeys = Object.keys(
@@ -628,7 +633,8 @@ class TelnetAvr {
 
                         if (
                             callbackCalled === false &&
-                            !data.startsWith("FL")
+                            !data.startsWith("FL") &&
+                            ["RGC","RGD","GBH","GHH","VTA","AUA","AUB","GEH"].indexOf(data.substr(0, 3)) === -1
                         ) {
                             try {
                                 let runThisOnData = this.fallbackOnData.bind(
@@ -702,7 +708,7 @@ class TelnetAvr {
             return;
         }
         clearTimeout(disconnectTimeout);
-        disconnectTimeout = setTimeout(this.disconnect, 2 * 60 * 60 * 1000);
+        disconnectTimeout = setTimeout(thisThis.disconnect, 2 * 60 * 60 * 1000);
     }
 }
 
