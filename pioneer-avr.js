@@ -321,7 +321,7 @@ function PioneerAvr(log, host, port) {
     this.webStatusUrl = "http://" + this.host + "/StatusHandler.asp";
     this.webEventHandlerBaseUrl =
         "http://" + this.host + "/EventHandler.asp?WebToHostItem=";
-        
+
     request.get(this.webStatusUrl).on("response", function (response) {
         if (response.statusCode == "200") {
             thisThis.log.info("Web Interface enabled");
@@ -681,10 +681,10 @@ PioneerAvr.prototype.toggleListeningMode = function (callback) {
 
     // 0013SR: PRO LOGIC2x MOVIE
     // 0100SR: EXTENDED STEREO
+    // 0101SR: Action
 
     this.log.debug("toggleListeningMode now:", thisThis.state.listeningMode);
-
-    if (thisThis.state.listeningMode === "0013") {
+    if (["0013", "0101"].indexOf(thisThis.state.listeningMode) > -1) {
         // from PL2 to ext stereo
         thisThis.sendCommand("0112SR");
         thisThis.state.listeningMode = "0112";
@@ -699,6 +699,7 @@ PioneerAvr.prototype.toggleListeningMode = function (callback) {
         thisThis.state.listeningMode = "0013";
         thisThis.sendCommand("!0013SR", "SR", function (error, data) {
             if (error) {
+                //fallback to Listeningmode "Action"
                 thisThis.state.listeningMode = "0101";
                 thisThis.sendCommand("0101SR");
             }

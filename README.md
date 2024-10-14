@@ -51,6 +51,9 @@ https://github.com/TG908/homebridge-vsx
 
 ## Release Notes
 
+### v0.0.5
+Remote-Key "Play/Pause" can now be used for toggle Listeningmode between EXTENDED STEREO and PRO LOGIC 2 MOVIE
+
 ### v0.0.4
 Plugin-Name in Readme fixed oO
 
