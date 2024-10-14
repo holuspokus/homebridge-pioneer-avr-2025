@@ -48,6 +48,7 @@ let inputToTypeList = [
     ['41', 0], // PANDORA -> Characteristic.InputSourceType.OTHER
     ['44', 0], // MEDIA SERVER -> Characteristic.InputSourceType.OTHER
     ['45', 0], // FAVORITE -> Characteristic.InputSourceType.OTHER
+    ['46', 8], // AIRPLAY -> Characteristic.InputSourceType.AIRPLAY
     ['48', 0], // MHL -> Characteristic.InputSourceType.OTHER
     ['49', 0], // GAME -> Characteristic.InputSourceType.OTHER
     ['57', 0] // SPOTIFY -> Characteristic.InputSourceType.OTHER
@@ -320,6 +321,7 @@ function PioneerAvr(log, host, port) {
     this.webStatusUrl = "http://" + this.host + "/StatusHandler.asp";
     this.webEventHandlerBaseUrl =
         "http://" + this.host + "/EventHandler.asp?WebToHostItem=";
+        
     request.get(this.webStatusUrl).on("response", function (response) {
         if (response.statusCode == "200") {
             thisThis.log.info("Web Interface enabled");
@@ -371,7 +373,11 @@ function PioneerAvr(log, host, port) {
 
     setTimeout(function () {
         while (!thisThis.s || !thisThis.s.connectionReady) {
-            require("deasync").sleep(50);
+            try {
+              require("deasync").sleep(50);
+            } catch (e) {
+                thisThis.log.debug(e);
+            }
         }
         thisThis.__updateVolume(() => {});
         thisThis.__updateListeningMode(() => {});
