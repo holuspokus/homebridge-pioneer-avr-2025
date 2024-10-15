@@ -14,6 +14,7 @@ const TelnetAvr = require("./telnet-avr");
 // let inputSucceeded = [];
 let missingInputErrorCounter = {};
 let allInterval = null;
+let lastUserInteraction = null;
 
 let inputToTypeList = [
     ['25', 3], // BD -> Characteristic.InputSourceType.HDMI --> Apple TV
@@ -55,13 +56,22 @@ let inputToTypeList = [
 ],
     inputToType = {}
 
-function PioneerAvr(log, host, port) {
+function PioneerAvr(log, host, port, connectionReadyCallback) {
     let thisThis = this;
     this.log = log;
     this.host = host;
     this.port = port;
 
+    this.lastInputDiscovered = null
+
     this.inputMissing = []
+
+    if (typeof connectionReadyCallback !== "function") {
+        connectionReadyCallback = function () {
+            thisThis.log.debug('PioneerAvr() conn ready')
+        };
+    }
+
 
     // Current AV status
     this.state = {
@@ -69,7 +79,8 @@ function PioneerAvr(log, host, port) {
         on: null,
         muted: null,
         input: null,
-        listeningMode: null
+        listeningMode: null,
+        lastGetPowerStatus: null
     };
 
     this.onData = function (error, data, callback) {
@@ -84,9 +95,24 @@ function PioneerAvr(log, host, port) {
             try {
                 callback(error, data);
             } catch (e) {
-                thisThis.log.debug(e);
+                thisThis.log.debug("onData", e);
             }
             return;
+        }
+        // E06 is returned when input not exists, E06RGB is sperate
+        else if (data.startsWith("E06") && !data.startsWith("E06RGB")) {
+            try {
+                callback(String(data), data);
+            } catch (e) {
+                thisThis.log.debug("onData", e);
+            }
+        } else if (data.startsWith("E") && !data.startsWith("E06RGB")) {
+            thisThis.log.debug("Receive error: " + String(data));
+            try {
+                callback(String(data), data);
+            } catch (e) {
+                thisThis.log.debug("onData", e);
+            }
         } else if (
             data.indexOf("VD:SENT") > -1 ||
             data.indexOf("VU:SENT") > -1 ||
@@ -95,13 +121,13 @@ function PioneerAvr(log, host, port) {
             try {
                 callback(error, data);
             } catch (e) {
-                thisThis.log.debug(e);
+                thisThis.log.debug("onData", e);
             }
         } else if (data.indexOf(":SENT") > -1) {
             // try {
             //   callback()
             // } catch (e) {
-            //   thisThis.log.debug(e)
+            //   thisThis.log.debug("onData", e)
             // };
         } else if (data.indexOf("PWR") > -1) {
             data = data.substring(data.indexOf("PWR"));
@@ -111,11 +137,11 @@ function PioneerAvr(log, host, port) {
                 thisThis.state.on ? "On" : "off",
                 data,
             );
-            lastGetPowerStatus = Date.now();
+            thisThis.state.lastGetPowerStatus = Date.now();
             try {
                 callback(error, data);
             } catch (e) {
-                thisThis.log.debug(e);
+                thisThis.log.debug("onData", e);
             }
         }
 
@@ -129,11 +155,10 @@ function PioneerAvr(log, host, port) {
                 data[3],
                 data,
             );
-            lastGetPowerStatus = Date.now();
             try {
                 callback(error, data);
             } catch (e) {
-                thisThis.log.debug(e);
+                thisThis.log.debug("onData", e);
             }
         }
 
@@ -144,7 +169,7 @@ function PioneerAvr(log, host, port) {
             try {
                 callback(error, data);
             } catch (e) {
-                thisThis.log.debug(e);
+                thisThis.log.debug("onData", e);
             }
         }
 
@@ -153,16 +178,18 @@ function PioneerAvr(log, host, port) {
             data = data.substring(data.indexOf("VOL"));
             let vol = data.substr(3, 3);
             let volPctF = Math.floor((parseInt(vol) * 100) / 185);
-            thisThis.state.volume = Math.floor(volPctF);
+            if(vol.length === 3 && !isNaN(Math.floor(volPctF))){
+                thisThis.state.volume = Math.floor(volPctF);
+            }
             thisThis.log.debug(
                 "Volume is %s (%s%)",
                 vol,
-                thisThis.state.volume,
+                volPctF,
             );
             try {
                 callback(error, data);
             } catch (e) {
-                thisThis.log.debug(e);
+                thisThis.log.debug("onData", e);
             }
         }
 
@@ -186,7 +213,7 @@ function PioneerAvr(log, host, port) {
                 try {
                     callback(error, data);
                 } catch (e) {
-                    thisThis.log.debug(e);
+                    thisThis.log.debug("onData", e);
                 }
                 return;
             }
@@ -213,17 +240,22 @@ function PioneerAvr(log, host, port) {
                     // );
                     delete inputToType[key];
 
+                    let indexMissing = thisThis.inputMissing.indexOf(String(thisid));
+                    if (indexMissing !== -1) {
+                        thisThis.inputMissing.splice(indexMissing, 1);
+                    }
+
                     if (String(inputBeingAdded) == String(key)) {
                         inputBeingAdded = false;
                         inputBeingAddedWaitCount = 0;
                     }
+
+                    if (thisThis.initCount == Object.keys(inputToType).length){
+                        thisThis.isReady = true;
+                    }
+
                     break;
                 }
-            }
-
-            let indexMissing = thisThis.inputMissing.indexOf(thisid);
-            if (indexMissing !== -1) {
-                thisThis.inputMissing.splice(indexMissing, 1);
             }
 
 
@@ -231,7 +263,7 @@ function PioneerAvr(log, host, port) {
             // try {
             //     callback("E06");
             // } catch (e) {
-            //     thisThis.log.debug(e);
+            //     thisThis.log.debug("onData", e);
             // }
         } else if (data.indexOf("RGB") > -1) {
             data = data.substring(data.indexOf("RGB"));
@@ -269,6 +301,7 @@ function PioneerAvr(log, host, port) {
                 }
 
                 if (!thisThis.isReady) {
+                    thisThis.lastInputDiscovered = Date.now()
                     thisThis.initCount = thisThis.initCount + 1;
                     thisThis.log.debug(
                         "Input [%s] discovered (id: %s, type: %s). InitCount=%s/%s, inputMissing: %s",
@@ -279,8 +312,6 @@ function PioneerAvr(log, host, port) {
                         Object.keys(inputToType).length,
                         thisThis.inputMissing,
                     );
-                    if (thisThis.initCount == Object.keys(inputToType).length)
-                        thisThis.isReady = true;
                 }
 
                 for (let x in thisThis.inputs) {
@@ -288,7 +319,7 @@ function PioneerAvr(log, host, port) {
                         try {
                             callback(x);
                         } catch (e) {
-                            thisThis.log.debug(e);
+                            thisThis.log.debug("onData", e);
                         }
                         break;
                     }
@@ -296,21 +327,7 @@ function PioneerAvr(log, host, port) {
             }
         }
 
-        // E06 is returned when input not exists, E06RGB is sperate
-        else if (data.startsWith("E06")) {
-            try {
-                callback(String(data), data);
-            } catch (e) {
-                thisThis.log.debug(e);
-            }
-        } else if (data.startsWith("E")) {
-            thisThis.log.debug("Receive error: " + String(data));
-            try {
-                callback(String(data), data);
-            } catch (e) {
-                thisThis.log.debug(e);
-            }
-        }
+
     };
 
     // Inputs' list
@@ -321,7 +338,7 @@ function PioneerAvr(log, host, port) {
     this.webStatusUrl = "http://" + this.host + "/StatusHandler.asp";
     this.webEventHandlerBaseUrl =
         "http://" + this.host + "/EventHandler.asp?WebToHostItem=";
-        
+
     request.get(this.webStatusUrl).on("response", function (response) {
         if (response.statusCode == "200") {
             thisThis.log.info("Web Interface enabled");
@@ -336,8 +353,10 @@ function PioneerAvr(log, host, port) {
     try {
         this.s.connect();
     } catch (e) {
-        this.log.debug(e);
+        this.log.debug('pioneer-avr this.s.connect', e);
     }
+
+    thisThis.log.debug("wait until telnet connected");
 
     // Dealing with input's initialization
     this.initCount = 0;
@@ -355,10 +374,14 @@ function PioneerAvr(log, host, port) {
     clearInterval(allInterval);
     allInterval = setInterval(function () {
         try {
+            if (lastUserInteraction !==null && Date.now() - lastUserInteraction > (48*60*60*1000)){ // telnet-avr.js timeout: 2*60*60*1000
+                return;
+            }
             if (
                 thisThis.s.connectionReady &&
                 thisThis.isReady &&
-                thisThis.state.on == true
+                thisThis.state.on == true &&
+                thisThis.state.lastGetPowerStatus !== null
             ) {
                 thisThis.__updateVolume(() => {});
                 thisThis.__updateListeningMode(() => {});
@@ -367,26 +390,53 @@ function PioneerAvr(log, host, port) {
                 thisThis.__updatePower(() => {});
             }
         } catch (e) {
-            thisThis.log.debug(e);
+            thisThis.log.debug("allInterval", e);
         }
     }, 29000);
 
     setTimeout(function () {
-        while (!thisThis.s || !thisThis.s.connectionReady) {
-            try {
-              require("deasync").sleep(50);
-            } catch (e) {
-                thisThis.log.debug(e);
+        try{
+            while (!thisThis.s || !thisThis.s.connectionReady) {
+                try {
+                  require("deasync").sleep(250);
+                } catch (e) {
+                    thisThis.log.debug("pioneer-avr waitready1", e);
+                }
             }
-        }
-        thisThis.__updateVolume(() => {});
-        thisThis.__updateListeningMode(() => {});
-        thisThis.__updatePower(() => {});
+            thisThis.log.info("Telnet connected");
 
-        //reset input locks
-        thisThis.sendCommand("0PKL");
-        thisThis.sendCommand("0RML");
-    }, 0);
+            // require("deasync").sleep(100);
+
+            thisThis.__updatePower(() => {});
+
+            while (!thisThis.s || !thisThis.s.connectionReady || thisThis.state.lastGetPowerStatus === null) {
+                try {
+                  require("deasync").sleep(250);
+                } catch (e) {
+                    thisThis.log.debug("pioneer-avr waitready2", e);
+                }
+            }
+            thisThis.__updateVolume(() => {});
+            thisThis.__updateListeningMode(() => {});
+            thisThis.__updatePower(() => {});
+
+            //reset input locks
+            thisThis.sendCommand("0PKL");
+            require("deasync").sleep(250);
+            thisThis.sendCommand("0RML");
+
+
+            require("deasync").sleep(2500);
+            let runThis = connectionReadyCallback.bind({})
+            try {
+              runThis()
+            } catch (e) {
+                thisThis.log.debug("connectionReadyCallback() Error", e);
+            }
+        } catch (e) {
+            thisThis.log.debug("connectionReadyCallback timtout Error", e);
+        }
+    }, 100);
 }
 
 
@@ -455,7 +505,7 @@ PioneerAvr.prototype.loadInputs = function (callback) {
 
 // Power methods
 
-let lastGetPowerStatus = null;
+
 PioneerAvr.prototype.__updatePower = function (callback) {
     this.sendCommand("?P", "PWR", callback);
 };
@@ -463,13 +513,13 @@ PioneerAvr.prototype.powerStatus = function (callback) {
     let thisThis = this;
 
     if (
-        lastGetPowerStatus !== null &&
-        Date.now() - lastGetPowerStatus < 10000
+        thisThis.state.lastGetPowerStatus !== null &&
+        Date.now() - thisThis.state.lastGetPowerStatus < 10000
     ) {
         try {
             callback(null, thisThis.state.on);
         } catch (e) {
-            thisThis.log.debug(e);
+            thisThis.log.debug("powerStatus", e);
         }
         return;
     }
@@ -479,7 +529,7 @@ PioneerAvr.prototype.powerStatus = function (callback) {
         try {
             callback(null, thisThis.state.on);
         } catch (e) {
-            thisThis.log.debug(e);
+            thisThis.log.debug("powerStatus2", e);
         }
     });
 };
@@ -492,6 +542,7 @@ PioneerAvr.prototype.powerOn = function () {
     } else {
         this.sendCommand("PO");
     }
+    lastUserInteraction = Date.now()
     let thisThis = this;
     setTimeout(function () {
         thisThis.powerStatus(function () {});
@@ -505,6 +556,7 @@ PioneerAvr.prototype.powerOff = function () {
     } else {
         this.sendCommand("PF");
     }
+    lastUserInteraction = Date.now()
     let thisThis = this;
     setTimeout(function () {
         thisThis.powerStatus(function () {});
@@ -527,7 +579,7 @@ PioneerAvr.prototype.volumeStatus = function (callback) {
         try {
             callback(null, thisThis.state.volume);
         } catch (e) {
-            thisThis.log.debug(e);
+            thisThis.log.debug("__updateVolume", e);
         }
     });
 };
@@ -542,10 +594,11 @@ PioneerAvr.prototype.setVolume = function (targetVolume, callback) {
         pad.substring(0, pad.length - vsxVol.toString().length) +
         vsxVol.toString();
     this.sendCommand(`${vsxVolStr}VL`);
+    lastUserInteraction = Date.now()
     try {
         callback();
     } catch (e) {
-        thisThis.log.debug(e);
+        thisThis.log.debug("setVolume", e);
     }
 };
 
@@ -553,6 +606,7 @@ let changeVolBlocked = false;
 let blocktimer = false;
 let updateVolumeTimeout = false;
 PioneerAvr.prototype.volumeUp = function () {
+    lastUserInteraction = Date.now()
     if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
     this.log.debug("Volume up", !changeVolBlocked);
     let thisThis = this;
@@ -591,6 +645,7 @@ PioneerAvr.prototype.volumeUp = function () {
 };
 
 PioneerAvr.prototype.volumeDown = function () {
+    lastUserInteraction = Date.now()
     if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
     let thisThis = this;
     this.log.debug("Volume down", !changeVolBlocked);
@@ -661,30 +716,32 @@ PioneerAvr.prototype.getListeningMode = function (callback) {
         try {
             callback(null, thisThis.state.listeningMode);
         } catch (e) {
-            thisThis.log.debug(e);
+            thisThis.log.debug("getListeningMode", e);
         }
     });
 };
 
 // set Listeing Mode toggle [EXTENDED STEREO]
 PioneerAvr.prototype.toggleListeningMode = function (callback) {
+    lastUserInteraction = Date.now()
+
     let thisThis = this;
 
     if (thisThis === null || !thisThis.isReady) {
         try {
             callback();
         } catch (e) {
-            thisThis.log.debug(e);
+            thisThis.log.debug("toggleListeningMode", e);
         }
         return;
     }
 
     // 0013SR: PRO LOGIC2x MOVIE
     // 0100SR: EXTENDED STEREO
+    // 0101SR: Action
 
     this.log.debug("toggleListeningMode now:", thisThis.state.listeningMode);
-
-    if (thisThis.state.listeningMode === "0013") {
+    if (["0013", "0101"].indexOf(thisThis.state.listeningMode) > -1) {
         // from PL2 to ext stereo
         thisThis.sendCommand("0112SR");
         thisThis.state.listeningMode = "0112";
@@ -692,13 +749,14 @@ PioneerAvr.prototype.toggleListeningMode = function (callback) {
         try {
             callback();
         } catch (e) {
-            thisThis.log.debug(e);
+            thisThis.log.debug("toggleListeningMode", e);
         }
     } else {
         // from ext. stero to PL2
         thisThis.state.listeningMode = "0013";
         thisThis.sendCommand("!0013SR", "SR", function (error, data) {
             if (error) {
+                //fallback to Listeningmode "Action"
                 thisThis.state.listeningMode = "0101";
                 thisThis.sendCommand("0101SR");
             }
@@ -712,7 +770,7 @@ PioneerAvr.prototype.toggleListeningMode = function (callback) {
         try {
             callback();
         } catch (e) {
-            thisThis.log.debug(e);
+            thisThis.log.debug("toggleListeningMode2", e);
         }
     }
 };
@@ -729,7 +787,7 @@ PioneerAvr.prototype.muteStatus = function (callback) {
         try {
             callback(null, thisThis.state.muted);
         } catch (e) {
-            thisThis.log.debug(e);
+            thisThis.log.debug("muteStatus", e);
         }
         return;
     }
@@ -738,12 +796,13 @@ PioneerAvr.prototype.muteStatus = function (callback) {
         try {
             callback(null, thisThis.state.muted);
         } catch (e) {
-            thisThis.log.debug(e);
+            thisThis.log.debug("__updateMute", e);
         }
     });
 };
 
 PioneerAvr.prototype.muteOn = function () {
+    lastUserInteraction = Date.now()
     if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
     this.log.debug("Mute on");
     if (this.web) {
@@ -754,6 +813,7 @@ PioneerAvr.prototype.muteOn = function () {
 };
 
 PioneerAvr.prototype.muteOff = function () {
+    lastUserInteraction = Date.now()
     if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
     this.log.debug("Mute off");
     if (this.web) {
@@ -775,12 +835,13 @@ PioneerAvr.prototype.inputStatus = function (callback) {
         try {
             callback(null, thisThis.state.input);
         } catch (e) {
-            thisThis.log.debug(e);
+            thisThis.log.debug("__updateInput", e);
         }
     });
 };
 
 PioneerAvr.prototype.setInput = function (id) {
+    lastUserInteraction = Date.now()
     if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
     if (this.web) {
         request.get(this.webEventHandlerBaseUrl + `${id}FN`);
@@ -797,6 +858,7 @@ PioneerAvr.prototype.renameInput = function (id, newName) {
 
 // Remote Key methods
 PioneerAvr.prototype.remoteKey = function (rk) {
+    lastUserInteraction = Date.now()
     if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
     // Implemented key from CURSOR OPERATION
     switch (rk) {

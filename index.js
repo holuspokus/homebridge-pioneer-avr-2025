@@ -6,6 +6,10 @@ const ppath = require("persist-path");
 const fs = require("fs");
 const mkdirp = require("mkdirp");
 
+let initP = function(){},
+    initPTimeout = null,
+    thisThis = null
+
 let Service;
 let Characteristic;
 
@@ -35,7 +39,7 @@ function pioneerAvrAccessory(log, config) {
 
     log.debug("Preferences directory : %s", this.prefsDir);
     this.manufacturer = "Pioneer";
-    this.version = "0.0.4";
+    this.version = "0.0.5";
 
     // check if prefs directory ends with a /, if not then add it
     if (this.prefsDir.endsWith("/") === false) {
@@ -45,7 +49,7 @@ function pioneerAvrAccessory(log, config) {
     this.inputVisibilityFile = this.prefsDir + "inputsVisibility_" + this.host;
     this.savedVisibility = {};
 
-    let thisThis = this;
+    thisThis = this;
 
     try {
         // check if the preferences directory exists, if not then create it
@@ -98,33 +102,53 @@ function pioneerAvrAccessory(log, config) {
         this.log.debug("Input visibility file could not be created (%s)", err);
     }
 
+        try{
 
-    let prepareTvServiceDate = Date.now()
-    // automatic retry after 10min to fix itself
-    while (!thisThis.avr || (thisThis.avr.isReady == false && Date.now() - prepareTvServiceDate > (10*60*1000))) {
+            try {
+                if(thisThis.avr && thisThis.avr.s){
+                    thisThis.avr.s.disconnect()
+                    require("deasync").sleep(10050);
+                }
+            } catch (err) {
+                thisThis.log.debug("error disconnecting before connecting", err);
+            }
 
-      try {
+            try {
+                thisThis.avr = new PioneerAvr(thisThis.log, thisThis.host, thisThis.port, function(){
+                    try{
+                        thisThis.enabledServices = [];
+                        require("deasync").sleep(1050);
+                        thisThis.prepareInformationService();
+                        require("deasync").sleep(50);
+                        thisThis.prepareTvService();
+                        require("deasync").sleep(50);
+                        thisThis.prepareTvSpeakerService();
+                        require("deasync").sleep(50);
+                        thisThis.prepareInputSourceService();
+                    } catch (err) {
+                        thisThis.log.debug("new PioneerAvr() Callback-Error (%s)", err);
+                    }
+                });
 
-          thisThis.avr = new PioneerAvr(thisThis.log, thisThis.host, thisThis.port);
-          thisThis.enabledServices = [];
+            } catch (err) {
+                thisThis.log.debug("new PioneerAvr() Error (%s)", err);
+            }
 
-          while (!thisThis.avr || !thisThis.avr.s || !thisThis.avr.s.connectionReady) {
-              require("deasync").sleep(50);
-          }
-          require("deasync").sleep(1050);
-          thisThis.prepareInformationService();
-          require("deasync").sleep(50);
-          thisThis.prepareTvService();
-          require("deasync").sleep(50);
-          thisThis.prepareTvSpeakerService();
-          require("deasync").sleep(50);
-          thisThis.prepareInputSourceService();
-          prepareTvServiceDate = Date.now()
+            try {
+                if(!thisThis.avr.isReady){
+                  // automatic retry after 5min to fix itself. maybe the receiver is disconnected or without power.
+                  let prepareTvServiceDate = Date.now()
+                  while(!thisThis.avr.isReady && Date.now() - prepareTvServiceDate < (5*60*1000)){
+                      require("deasync").sleep(100);
+                  }
+                }
+            } catch (err) {
+                thisThis.log.debug("new PioneerAvr retry-wait Error (%s)", err);
+            }
 
-      } catch (err) {
-          this.log.debug("new PioneerAvr Error (%s)", err);
-      }
-    }
+        } catch (err) {
+            this.log.debug("Input visibility file could not be created (%s)", err);
+        }
 
 }
 
@@ -592,7 +616,17 @@ pioneerAvrAccessory.prototype.getServices = function () {
         }
     }
 
-    this.log.info("Accessory %s ready", this.name);
+    while (!this.avr || this.avr.isReady == false ) {
+        require("deasync").sleep(10000);
+    }
+
+    if (this.avr && this.avr.isReady == false) {
+        this.log.info("Accessory %s NOT ready", this.name);
+    }else{
+        this.log.info("Accessory %s ready", this.name);
+    }
+
+
     this.log.debug("Enabled services : %s", this.enabledServices.length);
 
     return this.enabledServices;

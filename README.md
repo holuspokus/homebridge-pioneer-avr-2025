@@ -43,6 +43,8 @@ Declare your AVR as a homekit TV :
 
 ## Links
 
+https://github.com/kazcangi/homebridge-pioneer-avr
+
 https://github.com/rwifall/pioneer-receiver-notes
 
 https://github.com/merdok/homebridge-webos-tv
@@ -50,6 +52,10 @@ https://github.com/merdok/homebridge-webos-tv
 https://github.com/TG908/homebridge-vsx
 
 ## Release Notes
+
+### v0.0.5
+Remote-Key "Play/Pause" can now be used for toggle Listeningmode between EXTENDED STEREO and PRO LOGIC 2 MOVIE.
+Enhanced behavior when the Pioneer Receiver is not accessible over the network at plugin startup. The plugin will now attempt to establish a connection in such cases. This issue may occur due to network interruptions or power outages. While the functionality is not yet perfect, it has been significantly improved.
 
 ### v0.0.4
 Plugin-Name in Readme fixed oO
