@@ -6,6 +6,10 @@ const ppath = require("persist-path");
 const fs = require("fs");
 const mkdirp = require("mkdirp");
 
+let initP = function(){},
+    initPTimeout = null,
+    thisThis = null
+
 let Service;
 let Characteristic;
 
@@ -45,7 +49,7 @@ function pioneerAvrAccessory(log, config) {
     this.inputVisibilityFile = this.prefsDir + "inputsVisibility_" + this.host;
     this.savedVisibility = {};
 
-    let thisThis = this;
+    thisThis = this;
 
     try {
         // check if the preferences directory exists, if not then create it
@@ -98,52 +102,53 @@ function pioneerAvrAccessory(log, config) {
         this.log.debug("Input visibility file could not be created (%s)", err);
     }
 
+        try{
 
-
-
-    while (!thisThis.avr || (thisThis.avr.isReady == false)) {
-
-      try {
-          if(thisThis.avr && thisThis.avr.s){
-              thisThis.avr.s.disconnect()
-          }
-      } catch (err) {
-          this.log.debug("error disconnecting before connecting", err);
-      }
-
-      try {
-
-          thisThis.avr = new PioneerAvr(thisThis.log, thisThis.host, thisThis.port);
-          thisThis.enabledServices = [];
-
-          while (!thisThis.avr || !thisThis.avr.s || !thisThis.avr.s.connectionReady || thisThis.avr.state.lastGetPowerStatus === null) {
-              require("deasync").sleep(50);
-          }
-          require("deasync").sleep(1050);
-          thisThis.prepareInformationService();
-          require("deasync").sleep(50);
-          thisThis.prepareTvService();
-          require("deasync").sleep(50);
-          thisThis.prepareTvSpeakerService();
-          require("deasync").sleep(50);
-          thisThis.prepareInputSourceService();
-      } catch (err) {
-          this.log.debug("new PioneerAvr() Error (%s)", err);
-      }
-
-      try {
-          if(!thisThis.avr.isReady){
-            // automatic retry after 5min to fix itself. maybe the receiver is disconnected or without power.
-            let prepareTvServiceDate = Date.now()
-            while(!thisThis.avr.isReady && Date.now() - prepareTvServiceDate < (5*60*1000)){
-                require("deasync").sleep(10000);
+            try {
+                if(thisThis.avr && thisThis.avr.s){
+                    thisThis.avr.s.disconnect()
+                    require("deasync").sleep(10050);
+                }
+            } catch (err) {
+                thisThis.log.debug("error disconnecting before connecting", err);
             }
-          }
-      } catch (err) {
-          this.log.debug("new PioneerAvr retry-wait Error (%s)", err);
-      }
 
-    }
+            try {
+                thisThis.avr = new PioneerAvr(thisThis.log, thisThis.host, thisThis.port, function(){
+                    try{
+                        thisThis.enabledServices = [];
+                        require("deasync").sleep(1050);
+                        thisThis.prepareInformationService();
+                        require("deasync").sleep(50);
+                        thisThis.prepareTvService();
+                        require("deasync").sleep(50);
+                        thisThis.prepareTvSpeakerService();
+                        require("deasync").sleep(50);
+                        thisThis.prepareInputSourceService();
+                    } catch (err) {
+                        thisThis.log.debug("new PioneerAvr() Callback-Error (%s)", err);
+                    }
+                });
+
+            } catch (err) {
+                thisThis.log.debug("new PioneerAvr() Error (%s)", err);
+            }
+
+            try {
+                if(!thisThis.avr.isReady){
+                  // automatic retry after 5min to fix itself. maybe the receiver is disconnected or without power.
+                  let prepareTvServiceDate = Date.now()
+                  while(!thisThis.avr.isReady && Date.now() - prepareTvServiceDate < (5*60*1000)){
+                      require("deasync").sleep(100);
+                  }
+                }
+            } catch (err) {
+                thisThis.log.debug("new PioneerAvr retry-wait Error (%s)", err);
+            }
+
+        } catch (err) {
+            this.log.debug("Input visibility file could not be created (%s)", err);
+        }
 
 }
 
@@ -609,6 +614,10 @@ pioneerAvrAccessory.prototype.getServices = function () {
         if(this.avr && this.avr.inputMissing.length > 0){
           this.log.debug("inputMissing:", this.avr.inputMissing.join(', '));
         }
+    }
+
+    while (!this.avr || this.avr.isReady == false ) {
+        require("deasync").sleep(10000);
     }
 
     if (this.avr && this.avr.isReady == false) {
