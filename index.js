@@ -603,7 +603,7 @@ pioneerAvrAccessory.prototype.getMuted = function (callback) {
         callback = function(){}
     }
 
-    if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(null, false); return; }
+    if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(null, true); return; }
 
     // Get mute status
     this.log.info("Get mute status");
@@ -620,7 +620,7 @@ pioneerAvrAccessory.prototype.getMutedInverted = function (callback) {
 
     // Get mute status
     // this.log.debug("getMutedInverted mute status");
-    callback(null, !this.avr.state.muted);
+    callback(null, !(this.avr.state.muted || !this.avr.state.on));
 };
 
 pioneerAvrAccessory.prototype.setMutedInverted = function (mute, callback) {
