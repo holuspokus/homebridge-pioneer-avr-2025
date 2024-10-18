@@ -172,6 +172,14 @@ function PioneerAvr(log, host, port, maxVolumeSet, connectionReadyCallback) {
                     thisThis.log.debug("functionSetPowerState", e);
                 }
             }, 2)
+
+            setTimeout(function(){
+                try {
+                    thisThis.functionSetLightbulbMuted(thisThis.state.muted)
+                } catch (e) {
+                    thisThis.log.debug("functionSetLightbulbMuted", e);
+                }
+            }, 20)
         }
 
         // Data returned for mute status
@@ -978,7 +986,7 @@ PioneerAvr.prototype.muteStatus = function (callback) {
 
 PioneerAvr.prototype.muteOn = function () {
     lastUserInteraction = Date.now()
-    if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
+    if (!this.s || !this.s.connectionReady || !this.state.on || this.state.muted === true) { return; }
     this.log.debug("Mute on");
     if (this.web) {
         request.get(this.webEventHandlerBaseUrl + "MO");
@@ -989,7 +997,7 @@ PioneerAvr.prototype.muteOn = function () {
 
 PioneerAvr.prototype.muteOff = function () {
     lastUserInteraction = Date.now()
-    if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
+    if (!this.s || !this.s.connectionReady || !this.state.on || this.state.muted === false) { return; }
     this.log.debug("Mute off");
     if (this.web) {
         request.get(this.webEventHandlerBaseUrl + "MF");

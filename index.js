@@ -257,7 +257,7 @@ pioneerAvrAccessory.prototype.prepareVolumeService = function () {
 				this.volumeServiceLightbulb
 					.getCharacteristic(Characteristic.On)
 					.on("get", this.getMutedInverted.bind(this))
-					.on("set", this.setMuted.bind(this));
+					.on("set", this.setMutedInverted.bind(this));
 				this.volumeServiceLightbulb
 					.getCharacteristic(Characteristic.Brightness)
 					.on("get", this.getVolume.bind(this))
@@ -265,7 +265,8 @@ pioneerAvrAccessory.prototype.prepareVolumeService = function () {
 
           this.volumeServiceLightbulb
 						.getCharacteristic(Characteristic.On)
-						.updateValue(true);
+						// .updateValue(true);
+            .updateValue((thisThis.avr.state.muted || !thisThis.avr.state.on) ? false : true);
 
           this.volumeServiceLightbulb
 						.getCharacteristic(Characteristic.Brightness)
@@ -280,13 +281,16 @@ pioneerAvrAccessory.prototype.prepareVolumeService = function () {
             clearTimeout(functionSetLightbulbVolumeTimeout)
             functionSetLightbulbVolumeTimeout = setTimeout(function(){
 
-                thisThis.log.debug('set vol to ' + String(set))
+                // thisThis.log.debug('set vol to ' + String(set))
                 try {
                     thisThis.volumeServiceLightbulb
                     .getCharacteristic(Characteristic.On)
-                    .updateValue(set > 0 ? true : false);
+                    // .updateValue(set > 0 ? true : false);
                     // .updateValue(set > 0 ? false : true); // inverted
                     // .updateValue(true);
+                    // .updateValue(thisThis.avr.state.muted ? false : true);
+                    .updateValue((thisThis.avr.state.muted || !thisThis.avr.state.on) ? false : true);
+                    // .updateValue(thisThis.avr.state.muted ? true : false);
 
                     thisThis.volumeServiceLightbulb
                     .getCharacteristic(Characteristic.Brightness)
@@ -308,8 +312,9 @@ pioneerAvrAccessory.prototype.prepareVolumeService = function () {
                 .getCharacteristic(Characteristic.On)
                 // .updateValue(true);
                 // .updateValue(thisThis.avr.state.muted ? false : true);
-                .updateValue(thisThis.avr.state.muted ? true : false);
+                // .updateValue(thisThis.avr.state.muted ? true : false);
                 // .updateValue(thisThis.avr.state.volume > 0);
+                .updateValue((thisThis.avr.state.muted || !thisThis.avr.state.on) ? false : true);
             } catch (e) {
                 thisThis.log.debug('functionSetLightbulbMuted Error', e)
             }
@@ -611,11 +616,25 @@ pioneerAvrAccessory.prototype.getMutedInverted = function (callback) {
         callback = function(){}
     }
 
-    if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(null, !false); return; }
+    // if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(null, true); return; }
 
     // Get mute status
-    this.log.debug("getMutedInverted mute status");
+    // this.log.debug("getMutedInverted mute status");
     callback(null, !this.avr.state.muted);
+};
+
+pioneerAvrAccessory.prototype.setMutedInverted = function (mute, callback) {
+    if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(); return; }
+    // Set mute on/off
+    if (!mute) {
+        this.log.info("Mute on");
+        this.avr.muteOn();
+    } else {
+        this.log.info("Mute off");
+        this.avr.muteOff();
+    }
+
+    callback();
 };
 
 pioneerAvrAccessory.prototype.setMuted = function (mute, callback) {
@@ -643,13 +662,15 @@ pioneerAvrAccessory.prototype.setVolume = function (volume, callback) {
     // Set volume status
     if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(); return; }
 
-    this.log.info("Set volume to %s", volume);
+    this.log.debug("Set volume to %s, isMuted: %s", volume, this.avr.state.muted);
     this.avr.setVolume(volume, callback);
 
     if (volume <= 0 && !this.avr.state.muted){
+        this.log.debug("Set mute by volume %s", volume);
         this.setMuted(true, function(){})
     }else
     if (volume > 0 && this.avr.state.muted){
+      this.log.debug("Set UNmute by volume %s", volume);
         this.setMuted(false, function(){})
     }
 };
