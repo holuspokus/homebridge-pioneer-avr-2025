@@ -89,6 +89,10 @@ https://github.com/TG908/homebridge-vsx
 
 ## Release Notes
 
+### v0.0.8
+
+* Volume as Lightbulb works even finer now! 😉 Don't forget to configure it with 'maxVolumeSet': 70 or turn it off with 'maxVolumeSet': 0.
+
 ### v0.0.7
 
 * Volume as Lightbulb works fine now
