@@ -193,7 +193,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, connectionReadyCallback) {
                 data,
             );
             try {
-                callback(error, data);
+                callback(error, thisThis.state.muted);
             } catch (e) {
                 thisThis.log.debug("onData", e);
             }
@@ -953,7 +953,7 @@ PioneerAvr.prototype.__updateMute = function (callback) {
 
 let lastMuteStatus = null;
 PioneerAvr.prototype.muteStatus = function (callback) {
-    if (!this.s || !this.s.connectionReady || !this.state.on) { callback(null, true); return; }
+    if (!this.s || !this.s.connectionReady || !this.state.on) { callback(null, false); return; }
 
     let thisThis = this;
 
