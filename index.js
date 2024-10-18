@@ -26,6 +26,7 @@ module.exports = function (homebridge) {
 let functionSetLightbulbVolumeTimeout = null
 let volumeServiceLightbulbTimeout = null
 let updatePowerStateTimeout = null
+let functionSetActiveIdentifierTimeout = null
 
 function pioneerAvrAccessory(log, config) {
     // Main accessory initialization
@@ -35,7 +36,7 @@ function pioneerAvrAccessory(log, config) {
     this.name = config.name = config.name.replace(/[^a-zA-Z0-9 ]/g, "");
     this.host = config.host;
     this.port = config.port;
-    
+
     if(Object.hasOwn(config, 'maxVolumeSet') || typeof(config.maxVolumeSet) == 'undefined'){
         this.maxVolumeSet = config.maxVolumeSet;
     }else{
@@ -240,6 +241,27 @@ pioneerAvrAccessory.prototype.prepareTvService = function () {
                 }
             }, 50)
         }
+
+        thisThis.avr.functionSetActiveIdentifier = function(set){
+
+            // if (!thisThis.avr.s || !thisThis.avr.s.connectionReady || !thisThis.avr.state.on) { thisThis.log.debug('update mute canceled ' + String(set)); return; }
+
+            clearTimeout(functionSetActiveIdentifierTimeout)
+            functionSetActiveIdentifierTimeout = setTimeout(function(){
+                thisThis.log.debug('functionSetActiveIdentifierTimeout called')
+                try {
+                    thisThis.tvService
+                    .getCharacteristic(Characteristic.ActiveIdentifier)
+                    .updateValue(set); // muted or not
+
+                    // thisThis.volumeServiceSpeaker
+                    // .getCharacteristic(Characteristic.On)
+                    // .updateValue(set); // muted or not
+                } catch (e) {
+                    thisThis.log.debug('functionSetActiveIdentifierTimeout Error', e)
+                }
+            }, 50)
+        }
     // })()
 }
 
@@ -264,8 +286,12 @@ pioneerAvrAccessory.prototype.prepareVolumeService = function () {
 					// .updateValue(78);
 
           this.volumeServiceLightbulb
+						.getCharacteristic(Characteristic.On)
+						.updateValue((!this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on ||this.avr.state.muted) ? false : true);
+
+          this.volumeServiceLightbulb
 						.getCharacteristic(Characteristic.Brightness)
-						.updateValue(78);
+						.updateValue(70);
 
     this.tvService.addLinkedService(this.volumeServiceLightbulb);
     this.enabledServices.push(this.volumeServiceLightbulb);
@@ -301,6 +327,10 @@ pioneerAvrAccessory.prototype.prepareVolumeService = function () {
                     thisThis.log.debug('set vol to ' + String(set))
                     try {
                       thisThis.volumeServiceLightbulb
+                      .getCharacteristic(Characteristic.On)
+                      .updateValue((!thisThis.avr.s || !thisThis.avr.s.connectionReady || !thisThis.avr.state.on || thisThis.avr.state.muted) ? false : true);
+
+                      thisThis.volumeServiceLightbulb
                       .getCharacteristic(Characteristic.Brightness)
                       .updateValue(set);
 
@@ -325,7 +355,7 @@ pioneerAvrAccessory.prototype.prepareVolumeService = function () {
                 try {
                     thisThis.volumeServiceLightbulb
                     .getCharacteristic(Characteristic.On)
-                    .updateValue(set); // muted or not
+                    .updateValue((!thisThis.avr.s || !thisThis.avr.s.connectionReady || !thisThis.avr.state.on || thisThis.avr.state.muted) ? false : true);
 
                     // thisThis.volumeServiceSpeaker
                     // .getCharacteristic(Characteristic.On)
@@ -335,29 +365,6 @@ pioneerAvrAccessory.prototype.prepareVolumeService = function () {
                 }
             }, 50)
         }
-
-        thisThis.avr.functionSetInputState = function(set){
-
-            // if (!thisThis.avr.s || !thisThis.avr.s.connectionReady || !thisThis.avr.state.on) { thisThis.log.debug('update mute canceled ' + String(set)); return; }
-
-            clearTimeout(volumeServiceLightbulbTimeout)
-            volumeServiceLightbulbTimeout = setTimeout(function(){
-                thisThis.log.debug('functionSetInputState called')
-                try {
-                    thisThis.volumeServiceLightbulb
-                    .getCharacteristic(Characteristic.On)
-                    .updateValue(set); // muted or not
-
-                    // thisThis.volumeServiceSpeaker
-                    // .getCharacteristic(Characteristic.On)
-                    // .updateValue(set); // muted or not
-                } catch (e) {
-                    thisThis.log.debug('functionSetInputState Error', e)
-                }
-            }, 50)
-        }
-
-
     // })()
 
 

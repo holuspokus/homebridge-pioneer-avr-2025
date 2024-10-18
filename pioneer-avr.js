@@ -93,6 +93,10 @@ function PioneerAvr(log, host, port, maxVolumeSet, connectionReadyCallback) {
         thisThis.log.debug('dummy functionSetPowerState called')
     };
 
+    this.functionSetActiveIdentifier = function () {
+        thisThis.log.debug('dummy functionSetActiveIdentifier called')
+    };
+
 
     // Current AV status
     this.state = {
@@ -276,6 +280,13 @@ function PioneerAvr(log, host, port, maxVolumeSet, connectionReadyCallback) {
                 return;
             }
             thisThis.state.input = inputIndex;
+            setTimeout(function(){
+                try {
+                    thisThis.functionSetActiveIdentifier(thisThis.state.input)
+                } catch (e) {
+                    thisThis.log.debug("functionSetActiveIdentifier", e);
+                }
+            }, 2)
 
             try {
                 callback(error, inputIndex);
