@@ -5,7 +5,7 @@
         "port": 51826,
         "pin": "031-45-156"
     },
-    
+
     "description": "Hello World",
 
     "platforms": [],
@@ -16,6 +16,7 @@
             "model": "VSX-922",
             "name": "My Pioneer AVR",
             "description": "AV Receiver",
+            "maxVolumeSet": 70,
             "host": "192.168.99.99",
             "port": 23
         }

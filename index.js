@@ -23,6 +23,10 @@ module.exports = function (homebridge) {
     );
 };
 
+let functionSetLightbulbVolumeTimeout = null
+let volumeServiceLightbulbTimeout = null
+let updatePowerStateTimeout = null
+
 function pioneerAvrAccessory(log, config) {
     // Main accessory initialization
     this.log = log;
@@ -31,6 +35,17 @@ function pioneerAvrAccessory(log, config) {
     this.name = config.name = config.name.replace(/[^a-zA-Z0-9 ]/g, "");
     this.host = config.host;
     this.port = config.port;
+    
+    if(Object.hasOwn(config, 'maxVolumeSet') || typeof(config.maxVolumeSet) == 'undefined'){
+        this.maxVolumeSet = config.maxVolumeSet;
+    }else{
+        this.maxVolumeSet = 70;
+    }
+
+    this.maxVolumeSet = parseInt(String(this.maxVolumeSet).replace(/[^0-9]/g, ""), 10);
+    if (this.maxVolumeSet > 100) { this.maxVolumeSet = 100; }
+    if (this.maxVolumeSet < 0) { this.maxVolumeSet = 0; }
+
     this.model =
         config.model.replace(/[^a-zA-Z0-9]/g, "") ||
         config.name.replace(/[^a-zA-Z0-9]/g, "") ||
@@ -39,7 +54,7 @@ function pioneerAvrAccessory(log, config) {
 
     log.debug("Preferences directory : %s", this.prefsDir);
     this.manufacturer = "Pioneer";
-    this.version = "0.0.5";
+    this.version = "0.0.6";
 
     // check if prefs directory ends with a /, if not then add it
     if (this.prefsDir.endsWith("/") === false) {
@@ -102,53 +117,43 @@ function pioneerAvrAccessory(log, config) {
         this.log.debug("Input visibility file could not be created (%s)", err);
     }
 
-        try{
 
-            try {
-                if(thisThis.avr && thisThis.avr.s){
-                    thisThis.avr.s.disconnect()
-                    require("deasync").sleep(10050);
-                }
-            } catch (err) {
-                thisThis.log.debug("error disconnecting before connecting", err);
-            }
-
-            try {
-                thisThis.avr = new PioneerAvr(thisThis.log, thisThis.host, thisThis.port, function(){
-                    try{
-                        thisThis.enabledServices = [];
-                        require("deasync").sleep(1050);
-                        thisThis.prepareInformationService();
-                        require("deasync").sleep(50);
-                        thisThis.prepareTvService();
-                        require("deasync").sleep(50);
-                        thisThis.prepareTvSpeakerService();
-                        require("deasync").sleep(50);
-                        thisThis.prepareInputSourceService();
-                    } catch (err) {
-                        thisThis.log.debug("new PioneerAvr() Callback-Error (%s)", err);
-                    }
-                });
-
-            } catch (err) {
-                thisThis.log.debug("new PioneerAvr() Error (%s)", err);
-            }
-
-            try {
-                if(!thisThis.avr.isReady){
-                  // automatic retry after 5min to fix itself. maybe the receiver is disconnected or without power.
-                  let prepareTvServiceDate = Date.now()
-                  while(!thisThis.avr.isReady && Date.now() - prepareTvServiceDate < (5*60*1000)){
-                      require("deasync").sleep(100);
-                  }
-                }
-            } catch (err) {
-                thisThis.log.debug("new PioneerAvr retry-wait Error (%s)", err);
-            }
-
-        } catch (err) {
-            this.log.debug("Input visibility file could not be created (%s)", err);
+    try {
+        if(thisThis.avr && thisThis.avr.s){
+            thisThis.avr.s.disconnect()
+            require("deasync").sleep(10050);
         }
+    } catch (err) {
+        thisThis.log.debug("error disconnecting before connecting", err);
+    }
+
+    try {
+        thisThis.avr = new PioneerAvr(thisThis.log, thisThis.host, thisThis.port, thisThis.maxVolumeSet, function(){
+            try{
+                thisThis.enabledServices = [];
+                require("deasync").sleep(1050);
+                thisThis.prepareInformationService();
+                require("deasync").sleep(50);
+                thisThis.prepareTvService();
+                require("deasync").sleep(50);
+                thisThis.prepareTvSpeakerService();
+                require("deasync").sleep(50);
+                thisThis.prepareInputSourceService();
+
+                thisThis.log.debug('thisThis.maxVolumeSet', thisThis.maxVolumeSet)
+                if (thisThis.maxVolumeSet !== 0){
+                    require("deasync").sleep(50);
+                    thisThis.prepareVolumeService();
+                }
+
+            } catch (err) {
+                thisThis.log.debug("new PioneerAvr() Callback-Error (%s)", err);
+            }
+        });
+
+    } catch (err) {
+        thisThis.log.debug("new PioneerAvr() Error (%s)", err);
+    }
 
 }
 
@@ -179,7 +184,6 @@ pioneerAvrAccessory.prototype.prepareInformationService = function () {
 
 pioneerAvrAccessory.prototype.prepareTvService = function () {
     // Create TV service for homekit
-    const me = this;
 
     this.tvService = new Service.Television(
         this.name.replace(/[^a-zA-Z0-9]/g, ""),
@@ -214,13 +218,149 @@ pioneerAvrAccessory.prototype.prepareTvService = function () {
         .getCharacteristic(Characteristic.RemoteKey)
         .on("set", this.remoteKeyPress.bind(this));
 
-    // // Volume as brightness
-    // this.tvService
-    //     .addCharacteristic(Characteristic.Brightness)
-    //     .on('get', this.getVolume.bind(this))
-    //     .on('set', this.setVolume.bind(this));
-
     this.enabledServices.push(this.tvService);
+
+    let thisThis = this
+
+    // (function(){
+        thisThis.avr.functionSetPowerState = function(set){
+
+            // if (!thisThis.avr.s || !thisThis.avr.s.connectionReady || !thisThis.avr.state.on) { thisThis.log.debug('update power canceled ' + String(set)); return; }
+
+            clearTimeout(updatePowerStateTimeout)
+            updatePowerStateTimeout = setTimeout(function(){
+                thisThis.log.debug('functionSetPowerState called')
+                try {
+                    thisThis.tvService
+                    .getCharacteristic(Characteristic.Active)
+                    .updateValue(set);
+
+                } catch (e) {
+                    thisThis.log.debug('functionSetPowerState Error', e)
+                }
+            }, 50)
+        }
+    // })()
+}
+
+
+pioneerAvrAccessory.prototype.prepareVolumeService = function () {
+    // let thisThis = this;
+    // Volume
+
+    this.volumeServiceLightbulb = new Service.Lightbulb(this.name, 'volumeInput');
+				this.volumeServiceLightbulb
+					.getCharacteristic(Characteristic.On)
+					.on('get', this.getMuted.bind(this))
+					.on('set', this.getMuted.bind(this));
+				this.volumeServiceLightbulb
+					.getCharacteristic(Characteristic.Brightness)
+					.on('get', this.getVolume.bind(this))
+					.on('set', this.setVolume.bind(this));
+          // .setValue(78);
+
+          // this.volumeServiceLightbulb
+					// .getCharacteristic(Characteristic.Brightness)
+					// .updateValue(78);
+
+          this.volumeServiceLightbulb
+						.getCharacteristic(Characteristic.Brightness)
+						.updateValue(78);
+
+    this.tvService.addLinkedService(this.volumeServiceLightbulb);
+    this.enabledServices.push(this.volumeServiceLightbulb);
+
+    // this.volumeServiceSpeaker = new Service.Speaker(this.name, 'volumeInput');
+		// 		this.volumeServiceSpeaker
+		// 			.getCharacteristic(Characteristic.On)
+    //       .on("get", this.getMuted.bind(this))
+    //       .on("set", this.setMuted.bind(this));
+		// 		this.volumeServiceSpeaker
+		// 			.getCharacteristic(Characteristic.Brightness)
+		// 			.on("get", this.getVolume.bind(this))
+		// 			.on("set", this.setVolume.bind(this));
+    //
+    // this.enabledServices.push(this.volumeServiceSpeaker);
+
+    // this.functionSetLightbulbMuted(true)
+    // this.functionSetLightbulbVolume(79)
+
+    let thisThis = this
+
+    // (function () {
+
+        thisThis.avr.functionSetLightbulbVolume = function(set){
+          // thisThis.log.debug('functionSetLightbulbVolume called...', String(set),  thisThis.volumeServiceLightbulb.getCharacteristic(Characteristic.Brightness).value)
+
+            // if (!thisThis.avr.s || !thisThis.avr.s.connectionReady || !thisThis.avr.state.on) { thisThis.log.debug('update vol canceled ' + String(set)); return; }
+
+            if(thisThis.volumeServiceLightbulb.getCharacteristic(Characteristic.Brightness).value != set){
+                clearTimeout(functionSetLightbulbVolumeTimeout)
+                functionSetLightbulbVolumeTimeout = setTimeout(function(){
+
+                    thisThis.log.debug('set vol to ' + String(set))
+                    try {
+                      thisThis.volumeServiceLightbulb
+                      .getCharacteristic(Characteristic.Brightness)
+                      .updateValue(set);
+
+                      // thisThis.volumeServiceSpeaker
+                      // .setCharacteristic(Characteristic.Brightness)
+                      // .updateValue(set); // volume
+                    } catch (e) {
+                        thisThis.log.debug('updateValueVol', e)
+                    }
+                }, 50)
+            }
+        }
+
+
+        thisThis.avr.functionSetLightbulbMuted = function(set){
+
+            // if (!thisThis.avr.s || !thisThis.avr.s.connectionReady || !thisThis.avr.state.on) { thisThis.log.debug('update mute canceled ' + String(set)); return; }
+
+            clearTimeout(volumeServiceLightbulbTimeout)
+            volumeServiceLightbulbTimeout = setTimeout(function(){
+                // thisThis.log.debug('functionSetLightbulbMuted called')
+                try {
+                    thisThis.volumeServiceLightbulb
+                    .getCharacteristic(Characteristic.On)
+                    .updateValue(set); // muted or not
+
+                    // thisThis.volumeServiceSpeaker
+                    // .getCharacteristic(Characteristic.On)
+                    // .updateValue(set); // muted or not
+                } catch (e) {
+                    thisThis.log.debug('functionSetLightbulbMuted Error', e)
+                }
+            }, 50)
+        }
+
+        thisThis.avr.functionSetInputState = function(set){
+
+            // if (!thisThis.avr.s || !thisThis.avr.s.connectionReady || !thisThis.avr.state.on) { thisThis.log.debug('update mute canceled ' + String(set)); return; }
+
+            clearTimeout(volumeServiceLightbulbTimeout)
+            volumeServiceLightbulbTimeout = setTimeout(function(){
+                thisThis.log.debug('functionSetInputState called')
+                try {
+                    thisThis.volumeServiceLightbulb
+                    .getCharacteristic(Characteristic.On)
+                    .updateValue(set); // muted or not
+
+                    // thisThis.volumeServiceSpeaker
+                    // .getCharacteristic(Characteristic.On)
+                    // .updateValue(set); // muted or not
+                } catch (e) {
+                    thisThis.log.debug('functionSetInputState Error', e)
+                }
+            }, 50)
+        }
+
+
+    // })()
+
+
 };
 
 pioneerAvrAccessory.prototype.prepareTvSpeakerService = function () {
@@ -379,6 +519,8 @@ pioneerAvrAccessory.prototype.addInputSourceService = function (inputkey) {
 // Callback methods
 // Callbacks for InformationService
 pioneerAvrAccessory.prototype.getPowerOn = function (callback) {
+    if (!this.avr || !this.avr.s || !this.avr.s.connectionReady) { callback(null, false); return; }
+
     this.log.info("Get power status");
     this.avr.powerStatus(callback);
 };
@@ -483,7 +625,8 @@ pioneerAvrAccessory.prototype.setVolumeSwitch = function (
 };
 
 pioneerAvrAccessory.prototype.listeningMode = function (callback) {
-    // Get mute status
+    if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(); return; }
+    // Get listening Mode
     this.log.info("Get listening Mode");
     this.avr.listeningMode(callback);
 };
@@ -495,6 +638,13 @@ pioneerAvrAccessory.prototype.toggleListeningMode = function (mode, callback) {
 };
 
 pioneerAvrAccessory.prototype.getMuted = function (callback) {
+
+    if (typeof(callback) !== "function"){
+        callback = function(){}
+    }
+
+    if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(null, false); return; }
+
     // Get mute status
     this.log.info("Get mute status");
     this.avr.muteStatus(callback);
@@ -514,19 +664,11 @@ pioneerAvrAccessory.prototype.setMuted = function (mute, callback) {
     callback();
 };
 
-let lastgetVolumeTime = undefined;
 pioneerAvrAccessory.prototype.getVolume = function (callback) {
     // Get volume status
+    if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(30); return; }
     this.log.info("Get volume status");
-
-    if (this.avr.state.volume !== null) {
-        callback(null, this.avr.state.volume);
-        this.avr.volumeStatus(function () {});
-    } else {
-        this.avr.volumeStatus(callback);
-    }
-
-    lastgetVolumeTime = Date.now();
+    this.avr.volumeStatus(callback);
 };
 
 pioneerAvrAccessory.prototype.setVolume = function (volume, callback) {
@@ -609,8 +751,10 @@ pioneerAvrAccessory.prototype.getServices = function () {
 
     let whilecounter = 0;
     while ((!this.avr || this.avr.isReady == false) && whilecounter++ < 1000) {
-        require("deasync").sleep(500);
-        this.log.debug("Waiting for pioneerAvrAccessory to be ready");
+        require("deasync").sleep(1000);
+        if(whilecounter % 10 === 0){
+            this.log.debug("Waiting for pioneerAvrAccessory to be ready");
+        }
         if(this.avr && this.avr.inputMissing.length > 0){
           this.log.debug("inputMissing:", this.avr.inputMissing.join(', '));
         }
