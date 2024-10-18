@@ -1,6 +1,6 @@
 {
   "name": "homebridge-pioneer-avr-2025",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Fast Pioneer AVR plugin for homebridge, ready for Node 22 or lower.",
   "license": "MIT",
   "keywords": [

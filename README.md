@@ -30,8 +30,6 @@ Declare your AVR as a homekit TV:
 2. Install **homebridge-pioneer-avr-2025** using `npm i homebridge-pioneer-avr-2025`
 3. Update your configuration file. See `sample-config.json` in this repository for a sample.
 
-> [!TIP]
->
 > When switching from the homebridge-pioneer-avr plugin to homebridge-pioneer-avr-2025, it is recommended to remove the "homebridge-pioneer-avr" plugin, remove the existing accessories under "Accessories" in the Homebridge settings, or reset Homebridge entirely, as well as to reboot the iOS devices.
 
 
@@ -52,8 +50,6 @@ Declare your AVR as a homekit TV:
 ]
 ```
 
-> [!NOTE]
->
 > |          Key | Value                      |
 > | -----------: | :------------------------- |
 > |    accessory | dont change                |
@@ -92,6 +88,10 @@ https://github.com/merdok/homebridge-webos-tv
 https://github.com/TG908/homebridge-vsx
 
 ## Release Notes
+
+### v0.0.7
+
+* Volume as Lightbulb works fine now
 
 ### v0.0.6
 
