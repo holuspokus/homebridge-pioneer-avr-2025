@@ -10,12 +10,13 @@
 const request = require("request");
 const TelnetAvr = require("./telnet-avr");
 
-// Reference fot input id -> Characteristic.InputSourceType
-// let inputSucceeded = [];
+
 let missingInputErrorCounter = {};
 let allInterval = null;
 let lastUserInteraction = null;
 
+
+// Reference fot input id -> Characteristic.InputSourceType
 let inputToTypeList = [
     ['25', 3], // BD -> Characteristic.InputSourceType.HDMI --> Apple TV
     ['04', 0], // DVD -> Characteristic.InputSourceType.OTHER ---> NintendoSwitch
@@ -42,7 +43,7 @@ let inputToTypeList = [
     ['18', 2], // XM RADIO -> Characteristic.InputSourceType.TUNER
     ['26', 10], // MEDIA GALLERY -> Characteristic.InputSourceType.APPLICATION
     ['27', 0], // SIRIUS -> Characteristic.InputSourceType.OTHER
-    // ['31', 3], // HDMI CYCLE -> Characteristic.InputSourceType.HDMI
+    ['31', 3], // HDMI CYCLE -> Characteristic.InputSourceType.HDMI
     ['33', 0], // ADAPTER -> Characteristic.InputSourceType.OTHER
     ['38', 2], // NETRADIO -> Characteristic.InputSourceType.TUNER
     ['40', 0], // SIRIUS -> Characteristic.InputSourceType.OTHER
@@ -52,19 +53,27 @@ let inputToTypeList = [
     ['46', 8], // AIRPLAY -> Characteristic.InputSourceType.AIRPLAY
     ['48', 0], // MHL -> Characteristic.InputSourceType.OTHER
     ['49', 0], // GAME -> Characteristic.InputSourceType.OTHER
+    ['53', 0], // SPOTIFY -> Characteristic.InputSourceType.OTHER
     ['57', 0] // SPOTIFY -> Characteristic.InputSourceType.OTHER
 ],
     inputToType = {}
 
-function PioneerAvr(log, host, port, connectionReadyCallback) {
+function PioneerAvr(log, host, port, maxVolumeSet, connectionReadyCallback) {
     let thisThis = this;
     this.log = log;
     this.host = host;
     this.port = port;
+    this.maxVolumeSet = parseInt(maxVolumeSet, 10)
+
+    if(isNaN(this.maxVolumeSet)){
+        this.maxVolumeSet = 60
+    }
 
     this.lastInputDiscovered = null
 
     this.inputMissing = []
+
+    this.setVolumeTimeout = null
 
     if (typeof connectionReadyCallback !== "function") {
         connectionReadyCallback = function () {
@@ -72,14 +81,27 @@ function PioneerAvr(log, host, port, connectionReadyCallback) {
         };
     }
 
+    this.functionSetLightbulbMuted = function () {
+        thisThis.log.debug('dummy functionSetLightbulbMuted called')
+    };
+
+    this.functionSetLightbulbVolume = function () {
+        thisThis.log.debug('dummy functionSetLightbulbVolume called')
+    };
+
+    this.functionSetPowerState = function () {
+        thisThis.log.debug('dummy functionSetPowerState called')
+    };
+
 
     // Current AV status
     this.state = {
-        volume: null,
-        on: null,
-        muted: null,
-        input: null,
+        volume: 30,
+        on: false,
+        muted: true,
+        input: 0,
         listeningMode: null,
+        listeningModeLM: null,
         lastGetPowerStatus: null
     };
 
@@ -98,15 +120,9 @@ function PioneerAvr(log, host, port, connectionReadyCallback) {
                 thisThis.log.debug("onData", e);
             }
             return;
-        }
-        // E06 is returned when input not exists, E06RGB is sperate
-        else if (data.startsWith("E06") && !data.startsWith("E06RGB")) {
-            try {
-                callback(String(data), data);
-            } catch (e) {
-                thisThis.log.debug("onData", e);
-            }
-        } else if (data.startsWith("E") && !data.startsWith("E06RGB")) {
+
+        // E06 is returned when input not exists, E06RGB is sperate, sometimes E04
+        } else if (data.startsWith("E") && !data.startsWith("E06RGB") && !data.startsWith("E04RGB")) {
             thisThis.log.debug("Receive error: " + String(data));
             try {
                 callback(String(data), data);
@@ -143,12 +159,29 @@ function PioneerAvr(log, host, port, connectionReadyCallback) {
             } catch (e) {
                 thisThis.log.debug("onData", e);
             }
+
+
+            setTimeout(function(){
+                try {
+                    thisThis.functionSetPowerState(thisThis.state.on)
+                } catch (e) {
+                    thisThis.log.debug("functionSetPowerState", e);
+                }
+            }, 2)
         }
 
         // Data returned for mute status
         else if (data.indexOf("MUT") > -1) {
             data = data.substring(data.indexOf("MUT"));
             thisThis.state.muted = parseInt(data[3], 10) === 0;
+            setTimeout(function(){
+                try {
+                    thisThis.functionSetLightbulbMuted(thisThis.state.muted)
+                } catch (e) {
+                    thisThis.log.debug("functionSetLightbulbMuted", e);
+                }
+            }, 2)
+
             thisThis.log.debug(
                 "Receive Mute status: %s (%s -> %s)",
                 thisThis.state.muted ? "Muted" : "Not Muted",
@@ -172,14 +205,39 @@ function PioneerAvr(log, host, port, connectionReadyCallback) {
                 thisThis.log.debug("onData", e);
             }
         }
+        else if (data.indexOf("LM") > -1 && data.length === 6) {
+            data = data.substring(data.indexOf("LM"));
+            thisThis.state.listeningModeLM = data.substr(2, 4); // SR0018 -> 0018
+            try {
+                callback(error, data);
+            } catch (e) {
+                thisThis.log.debug("onData", e);
+            }
+        }
 
         // Data returned for volume status2
         else if (data.indexOf("VOL") > -1) {
             data = data.substring(data.indexOf("VOL"));
             let vol = data.substr(3, 3);
-            let volPctF = Math.floor((parseInt(vol) * 100) / 185);
-            if(vol.length === 3 && !isNaN(Math.floor(volPctF))){
+
+            var volPctF = 0
+
+            if(thisThis.maxVolumeSet > 0){
+                volPctF = Math.floor(parseInt(vol, 10) * 100 / ((185/100) * thisThis.maxVolumeSet));
+            }else{
+                volPctF = Math.floor(parseInt(vol, 10) * 100 / 185);
+            }
+
+
+            if(vol.length === 3 && !isNaN(volPctF)){
                 thisThis.state.volume = Math.floor(volPctF);
+                setTimeout(function(){
+                    try {
+                        thisThis.functionSetLightbulbVolume(thisThis.state.volume)
+                    } catch (e) {
+                        thisThis.log.debug("functionSetLightbulbVolume", e);
+                    }
+                }, 3)
             }
             thisThis.log.debug(
                 "Volume is %s (%s%)",
@@ -187,7 +245,7 @@ function PioneerAvr(log, host, port, connectionReadyCallback) {
                 volPctF,
             );
             try {
-                callback(error, data);
+                callback(error, thisThis.state.volume);
             } catch (e) {
                 thisThis.log.debug("onData", e);
             }
@@ -211,7 +269,7 @@ function PioneerAvr(log, host, port, connectionReadyCallback) {
 
             if (inputIndex == null) {
                 try {
-                    callback(error, data);
+                    callback(error, 0);
                 } catch (e) {
                     thisThis.log.debug("onData", e);
                 }
@@ -220,14 +278,14 @@ function PioneerAvr(log, host, port, connectionReadyCallback) {
             thisThis.state.input = inputIndex;
 
             try {
-                callback(error, data);
+                callback(error, inputIndex);
             } catch (e) {
                 thisThis.log.debug(e);
             }
         }
 
         // Data returned for input queries
-        else if (data.startsWith("E06RGB")) {
+        else if (data.startsWith("E06RGB") || data.startsWith("E04RGB")) {
             data = data.substring(data.indexOf("RGB"));
             let thisid = data.substr(3, 2);
 
@@ -240,7 +298,14 @@ function PioneerAvr(log, host, port, connectionReadyCallback) {
                     // );
                     delete inputToType[key];
 
-                    let indexMissing = thisThis.inputMissing.indexOf(String(thisid));
+                    let indexMissing = -1
+                    for (let i in thisThis.inputMissing) {
+                        if(thisThis.inputMissing[i].indexOf(String(thisid)) > -1){
+                            let i = indexMissing
+                            break
+                        }
+                    }
+
                     if (indexMissing !== -1) {
                         thisThis.inputMissing.splice(indexMissing, 1);
                     }
@@ -258,13 +323,6 @@ function PioneerAvr(log, host, port, connectionReadyCallback) {
                 }
             }
 
-
-
-            // try {
-            //     callback("E06");
-            // } catch (e) {
-            //     thisThis.log.debug("onData", e);
-            // }
         } else if (data.indexOf("RGB") > -1) {
             data = data.substring(data.indexOf("RGB"));
             let tmpInput = {
@@ -289,13 +347,50 @@ function PioneerAvr(log, host, port, connectionReadyCallback) {
                     break;
                 }
             }
+            let filter = ['CYCLE', 'NET']
+            for (let i in filter){
+                if(tmpInput.name.indexOf(filter[i]) > -1){
+                    thisThis.log.debug(
+                        "[filteret out] Input [%s] discovered (id: %s, type: %s). InitCount=%s/%s, inputMissing: %s",
+                        tmpInput.name,
+                        tmpInput.id,
+                        tmpInput.type,
+                        thisThis.initCount,
+                        Object.keys(inputToType).length,
+                        thisThis.inputMissing,
+                    );
+
+                    alreadyExists = true;
+
+                    let indexMissing = -1
+                    for (let i in thisThis.inputMissing) {
+                        if(thisThis.inputMissing[i].indexOf(String(data.substr(3, 2))) > -1){
+                            let i = indexMissing
+                            break
+                        }
+                    }
+                    if (indexMissing !== -1) {
+                        thisThis.inputMissing.splice(indexMissing, 1);
+                    }
+
+                    for (let key in inputToType) {
+                        if (String(key) == String(data.substr(3, 2))) {
+                            delete inputToType[key];
+                        }
+                    }
+                }
+            }
 
             if (alreadyExists === false) {
                 thisThis.inputs.push(tmpInput);
 
-                // inputSucceeded.push(data.substr(3, 2));
-
-                let indexMissing = thisThis.inputMissing.indexOf(data.substr(3, 2));
+                let indexMissing = -1
+                for (let i in thisThis.inputMissing) {
+                    if(thisThis.inputMissing[i].indexOf(String(data.substr(3, 2))) > -1){
+                        let i = indexMissing
+                        break
+                    }
+                }
                 if (indexMissing !== -1) {
                     thisThis.inputMissing.splice(indexMissing, 1);
                 }
@@ -384,10 +479,11 @@ function PioneerAvr(log, host, port, connectionReadyCallback) {
                 thisThis.state.lastGetPowerStatus !== null
             ) {
                 thisThis.__updateVolume(() => {});
-                thisThis.__updateListeningMode(() => {});
+                // thisThis.__updateListeningMode(() => {});
             }
             if (thisThis.isReady && thisThis.s.connectionReady) {
                 thisThis.__updatePower(() => {});
+
             }
         } catch (e) {
             thisThis.log.debug("allInterval", e);
@@ -403,7 +499,8 @@ function PioneerAvr(log, host, port, connectionReadyCallback) {
                     thisThis.log.debug("pioneer-avr waitready1", e);
                 }
             }
-            thisThis.log.info("Telnet connected");
+
+
 
             // require("deasync").sleep(100);
 
@@ -416,25 +513,32 @@ function PioneerAvr(log, host, port, connectionReadyCallback) {
                     thisThis.log.debug("pioneer-avr waitready2", e);
                 }
             }
-            thisThis.__updateVolume(() => {});
-            thisThis.__updateListeningMode(() => {});
-            thisThis.__updatePower(() => {});
 
-            //reset input locks
-            thisThis.sendCommand("0PKL");
-            require("deasync").sleep(250);
-            thisThis.sendCommand("0RML");
+            if(thisThis.s.connectionReady){
+              thisThis.log.info("Telnet connected");
 
+              require("deasync").sleep(50);
+              thisThis.__updateListeningMode(() => {});
 
-            require("deasync").sleep(2500);
-            let runThis = connectionReadyCallback.bind({})
-            try {
-              runThis()
-            } catch (e) {
-                thisThis.log.debug("connectionReadyCallback() Error", e);
+              //reset input locks
+              thisThis.sendCommand("0PKL");
+              require("deasync").sleep(250);
+              thisThis.sendCommand("0RML");
+
+              require("deasync").sleep(500);
+              let runThis = connectionReadyCallback.bind({})
+              try {
+                runThis()
+              } catch (e) {
+                  thisThis.log.debug("connectionReadyCallback() Error", e);
+              }
+
+              thisThis.__updateInput(() => {});
+              thisThis.__updateVolume(() => {});
+              thisThis.__updateMute(() => {});
             }
         } catch (e) {
-            thisThis.log.debug("connectionReadyCallback timtout Error", e);
+            thisThis.log.debug("connectionReadyCallback timeout Error", e);
         }
     }, 100);
 }
@@ -446,12 +550,12 @@ let inputBeingAdded = false,
     inputBeingAddedWaitCount = 0;
 PioneerAvr.prototype.loadInputs = function (callback) {
     // Queue and send all inputs discovery commands
-    this.log.debug('loadInputs called', Object.keys(inputToType).join(', '))
-    for (let i in inputToTypeList) {
-        let key = inputToTypeList[i][0],
-            value = inputToTypeList[i][1]
+    // this.log.debug('loadInputs -> %s', Object.keys(inputToType).join(', '))
+
+    for (let inputi in inputToTypeList) {
+        let key = String(inputToTypeList[inputi][0]),
+            value = String(inputToTypeList[inputi][1])
         inputToType[key] = value
-        this.log.debug('loadInputs called key', key, value)
         if (inputBeingAdded !== false && inputBeingAddedWaitCount++ < 30) {
             require("deasync").sleep(10);
             inputBeingAddedWaitCount = 0;
@@ -462,14 +566,22 @@ PioneerAvr.prototype.loadInputs = function (callback) {
                 require("deasync").sleep(150);
             }
         }
-        key = String(key);
-        inputBeingAdded = key;
-        if (this.inputMissing.indexOf(key) === -1) {
-            this.inputMissing.push(key);
+
+        inputBeingAdded = String(key);
+
+        let index = -1
+        for (let i in this.inputMissing) {
+            if(this.inputMissing[i].indexOf(key) > -1){
+                let i = index
+                break
+            }
+        }
+        if (index !== -1) {
+            this.inputMissing.push([key]);
         }
 
         this.sendCommand(`?RGB${key}`, `RGB${key}`, callback);
-        require("deasync").sleep(50);
+        require("deasync").sleep(150);
     }
 
     if (inputBeingAdded !== false && inputBeingAddedWaitCount++ < 30) {
@@ -483,7 +595,7 @@ PioneerAvr.prototype.loadInputs = function (callback) {
     let inputMissingWhileMax = 0;
     while (this.inputMissing.length > 0 && inputMissingWhileMax++ < 30) {
         for (let thiskey in this.inputMissing) {
-            let key = this.inputMissing[thiskey];
+            let key = this.inputMissing[thiskey][0];
             if (inputBeingAdded !== false && inputBeingAddedWaitCount++ < 30) {
                 require("deasync").sleep(10);
                 inputBeingAddedWaitCount = 0;
@@ -497,6 +609,8 @@ PioneerAvr.prototype.loadInputs = function (callback) {
             key = String(key);
             inputBeingAdded = key;
 
+            this.log.debug('inputMissing called key', key, this.inputMissing)
+
             this.sendCommand(`?RGB${key}`, `RGB${key}`, callback);
             require("deasync").sleep(500);
         }
@@ -504,18 +618,17 @@ PioneerAvr.prototype.loadInputs = function (callback) {
 };
 
 // Power methods
-
-
 PioneerAvr.prototype.__updatePower = function (callback) {
     this.sendCommand("?P", "PWR", callback);
 };
 PioneerAvr.prototype.powerStatus = function (callback) {
     let thisThis = this;
 
-    if (
-        thisThis.state.lastGetPowerStatus !== null &&
-        Date.now() - thisThis.state.lastGetPowerStatus < 10000
-    ) {
+    // if (
+    //     thisThis.state.lastGetPowerStatus !== null &&
+    //     Date.now() - thisThis.state.lastGetPowerStatus < 100000
+    // ) {
+    if(thisThis.state.on !== null){
         try {
             callback(null, thisThis.state.on);
         } catch (e) {
@@ -584,16 +697,63 @@ PioneerAvr.prototype.volumeStatus = function (callback) {
     });
 };
 
+
+let lastSetVol = null
 PioneerAvr.prototype.setVolume = function (targetVolume, callback) {
     if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
     let thisThis = this;
-    let vsxVol = (targetVolume * 185) / 100;
+
+    targetVolume = parseInt(targetVolume, 10)
+
+    if (isNaN(targetVolume)) {
+        try {
+            callback();
+        } catch (e) {
+            thisThis.log.debug("setVolume", e);
+        }
+        return
+    }
+
+    if (Math.floor(targetVolume) == thisThis.state.volume || lastSetVol === targetVolume){
+        try {
+            callback();
+        } catch (e) {
+            thisThis.log.debug("setVolume same c", e);
+        }
+        return
+    }
+
+    lastSetVol = targetVolume
+    // thisThis.state.volume = Math.floor(targetVolume);
+    // setTimeout(function(){
+    //     try {
+    //         thisThis.functionSetLightbulbVolume(thisThis.state.volume)
+    //     } catch (e) {
+    //         thisThis.log.debug("functionSetLightbulbVolume", e);
+    //     }
+    // }, 0)
+
+    let vsxVol = 0
+    if(this.maxVolumeSet > 0){
+        vsxVol = targetVolume * ((185/100) * this.maxVolumeSet) / 100;
+    }else{
+        vsxVol = (targetVolume * 185) / 100;
+    }
     vsxVol = Math.floor(vsxVol);
     let pad = "000";
     let vsxVolStr =
         pad.substring(0, pad.length - vsxVol.toString().length) +
         vsxVol.toString();
-    this.sendCommand(`${vsxVolStr}VL`);
+    if (thisThis.setVolumeTimeout === null){
+        thisThis.sendCommand(`${vsxVolStr}VL`);
+    }else{
+        clearTimeout(thisThis.setVolumeTimeout)
+        thisThis.setVolumeTimeout = setTimeout(()=>{
+            thisThis.sendCommand(`${vsxVolStr}VL`);
+            thisThis.setVolumeTimeout = null
+        }, 600)
+    }
+
     lastUserInteraction = Date.now()
     try {
         callback();
@@ -782,8 +942,12 @@ PioneerAvr.prototype.__updateMute = function (callback) {
 
 let lastMuteStatus = null;
 PioneerAvr.prototype.muteStatus = function (callback) {
+    if (!this.s || !this.s.connectionReady || !this.state.on) { callback(null, true); return; }
+
     let thisThis = this;
-    if (lastMuteStatus !== null && Date.now() - lastMuteStatus < 10000) {
+
+    // if (lastMuteStatus !== null && Date.now() - lastMuteStatus < 100000) {
+    if (thisThis.state.muted !== null) {
         try {
             callback(null, thisThis.state.muted);
         } catch (e) {
@@ -829,15 +993,26 @@ PioneerAvr.prototype.__updateInput = function (callback) {
 };
 
 PioneerAvr.prototype.inputStatus = function (callback) {
-    let thisThis = this;
-    this.__updateInput(() => {
-        thisThis.log.debug("inputStatus updated %s", thisThis.state.input);
-        try {
-            callback(null, thisThis.state.input);
-        } catch (e) {
-            thisThis.log.debug("__updateInput", e);
-        }
-    });
+    if (!this.s || !this.s.connectionReady || !this.state.on || this.state.input === null) { callback(null, 0); return; }
+
+    this.log.debug("inputStatus updated %s", this.state.input);
+    try {
+        callback(null, this.state.input);
+    } catch (e) {
+        this.log.debug("__updateInput", e);
+    }
+
+    // this.__updateInput(() => {    });
+
+    // let thisThis = this;
+    // this.__updateInput(() => {
+    //     thisThis.log.debug("inputStatus updated %s", thisThis.state.input);
+    //     try {
+    //         callback(null, thisThis.state.input);
+    //     } catch (e) {
+    //         thisThis.log.debug("__updateInput", e);
+    //     }
+    // });
 };
 
 PioneerAvr.prototype.setInput = function (id) {
@@ -889,7 +1064,6 @@ PioneerAvr.prototype.remoteKey = function (rk) {
 };
 
 // Send command and process return
-
 PioneerAvr.prototype.sendCommand = async function (
     command,
     callbackChars,
