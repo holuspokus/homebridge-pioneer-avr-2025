@@ -2,6 +2,8 @@
 
 const net = require("net");
 
+
+
 const PORT = 23;
 const HOST = "127.0.0.1";
 
@@ -10,7 +12,6 @@ let disconnectTimeout = null;
 let connectionReady = false;
 
 let thisThis = null;
-let functioncallcounter = 0;
 let reconnectCounter = 0;
 
 let tryToReconnectTimeout = null;
@@ -36,7 +37,8 @@ class TelnetAvr {
         this.queueLock = false;
         this.connectionReady = false;
         this.queueLockDate = Date.now();
-        this.lastWrite = Date.now();
+        this.lastWrite = null;
+        this.lastMessageRecieved = null
         this.queue = [];
         this.queueCallbackChars = {};
         this.queueQuerys = [];
@@ -83,6 +85,7 @@ class TelnetAvr {
             thisThis.socket !== null &&
             thisThis !== null
         ) {
+            // when connect() called again
             try {
                 this.socket.connect(thisThis.port, thisThis.host, () => {
                     reconnectCounter = 0
@@ -99,8 +102,8 @@ class TelnetAvr {
                 console.error(e);
             }
         } else {
+            // when connect() called the first time
             if (thisThis.socket === null && thisThis !== null) {
-                functioncallcounter++;
                 disconnectOnExitFunction = function (err) {
                     if (err && String(err).length > 3) {
                         console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
@@ -119,23 +122,27 @@ class TelnetAvr {
                 // so the program will not close instantly
 
                 // do something when app is closing
-                process.on("exit", disconnectOnExitFunction.bind());
+                process.on("exit", disconnectOnExitFunction.bind({}));
 
                 // catches ctrl+c event
-                process.on("SIGINT", disconnectOnExitFunction.bind());
+                process.on("SIGINT", disconnectOnExitFunction.bind({}));
 
                 // catches "kill pid" (for example: nodemon restart)
-                process.on("SIGUSR1", disconnectOnExitFunction.bind());
-                process.on("SIGUSR2", disconnectOnExitFunction.bind());
+                process.on("SIGUSR1", disconnectOnExitFunction.bind({}));
+                process.on("SIGUSR2", disconnectOnExitFunction.bind({}));
 
                 // catches uncaught exceptions
                 process.on(
                     "uncaughtException",
-                    disconnectOnExitFunction.bind(),
+                    disconnectOnExitFunction.bind({}),
                 );
 
                 clearInterval(checkQueueInterval);
                 checkQueueInterval = setInterval(function () {
+                    if (connectionReady && thisThis.lastWrite !== null && thisThis.lastWrite - thisThis.lastMessageRecieved > (60*1000)) {
+                        // no response? not connectet anymore?
+                        connectionReady = false
+                    }
                     if (
                         checkQueueIntervalIsRunning === true ||
                         thisThis === null ||
@@ -152,7 +159,7 @@ class TelnetAvr {
                         if (
                             thisThis !== null &&
                             thisThis.queueLock !== false &&
-                            Date.now() - thisThis.queueLockDate > 10000
+                            Date.now() - thisThis.queueLockDate > 5000
                         ) {
                             thisThis.queueLock = false;
                         }
@@ -263,6 +270,7 @@ class TelnetAvr {
 
                 this.socket.on("data", (d) => {
                     let callbackCalled = false;
+                    thisThis.lastMessageRecieved = Date.now()
                     try {
                         let data = d
                             .toString()
@@ -440,6 +448,11 @@ class TelnetAvr {
     }
 
     sendMessage(message, callbackChars, onData) {
+        if (connectionReady && thisThis.lastWrite !== null && thisThis.lastWrite - thisThis.lastMessageRecieved > (60*1000)) {
+            // no response? not connectet anymore?
+            connectionReady = false
+        }
+
         if (callbackChars === undefined) {
             if (Date.now() - thisThis.lastWrite < 38) {
                 while (Date.now() - thisThis.lastWrite < 38) {

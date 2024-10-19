@@ -55,7 +55,7 @@ function pioneerAvrAccessory(log, config) {
 
     log.debug("Preferences directory : %s", this.prefsDir);
     this.manufacturer = "Pioneer";
-    this.version = "0.0.9";
+    this.version = "0.1.0";
 
     // check if prefs directory ends with a /, if not then add it
     if (this.prefsDir.endsWith("/") === false) {
@@ -660,7 +660,7 @@ pioneerAvrAccessory.prototype.getVolume = function (callback) {
 
 pioneerAvrAccessory.prototype.setVolume = function (volume, callback) {
     // Set volume status
-    if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(); return; }
+    if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on || this.avr.state.volume == volume) { callback(); return; }
 
     this.log.debug("Set volume to %s, isMuted: %s", volume, this.avr.state.muted);
     this.avr.setVolume(volume, callback);

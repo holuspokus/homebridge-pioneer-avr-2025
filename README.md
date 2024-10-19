@@ -8,7 +8,7 @@ which declare your Pioneer AVR as a TV in homekit.
 
 The updates to the Homebridge Plugin include enhanced performance and responsiveness, a maintained single Telnet session for faster command execution, compatibility with the latest Homebridge and Node.js versions, and general improvements for better reliability, ensuring that the plugin should work directly after configuration without any manual code adjustments.
 
-Let me know if something goes haywire!
+[Let me know if something goes haywire!](https://github.com/holuspokus/homebridge-pioneer-avr-2025/issues)
 
 ## Features
 
@@ -32,7 +32,7 @@ Declare your AVR as a homekit TV:
 2. Install **homebridge-pioneer-avr-2025** using `npm i homebridge-pioneer-avr-2025`
 3. Update your configuration file. See `sample-config.json` in this repository for a sample.
 
-> When switching from the homebridge-pioneer-avr plugin to homebridge-pioneer-avr-2025, it is recommended to remove the "homebridge-pioneer-avr" plugin, remove the existing accessories under "Accessories" in the Homebridge settings, or reset Homebridge entirely, as well as to reboot the iOS devices.
+> When switching from the homebridge-pioneer-avr plugin to homebridge-pioneer-avr-2025, it is recommended to remove the "homebridge-pioneer-avr" plugin and the existing accessories under "Accessories" in the Homebridge settings, or reset Homebridge entirely, as well as to reboot the iOS devices.
 
 
 
@@ -52,32 +52,33 @@ Declare your AVR as a homekit TV:
 ]
 ```
 
-> |          Key | Value                      |
-> | -----------: | :------------------------- |
-> |    accessory | dont change                |
-> |        model | Custom input, can remain   |
-> |         name | Custom input, can remain   |
-> |  description | Custom input, can remain   |
-> | maxVolumeSet | Optional input, can remain |
-> |         host | needs to be accurate       |
-> |         port | needs to be accurate       |
+|          Key | Value                      |
+| -----------: | :------------------------- |
+|    accessory | dont change                |
+|        model | Custom input, can remain   |
+|         name | Custom input, can remain   |
+|  description | Custom input, can remain   |
+| maxVolumeSet | Optional input, can remain |
+|         host | needs to be accurate       |
+|         port | needs to be accurate       |
+
+> **port:**  
+> If port 23 does not work, try port 8102.  
 >
-> **port:**
->  If port 23 does not work, try port 8102.
->
-> Or enable Web Control and then try something like:
-> http://vsx-922.local/1000/port_number.asp or http://192.168.178.99/1000/port_number.asp
-> ... to find the port number
+> Or enable Web Control and then try something like:  
+> http://vsx-922.local/1000/port_number.asp or  
+> http://192.168.178.99/1000/port_number.asp  
+> ... to find the port number  
 >
 >
 >
-> **maxVolumeSet:**
->  Number between 0 and 100; 60 means 60% of max-Volume.
-> 100 = -0db ( = 185 = No Limit)
-> 60 = -16db
+> **maxVolumeSet:**  
+> Number between 0 and 100; 60 means 60% of max-Volume.  
+> 100 = -0db ( = 185 = No Limit),  
+> 60 = -16db  
 >
-> 0 = disabled
-> (This only affects the Volume as Brightness-Feature)
+> 0 = disabled  
+> (This only affects the Volume as Brightness-Feature)  
 
 
 
@@ -89,6 +90,10 @@ https://github.com/merdok/homebridge-webos-tv
 https://github.com/TG908/homebridge-vsx
 
 ## Release Notes
+
+### v0.1.0
+
+* Some final improvements for stabilization.
 
 ### v0.0.9
 
