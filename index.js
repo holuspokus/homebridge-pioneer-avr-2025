@@ -612,12 +612,12 @@ pioneerAvrAccessory.prototype.getMutedInverted = function (callback) {
 
 pioneerAvrAccessory.prototype.setMutedInverted = function (mute, callback) {
     if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(); return; }
-    // Set mute on/off
+    // Set mute on/off for home app icon
     if (!mute) {
-        this.log.info("Mute on");
+        // this.log.info("Mute on");
         this.avr.muteOn();
     } else {
-        this.log.info("Mute off");
+        // this.log.info("Mute off");
         this.avr.muteOff();
     }
 
