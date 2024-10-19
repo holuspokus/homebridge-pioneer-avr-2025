@@ -63,8 +63,9 @@ Below is a sample configuration for your accessory:
 |         port | needs to be accurate       |
 
 > **port:**  
+> The port used for Telnet to connect to your receiver.
 > If port 23 does not work, try port 8102.  
-> Or enable Web Control and then try something like:  
+> Alternatively, enable Web Interface (see user manual) and then try opening in your web browser something like:
 > `http://vsx-922.local/1000/port_number.asp` or  
 > `http://192.168.178.99/1000/port_number.asp`  
 > ... to find the port number.
