@@ -678,7 +678,7 @@ PioneerAvr.prototype.powerOn = function () {
     let thisThis = this;
     setTimeout(function () {
         thisThis.powerStatus(function () {});
-    }, 1500);
+    }, 500);
 };
 
 PioneerAvr.prototype.powerOff = function () {
@@ -692,7 +692,7 @@ PioneerAvr.prototype.powerOff = function () {
     let thisThis = this;
     setTimeout(function () {
         thisThis.powerStatus(function () {});
-    }, 1500);
+    }, 500);
 };
 
 // Volume methods
@@ -961,7 +961,7 @@ PioneerAvr.prototype.__updateMute = function (callback) {
 
 let lastMuteStatus = null;
 PioneerAvr.prototype.muteStatus = function (callback) {
-    if (!this.s || !this.s.connectionReady || !this.state.on) { callback(null, false); return; }
+    // if (!this.s || !this.s.connectionReady || !this.state.on) { callback(null, false); return; }
 
     let thisThis = this;
 
@@ -1012,7 +1012,7 @@ PioneerAvr.prototype.__updateInput = function (callback) {
 };
 
 PioneerAvr.prototype.inputStatus = function (callback) {
-    if (!this.s || !this.s.connectionReady || !this.state.on || this.state.input === null) { callback(null, 0); return; }
+    // if (!this.s || !this.s.connectionReady || !this.state.on || this.state.input === null) { callback(null, 0); return; }
 
     this.log.debug("inputStatus updated %s", this.state.input);
     try {

@@ -141,7 +141,6 @@ function pioneerAvrAccessory(log, config) {
                 require("deasync").sleep(50);
                 thisThis.prepareInputSourceService();
 
-                thisThis.log.debug('thisThis.maxVolumeSet', thisThis.maxVolumeSet)
                 if (thisThis.maxVolumeSet !== 0){
                     require("deasync").sleep(50);
                     thisThis.prepareVolumeService();
@@ -506,6 +505,7 @@ pioneerAvrAccessory.prototype.getActiveIdentifier = function (callback) {
     this.avr.inputStatus(callback);
     lastgetActiveIdentifierTime = Date.now();
 };
+
 
 let lastsetActiveIdentifierTime = undefined;
 let lastsetActiveIdentifierTimeout = null;
