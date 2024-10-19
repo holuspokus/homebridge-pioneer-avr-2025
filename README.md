@@ -18,7 +18,7 @@ Declare your AVR as a homekit TV:
 * Auto discover inputs
 * Select active input in home app
 * Select inputs to shown in the input list
-* Change Volume (as Lightbulb)
+* Change Volume (as Lightbulb) in home app
 * Save visibility status for inputs
 * Rename inputs in home apps
 * Control volume through the command in control center
@@ -92,7 +92,7 @@ https://github.com/TG908/homebridge-vsx
 
 ### v0.0.9
 
-* Last fixes
+* Fixed an issue related to volume control on Apple Watch. Users can now enjoy improved audio performance and seamless volume adjustments.
 
 ### v0.0.8
 
