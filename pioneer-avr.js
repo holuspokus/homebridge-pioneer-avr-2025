@@ -172,6 +172,14 @@ function PioneerAvr(log, host, port, maxVolumeSet, connectionReadyCallback) {
                     thisThis.log.debug("functionSetPowerState", e);
                 }
             }, 2)
+
+            setTimeout(function(){
+                try {
+                    thisThis.functionSetLightbulbMuted(thisThis.state.muted)
+                } catch (e) {
+                    thisThis.log.debug("functionSetLightbulbMuted", e);
+                }
+            }, 20)
         }
 
         // Data returned for mute status
@@ -670,7 +678,7 @@ PioneerAvr.prototype.powerOn = function () {
     let thisThis = this;
     setTimeout(function () {
         thisThis.powerStatus(function () {});
-    }, 1500);
+    }, 500);
 };
 
 PioneerAvr.prototype.powerOff = function () {
@@ -684,7 +692,7 @@ PioneerAvr.prototype.powerOff = function () {
     let thisThis = this;
     setTimeout(function () {
         thisThis.powerStatus(function () {});
-    }, 1500);
+    }, 500);
 };
 
 // Volume methods
@@ -953,7 +961,7 @@ PioneerAvr.prototype.__updateMute = function (callback) {
 
 let lastMuteStatus = null;
 PioneerAvr.prototype.muteStatus = function (callback) {
-    if (!this.s || !this.s.connectionReady || !this.state.on) { callback(null, false); return; }
+    // if (!this.s || !this.s.connectionReady || !this.state.on) { callback(null, false); return; }
 
     let thisThis = this;
 
@@ -978,7 +986,7 @@ PioneerAvr.prototype.muteStatus = function (callback) {
 
 PioneerAvr.prototype.muteOn = function () {
     lastUserInteraction = Date.now()
-    if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
+    if (!this.s || !this.s.connectionReady || !this.state.on || this.state.muted === true) { return; }
     this.log.debug("Mute on");
     if (this.web) {
         request.get(this.webEventHandlerBaseUrl + "MO");
@@ -989,7 +997,7 @@ PioneerAvr.prototype.muteOn = function () {
 
 PioneerAvr.prototype.muteOff = function () {
     lastUserInteraction = Date.now()
-    if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
+    if (!this.s || !this.s.connectionReady || !this.state.on || this.state.muted === false) { return; }
     this.log.debug("Mute off");
     if (this.web) {
         request.get(this.webEventHandlerBaseUrl + "MF");
@@ -1004,7 +1012,7 @@ PioneerAvr.prototype.__updateInput = function (callback) {
 };
 
 PioneerAvr.prototype.inputStatus = function (callback) {
-    if (!this.s || !this.s.connectionReady || !this.state.on || this.state.input === null) { callback(null, 0); return; }
+    // if (!this.s || !this.s.connectionReady || !this.state.on || this.state.input === null) { callback(null, 0); return; }
 
     this.log.debug("inputStatus updated %s", this.state.input);
     try {
