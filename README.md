@@ -1,6 +1,6 @@
 # homebridge-pioneer-avr-2025
 
-A Homebridge plugin that allows you to declare your Pioneer AVR as a TV in HomeKit. This project is ready for Node 22 or lower, Homebridge 2 or lower and is forked from [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr).
+A [Homebridge](https://github.com/nfarina/homebridge) plugin that allows you to declare your Pioneer AVR as a TV in HomeKit. This project is ready for Node 22 or lower, Homebridge 2 or lower and is forked from [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr).
 
 ![npm](https://img.shields.io/npm/v/homebridge-pioneer-avr-2025) ![license](https://img.shields.io/badge/license-MIT-blue)
 
@@ -13,12 +13,10 @@ This plugin enables various controls for your AVR, including:
 * Turn AVR On/Off
 * Auto discover inputs
 * Select active input in Home app
-* Select inputs to show in the input list
 * Change Volume (as Lightbulb) in Home app
 * Save visibility status for inputs
 * Rename inputs in Home app
-* Control volume through the command in Control Center
-* Control AVR with Remote in Control Center on iOS
+* Control AVR with Remote on iOS
 * Remote-Key "Play/Pause" to toggle Listening-Mode
 
 
@@ -78,6 +76,7 @@ Below is a sample configuration for your accessory:
 
 ## Links
 
+- [homebridge](https://github.com/nfarina/homebridge)
 - [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr)
 - [pioneer-receiver-notes](https://github.com/rwifall/pioneer-receiver-notes)
 - [homebridge-webos-tv](https://github.com/merdok/homebridge-webos-tv)
