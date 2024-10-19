@@ -6,6 +6,7 @@ A [Homebridge](https://github.com/nfarina/homebridge) plugin that allows you to 
 
 
 
+
 ## Features
 
 This plugin enables various controls for your AVR, including:
@@ -21,6 +22,7 @@ This plugin enables various controls for your AVR, including:
 
 
 
+
 ## Installation
 
 1. Install the Homebridge framework using `npm install -g homebridge`
@@ -28,6 +30,7 @@ This plugin enables various controls for your AVR, including:
 3. Update your configuration file. See `sample-config.json` in this repository for a sample.
 
 > When switching from the homebridge-pioneer-avr plugin to homebridge-pioneer-avr-2025, it is recommended to remove the "homebridge-pioneer-avr" plugin and the existing accessories under "Accessories" in the Homebridge settings, or reset Homebridge entirely, as well as to reboot the iOS devices.
+
 
 
 
@@ -74,6 +77,7 @@ Below is a sample configuration for your accessory:
 
 
 
+
 ## Links
 
 - [homebridge](https://github.com/nfarina/homebridge)
@@ -81,6 +85,7 @@ Below is a sample configuration for your accessory:
 - [pioneer-receiver-notes](https://github.com/rwifall/pioneer-receiver-notes)
 - [homebridge-webos-tv](https://github.com/merdok/homebridge-webos-tv)
 - [homebridge-vsx](https://github.com/TG908/homebridge-vsx)
+
 
 
 
