@@ -125,7 +125,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, connectionReadyCallback) {
             }
             return;
 
-        // E06 is returned when input not exists, E06RGB is sperate, sometimes E04
+        // E06 is returned when input not exists, E06RGB is separate, sometimes E04RGBB
         } else if (data.startsWith("E") && !data.startsWith("E06RGB") && !data.startsWith("E04RGB")) {
             thisThis.log.debug("Receive error: " + String(data));
             try {
