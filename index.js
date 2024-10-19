@@ -280,16 +280,10 @@ pioneerAvrAccessory.prototype.prepareVolumeService = function () {
             clearTimeout(functionSetLightbulbVolumeTimeout)
             functionSetLightbulbVolumeTimeout = setTimeout(function(){
 
-                // thisThis.log.debug('set vol to ' + String(set))
                 try {
                     thisThis.volumeServiceLightbulb
                     .getCharacteristic(Characteristic.On)
-                    // .updateValue(set > 0 ? true : false);
-                    // .updateValue(set > 0 ? false : true); // inverted
-                    // .updateValue(true);
-                    // .updateValue(thisThis.avr.state.muted ? false : true);
                     .updateValue((thisThis.avr.state.muted || !thisThis.avr.state.on) ? false : true);
-                    // .updateValue(thisThis.avr.state.muted ? true : false);
 
                     thisThis.volumeServiceLightbulb
                     .getCharacteristic(Characteristic.Brightness)
@@ -309,10 +303,6 @@ pioneerAvrAccessory.prototype.prepareVolumeService = function () {
             try {
                 thisThis.volumeServiceLightbulb
                 .getCharacteristic(Characteristic.On)
-                // .updateValue(true);
-                // .updateValue(thisThis.avr.state.muted ? false : true);
-                // .updateValue(thisThis.avr.state.muted ? true : false);
-                // .updateValue(thisThis.avr.state.volume > 0);
                 .updateValue((thisThis.avr.state.muted || !thisThis.avr.state.on) ? false : true);
             } catch (e) {
                 thisThis.log.debug('functionSetLightbulbMuted Error', e)
@@ -359,7 +349,6 @@ pioneerAvrAccessory.prototype.prepareTvSpeakerService = function () {
 pioneerAvrAccessory.prototype.prepareInputSourceService = function () {
     // Run avr.loadInputs with addInputSourceService callback to create each input service
     this.log.info("Discovering inputs");
-    // let thisThis = this;
     this.avr.loadInputs(function (key) {
         if (String(key).startsWith('E')) { return;  }
         thisThis.addInputSourceService(key);
@@ -615,8 +604,6 @@ pioneerAvrAccessory.prototype.getMutedInverted = function (callback) {
     if (typeof(callback) !== "function"){
         callback = function(){}
     }
-
-    // if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(null, true); return; }
 
     // Get mute status
     // this.log.debug("getMutedInverted mute status");

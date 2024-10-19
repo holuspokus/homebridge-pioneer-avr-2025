@@ -142,6 +142,7 @@ class TelnetAvr {
                     if (connectionReady && thisThis.lastWrite !== null && thisThis.lastWrite - thisThis.lastMessageRecieved > (60*1000)) {
                         // no response? not connectet anymore?
                         connectionReady = false
+                        thisThis.queue = []
                     }
                     if (
                         checkQueueIntervalIsRunning === true ||
