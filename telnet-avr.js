@@ -48,6 +48,7 @@ class TelnetAvr {
             thisThis.queueCallbackChars = {};
             thisThis.queueQuerys = [];
         }
+        this.lastConnect = null
 
         this.socket = null;
 
@@ -86,21 +87,32 @@ class TelnetAvr {
             thisThis !== null
         ) {
             // when connect() called again
-            try {
-                this.socket.connect(thisThis.port, thisThis.host, () => {
-                    reconnectCounter = 0
-                    connectionReady = true;
-                    require("deasync").sleep(10);
-                    thisThis.connectionReady = true;
-                    try {
-                        callback();
-                    } catch (e) {
-                        console.error(e);
-                    }
-                });
-            } catch (e) {
-                console.error(e);
+            if (Date.now() - this.lastConnect > (15 * 1000)) {
+                try {
+                    this.lastConnect = Date.now()
+                    this.socket.connect(thisThis.port, thisThis.host, () => {
+                        reconnectCounter = 0
+                        connectionReady = true;
+                        require("deasync").sleep(10);
+                        thisThis.connectionReady = true;
+                        try {
+                            callback();
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    });
+                } catch (e) {
+                    console.error(e);
+                }
+            }else{
+                try {
+                    require("deasync").sleep(1500);
+                    callback();
+                } catch (e) {
+                    console.error(e);
+                }
             }
+
         } else {
             // when connect() called the first time
             if (thisThis.socket === null && thisThis !== null) {
@@ -218,6 +230,7 @@ class TelnetAvr {
                 this.socket.once("connect", () =>
                     this.socket.setTimeout(2 * 60 * 60 * 1000),
                 );
+                this.lastConnect = Date.now()
                 this.socket.connect(thisThis.port, thisThis.host, () => {
                     reconnectCounter = 0
                     connectionReady = true;
@@ -442,7 +455,7 @@ class TelnetAvr {
                 });
 
                 this.socket.on("error", (err) => {
-                    console.log("sendMessage:Error " + String(err));
+                    console.log("Telnet:Error " + String(err));
                 });
             }
         }
@@ -492,15 +505,17 @@ class TelnetAvr {
         }
 
         let whileCounter = 0;
-        while (connectionReady === false && whileCounter++ <= 5) {
+        while (connectionReady === false && whileCounter++ <= 15) {
             require("deasync").sleep(1000);
         }
 
-        thisThis.connect(function () {});
+        if (connectionReady === false){
+            thisThis.connect(function () {});
 
-        whileCounter = 0;
-        while (connectionReady === false && whileCounter++ < 50) {
-            require("deasync").sleep(100);
+            whileCounter = 0;
+            while (connectionReady === false && whileCounter++ < 150) {
+                require("deasync").sleep(100);
+            }
         }
 
         if (connectionReady === false) {
