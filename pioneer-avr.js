@@ -472,6 +472,39 @@ function PioneerAvr(log, host, port, maxVolumeSet, connectionReadyCallback) {
 
     thisThis.log.debug("wait until telnet connected");
 
+    this.s.onDisconnect = function(){
+        thisThis.state.on = false
+        setTimeout(function(){
+            try {
+                thisThis.functionSetPowerState(thisThis.state.on)
+            } catch (e) {
+                thisThis.log.debug("functionSetPowerState", e);
+            }
+        }, 2)
+
+        // thisThis.state.muted = true
+        // setTimeout(function(){
+        //     try {
+        //         thisThis.functionSetLightbulbMuted(thisThis.state.muted)
+        //     } catch (e) {
+        //         thisThis.log.debug("functionSetLightbulbMuted", e);
+        //     }
+        // }, 2)
+    }
+
+    this.s.onConnect = function(){
+        thisThis.powerStatus(function () {});
+
+        // thisThis.state.muted = true
+        // setTimeout(function(){
+        //     try {
+        //         thisThis.functionSetLightbulbMuted(thisThis.state.muted)
+        //     } catch (e) {
+        //         thisThis.log.debug("functionSetLightbulbMuted", e);
+        //     }
+        // }, 2)
+    }
+
     // Dealing with input's initialization
     this.initCount = 0;
     this.isReady = false;
@@ -743,14 +776,6 @@ PioneerAvr.prototype.setVolume = function (targetVolume, callback) {
     }
 
     lastSetVol = targetVolume
-    // thisThis.state.volume = Math.floor(targetVolume);
-    // setTimeout(function(){
-    //     try {
-    //         thisThis.functionSetLightbulbVolume(thisThis.state.volume)
-    //     } catch (e) {
-    //         thisThis.log.debug("functionSetLightbulbVolume", e);
-    //     }
-    // }, 0)
 
     let vsxVol = 0
     if(this.maxVolumeSet > 0){
