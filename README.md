@@ -2,9 +2,9 @@
 
 A Homebridge plugin that allows you to declare your Pioneer AVR as a TV in HomeKit. This project is ready for Node 22 or lower, Homebridge 2 or lower and is forked from [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr).
 
-## Badges
-
 ![npm](https://img.shields.io/npm/v/homebridge-pioneer-avr-2025) ![license](https://img.shields.io/badge/license-MIT-blue)
+
+
 
 ## Features
 
@@ -21,6 +21,8 @@ This plugin enables various controls for your AVR, including:
 * Control AVR with Remote in Control Center on iOS
 * Remote-Key "Play/Pause" to toggle Listening-Mode
 
+
+
 ## Installation
 
 1. Install the Homebridge framework using `npm install -g homebridge`
@@ -28,6 +30,8 @@ This plugin enables various controls for your AVR, including:
 3. Update your configuration file. See `sample-config.json` in this repository for a sample.
 
 > When switching from the homebridge-pioneer-avr plugin to homebridge-pioneer-avr-2025, it is recommended to remove the "homebridge-pioneer-avr" plugin and the existing accessories under "Accessories" in the Homebridge settings, or reset Homebridge entirely, as well as to reboot the iOS devices.
+
+
 
 ## Accessory Configuration Example
 
@@ -70,12 +74,16 @@ Below is a sample configuration for your accessory:
 > 60 = -16dB  
 > 0 = disabled (This only affects the Volume as Brightness-Feature, not the Remote).
 
+
+
 ## Links
 
 - [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr)
 - [pioneer-receiver-notes](https://github.com/rwifall/pioneer-receiver-notes)
 - [homebridge-webos-tv](https://github.com/merdok/homebridge-webos-tv)
 - [homebridge-vsx](https://github.com/TG908/homebridge-vsx)
+
+
 
 ## Release Notes
 
