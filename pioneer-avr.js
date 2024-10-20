@@ -674,7 +674,7 @@ PioneerAvr.prototype.loadInputs = function (callback) {
     }
 
     if (this.inputMissing.length === 0 && Object.keys(inputToType).length > 0){
-        thisThis.isReady = true;
+        this.isReady = true;
     }
 };
 
