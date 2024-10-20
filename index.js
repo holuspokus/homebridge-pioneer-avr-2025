@@ -40,22 +40,29 @@ function pioneerAvrAccessory(log, config) {
     if(Object.hasOwn(config, 'maxVolumeSet') || typeof(config.maxVolumeSet) == 'undefined'){
         this.maxVolumeSet = config.maxVolumeSet;
     }else{
-        this.maxVolumeSet = 70;
+        this.maxVolumeSet = 80;
     }
 
     this.maxVolumeSet = parseInt(String(this.maxVolumeSet).replace(/[^0-9]/g, ""), 10);
     if (this.maxVolumeSet > 100) { this.maxVolumeSet = 100; }
     if (this.maxVolumeSet < 0) { this.maxVolumeSet = 0; }
 
-    this.model =
-        config.model.replace(/[^a-zA-Z0-9]/g, "") ||
-        config.name.replace(/[^a-zA-Z0-9]/g, "") ||
-        "VSX923";
+    if(Object.hasOwn(config, 'minVolumeSet') || typeof(config.minVolumeSet) == 'undefined'){
+        this.minVolumeSet = config.minVolumeSet;
+    }else{
+        this.minVolumeSet = 20;
+    }
+
+    this.minVolumeSet = parseInt(String(this.minVolumeSet).replace(/[^0-9]/g, ""), 10);
+    if (this.minVolumeSet > this.maxVolumeSet - 20) { this.minVolumeSet = this.maxVolumeSet - 20; }
+    if (this.minVolumeSet < 0) { this.minVolumeSet = 0; }
+
+    this.model = config.model || config.name || "VSX923";
     this.prefsDir = config.prefsDir || ppath("pioneerAvr/");
 
     log.debug("Preferences directory : %s", this.prefsDir);
     this.manufacturer = "Pioneer";
-    this.version = "0.0.9";
+    this.version = "0.1.0";
 
     // check if prefs directory ends with a /, if not then add it
     if (this.prefsDir.endsWith("/") === false) {
@@ -129,7 +136,7 @@ function pioneerAvrAccessory(log, config) {
     }
 
     try {
-        thisThis.avr = new PioneerAvr(thisThis.log, thisThis.host, thisThis.port, thisThis.maxVolumeSet, function(){
+        thisThis.avr = new PioneerAvr(thisThis.log, thisThis.host, thisThis.port, thisThis.maxVolumeSet, thisThis.minVolumeSet, function(){
             try{
                 thisThis.enabledServices = [];
                 require("deasync").sleep(1050);
@@ -165,7 +172,7 @@ pioneerAvrAccessory.prototype.prepareInformationService = function () {
             Characteristic.Name,
             this.name.replace(/[^a-zA-Z0-9 ]/g, ""),
         )
-        .setCharacteristic(Characteristic.Manufacturer, this.manufacturer)
+        .setCharacteristic(Characteristic.Manufacturer, this.manufacturer.replace(/[^a-zA-Z0-9 ]/g, ""))
         .setCharacteristic(
             Characteristic.Model,
             this.model.replace(/[^a-zA-Z0-9]/g, ""),
@@ -280,16 +287,10 @@ pioneerAvrAccessory.prototype.prepareVolumeService = function () {
             clearTimeout(functionSetLightbulbVolumeTimeout)
             functionSetLightbulbVolumeTimeout = setTimeout(function(){
 
-                // thisThis.log.debug('set vol to ' + String(set))
                 try {
                     thisThis.volumeServiceLightbulb
                     .getCharacteristic(Characteristic.On)
-                    // .updateValue(set > 0 ? true : false);
-                    // .updateValue(set > 0 ? false : true); // inverted
-                    // .updateValue(true);
-                    // .updateValue(thisThis.avr.state.muted ? false : true);
                     .updateValue((thisThis.avr.state.muted || !thisThis.avr.state.on) ? false : true);
-                    // .updateValue(thisThis.avr.state.muted ? true : false);
 
                     thisThis.volumeServiceLightbulb
                     .getCharacteristic(Characteristic.Brightness)
@@ -309,10 +310,6 @@ pioneerAvrAccessory.prototype.prepareVolumeService = function () {
             try {
                 thisThis.volumeServiceLightbulb
                 .getCharacteristic(Characteristic.On)
-                // .updateValue(true);
-                // .updateValue(thisThis.avr.state.muted ? false : true);
-                // .updateValue(thisThis.avr.state.muted ? true : false);
-                // .updateValue(thisThis.avr.state.volume > 0);
                 .updateValue((thisThis.avr.state.muted || !thisThis.avr.state.on) ? false : true);
             } catch (e) {
                 thisThis.log.debug('functionSetLightbulbMuted Error', e)
@@ -359,7 +356,6 @@ pioneerAvrAccessory.prototype.prepareTvSpeakerService = function () {
 pioneerAvrAccessory.prototype.prepareInputSourceService = function () {
     // Run avr.loadInputs with addInputSourceService callback to create each input service
     this.log.info("Discovering inputs");
-    // let thisThis = this;
     this.avr.loadInputs(function (key) {
         if (String(key).startsWith('E')) { return;  }
         thisThis.addInputSourceService(key);
@@ -616,8 +612,6 @@ pioneerAvrAccessory.prototype.getMutedInverted = function (callback) {
         callback = function(){}
     }
 
-    // if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(null, true); return; }
-
     // Get mute status
     // this.log.debug("getMutedInverted mute status");
     callback(null, !(this.avr.state.muted || !this.avr.state.on));
@@ -625,12 +619,12 @@ pioneerAvrAccessory.prototype.getMutedInverted = function (callback) {
 
 pioneerAvrAccessory.prototype.setMutedInverted = function (mute, callback) {
     if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(); return; }
-    // Set mute on/off
+    // Set mute on/off for home app icon
     if (!mute) {
-        this.log.info("Mute on");
+        // this.log.info("Mute on");
         this.avr.muteOn();
     } else {
-        this.log.info("Mute off");
+        // this.log.info("Mute off");
         this.avr.muteOff();
     }
 
@@ -660,7 +654,7 @@ pioneerAvrAccessory.prototype.getVolume = function (callback) {
 
 pioneerAvrAccessory.prototype.setVolume = function (volume, callback) {
     // Set volume status
-    if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(); return; }
+    if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on || this.avr.state.volume == volume) { callback(); return; }
 
     this.log.debug("Set volume to %s, isMuted: %s", volume, this.avr.state.muted);
     this.avr.setVolume(volume, callback);

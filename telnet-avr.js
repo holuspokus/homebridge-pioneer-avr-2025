@@ -2,6 +2,8 @@
 
 const net = require("net");
 
+
+
 const PORT = 23;
 const HOST = "127.0.0.1";
 
@@ -10,12 +12,13 @@ let disconnectTimeout = null;
 let connectionReady = false;
 
 let thisThis = null;
-let functioncallcounter = 0;
 let reconnectCounter = 0;
 
 let tryToReconnectTimeout = null;
 let checkQueueInterval = null;
 let checkQueueIntervalIsRunning = null
+
+let onlyOnce = true
 
 let disconnectOnExitFunction = function (err) {
     if (err && String(err).length > 3) {
@@ -36,7 +39,8 @@ class TelnetAvr {
         this.queueLock = false;
         this.connectionReady = false;
         this.queueLockDate = Date.now();
-        this.lastWrite = Date.now();
+        this.lastWrite = null;
+        this.lastMessageRecieved = null
         this.queue = [];
         this.queueCallbackChars = {};
         this.queueQuerys = [];
@@ -46,6 +50,10 @@ class TelnetAvr {
             thisThis.queueCallbackChars = {};
             thisThis.queueQuerys = [];
         }
+        this.lastConnect = null
+
+        this.onDisconnect = function(){}
+        this.onConnect = function(){}
 
         this.socket = null;
 
@@ -83,24 +91,44 @@ class TelnetAvr {
             thisThis.socket !== null &&
             thisThis !== null
         ) {
-            try {
-                this.socket.connect(thisThis.port, thisThis.host, () => {
-                    reconnectCounter = 0
-                    connectionReady = true;
-                    require("deasync").sleep(10);
-                    thisThis.connectionReady = true;
-                    try {
-                        callback();
-                    } catch (e) {
-                        console.error(e);
-                    }
-                });
-            } catch (e) {
-                console.error(e);
+            // when connect() called again
+            if (Date.now() - this.lastConnect > (15 * 1000)) {
+                try {
+                    this.lastConnect = Date.now()
+                    this.socket.connect(thisThis.port, thisThis.host, () => {
+                        reconnectCounter = 0
+                        connectionReady = true;
+
+                        try {
+                            thisThis.onConnect();
+                        } catch (e) {
+                            console.error('onConnect Error')
+                            console.error(e);
+                        }
+
+                        require("deasync").sleep(10);
+                        thisThis.connectionReady = true;
+                        try {
+                            callback();
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    });
+                } catch (e) {
+                    console.error(e);
+                }
+            }else{
+                try {
+                    require("deasync").sleep(1500);
+                    callback();
+                } catch (e) {
+                    console.error(e);
+                }
             }
+
         } else {
+            // when connect() called the first time, with initialization
             if (thisThis.socket === null && thisThis !== null) {
-                functioncallcounter++;
                 disconnectOnExitFunction = function (err) {
                     if (err && String(err).length > 3) {
                         console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
@@ -115,27 +143,43 @@ class TelnetAvr {
                     }
                 };
 
-                process.stdin.resume();
-                // so the program will not close instantly
+                if (onlyOnce) {
+                    onlyOnce = false
 
-                // do something when app is closing
-                process.on("exit", disconnectOnExitFunction.bind());
+                    process.stdin.resume();
+                    // so the program will not close instantly
 
-                // catches ctrl+c event
-                process.on("SIGINT", disconnectOnExitFunction.bind());
+                    // do something when app is closing
+                    process.on("exit", disconnectOnExitFunction.bind({}));
 
-                // catches "kill pid" (for example: nodemon restart)
-                process.on("SIGUSR1", disconnectOnExitFunction.bind());
-                process.on("SIGUSR2", disconnectOnExitFunction.bind());
+                    // catches ctrl+c event
+                    process.on("SIGINT", disconnectOnExitFunction.bind({}));
 
-                // catches uncaught exceptions
-                process.on(
-                    "uncaughtException",
-                    disconnectOnExitFunction.bind(),
-                );
+                    // catches "kill pid" (for example: nodemon restart)
+                    process.on("SIGUSR1", disconnectOnExitFunction.bind({}));
+                    process.on("SIGUSR2", disconnectOnExitFunction.bind({}));
+
+                    // catches uncaught exceptions
+                    process.on(
+                        "uncaughtException",
+                        disconnectOnExitFunction.bind({}),
+                    );
+                }
 
                 clearInterval(checkQueueInterval);
                 checkQueueInterval = setInterval(function () {
+                    if (connectionReady && thisThis.lastWrite !== null && thisThis.lastWrite - thisThis.lastMessageRecieved > (60*1000)) {
+                        // no response? not connectet anymore?
+                        connectionReady = false
+                        thisThis.queue = []
+
+                        try {
+                            thisThis.onDisconnect();
+                        } catch (e) {
+                            console.error('onDisconnect Error')
+                            console.error(e);
+                        }
+                    }
                     if (
                         checkQueueIntervalIsRunning === true ||
                         thisThis === null ||
@@ -152,7 +196,7 @@ class TelnetAvr {
                         if (
                             thisThis !== null &&
                             thisThis.queueLock !== false &&
-                            Date.now() - thisThis.queueLockDate > 10000
+                            Date.now() - thisThis.queueLockDate > 5000
                         ) {
                             thisThis.queueLock = false;
                         }
@@ -210,9 +254,17 @@ class TelnetAvr {
                 this.socket.once("connect", () =>
                     this.socket.setTimeout(2 * 60 * 60 * 1000),
                 );
+                this.lastConnect = Date.now()
                 this.socket.connect(thisThis.port, thisThis.host, () => {
                     reconnectCounter = 0
                     connectionReady = true;
+                    try {
+                        thisThis.onConnect();
+                    } catch (e) {
+                        console.error('onConnect Error')
+                        console.error(e);
+                    }
+
                     require("deasync").sleep(10);
                     thisThis.connectionReady = true;
                     try {
@@ -225,6 +277,13 @@ class TelnetAvr {
                 this.socket.on("close", () => {
                     connectionReady = false;
                     thisThis.connectionReady = false;
+
+                    try {
+                        thisThis.onDisconnect();
+                    } catch (e) {
+                        console.error('onDisconnect Error')
+                        console.error(e);
+                    }
 
 
                     console.log(
@@ -262,7 +321,11 @@ class TelnetAvr {
                 });
 
                 this.socket.on("data", (d) => {
+                    connectionReady = true
+                    this.connectionReady = true
+
                     let callbackCalled = false;
+                    thisThis.lastMessageRecieved = Date.now()
                     try {
                         let data = d
                             .toString()
@@ -433,26 +496,52 @@ class TelnetAvr {
                 });
 
                 this.socket.on("error", (err) => {
-                    console.log("sendMessage:Error " + String(err));
+                    console.log("Telnet:Error " + String(err));
+
+                    if (String(err).indexOf('CONN') > -1){
+                        connectionReady = false;
+                        thisThis.connectionReady = false;
+
+                        try {
+                            thisThis.onDisconnect();
+                        } catch (e) {
+                            console.error('onDisconnect Error')
+                            console.error(e);
+                        }
+                    }
+
                 });
             }
         }
     }
 
     sendMessage(message, callbackChars, onData) {
-        if (callbackChars === undefined) {
-            if (Date.now() - thisThis.lastWrite < 38) {
-                while (Date.now() - thisThis.lastWrite < 38) {
-                    require("deasync").sleep(10);
-                }
-            }
-            thisThis.socket.write(message + "\r\n");
-            thisThis.lastWrite = Date.now();
-
+        if (connectionReady && thisThis.lastWrite !== null && thisThis.lastWrite - thisThis.lastMessageRecieved > (60*1000)) {
+            // no response? not connectet anymore?
+            connectionReady = false
             try {
-                onData(null, message + ":SENT");
+                thisThis.onDisconnect();
             } catch (e) {
+                console.error('onDisconnect Error')
                 console.error(e);
+            }
+        }
+
+        if (callbackChars === undefined) {
+            if (connectionReady){
+                if (Date.now() - thisThis.lastWrite < 38) {
+                    while (Date.now() - thisThis.lastWrite < 38) {
+                        require("deasync").sleep(10);
+                    }
+                }
+                thisThis.socket.write(message + "\r\n");
+                thisThis.lastWrite = Date.now();
+
+                try {
+                    onData(null, message + ":SENT");
+                } catch (e) {
+                    console.error(e);
+                }
             }
 
             return;
@@ -478,15 +567,17 @@ class TelnetAvr {
         }
 
         let whileCounter = 0;
-        while (connectionReady === false && whileCounter++ <= 5) {
+        while (connectionReady === false && whileCounter++ <= 15) {
             require("deasync").sleep(1000);
         }
 
-        thisThis.connect(function () {});
+        if (connectionReady === false){
+            thisThis.connect(function () {});
 
-        whileCounter = 0;
-        while (connectionReady === false && whileCounter++ < 50) {
-            require("deasync").sleep(100);
+            whileCounter = 0;
+            while (connectionReady === false && whileCounter++ < 150) {
+                require("deasync").sleep(100);
+            }
         }
 
         if (connectionReady === false) {
