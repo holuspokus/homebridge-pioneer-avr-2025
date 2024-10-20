@@ -18,6 +18,8 @@ let tryToReconnectTimeout = null;
 let checkQueueInterval = null;
 let checkQueueIntervalIsRunning = null
 
+let onlyOnce = true
+
 let disconnectOnExitFunction = function (err) {
     if (err && String(err).length > 3) {
         console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
@@ -125,7 +127,7 @@ class TelnetAvr {
             }
 
         } else {
-            // when connect() called the first time
+            // when connect() called the first time, with initialization
             if (thisThis.socket === null && thisThis !== null) {
                 disconnectOnExitFunction = function (err) {
                     if (err && String(err).length > 3) {
@@ -141,24 +143,28 @@ class TelnetAvr {
                     }
                 };
 
-                process.stdin.resume();
-                // so the program will not close instantly
+                if (onlyOnce) {
+                    onlyOnce = false
 
-                // do something when app is closing
-                process.on("exit", disconnectOnExitFunction.bind({}));
+                    process.stdin.resume();
+                    // so the program will not close instantly
 
-                // catches ctrl+c event
-                process.on("SIGINT", disconnectOnExitFunction.bind({}));
+                    // do something when app is closing
+                    process.on("exit", disconnectOnExitFunction.bind({}));
 
-                // catches "kill pid" (for example: nodemon restart)
-                process.on("SIGUSR1", disconnectOnExitFunction.bind({}));
-                process.on("SIGUSR2", disconnectOnExitFunction.bind({}));
+                    // catches ctrl+c event
+                    process.on("SIGINT", disconnectOnExitFunction.bind({}));
 
-                // catches uncaught exceptions
-                process.on(
-                    "uncaughtException",
-                    disconnectOnExitFunction.bind({}),
-                );
+                    // catches "kill pid" (for example: nodemon restart)
+                    process.on("SIGUSR1", disconnectOnExitFunction.bind({}));
+                    process.on("SIGUSR2", disconnectOnExitFunction.bind({}));
+
+                    // catches uncaught exceptions
+                    process.on(
+                        "uncaughtException",
+                        disconnectOnExitFunction.bind({}),
+                    );
+                }
 
                 clearInterval(checkQueueInterval);
                 checkQueueInterval = setInterval(function () {
