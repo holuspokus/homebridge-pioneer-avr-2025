@@ -59,6 +59,7 @@ Below is a sample configuration for your accessory:
 |         name | Custom input, can remain   |
 |  description | Custom input, can remain   |
 | maxVolumeSet | Optional input, can remain |
+| minVolumeSet | Optional input, can remain |
 |         host | needs to be accurate       |
 |         port | needs to be accurate       |
 
@@ -71,10 +72,20 @@ Below is a sample configuration for your accessory:
 > ... to find the port number.
 
 > **maxVolumeSet:**  
-> Number between 0 and 100; 60 means 60% of max-Volume.  
-> 100 = -0dB ( = 185 = No Limit),  
-> 60 = -16dB  
-> 0 = disabled (This only affects the Volume as Brightness-Feature, not the Remote).
+> A number between 0 and 100; for example, 60 means 60% of the max volume.  
+> 100 = -0dB (i.e., 185 = No Limit),  
+> 60 = -16dB,  
+> 0 = disabled (this only affects the volume as a brightness feature, not the remote).  
+> Defaults to 80 if undefined.
+> A value of 60 has worked well for me
+
+> **Note:** The difference between `maxVolumeSet` and `minVolumeSet` should be at least 20.
+
+> **minVolumeSet:**  
+> A number between 0 and 100; for example, 30 means 30% of the max volume.  
+> Defaults to 20 if undefined.  
+> This setting is only active in combination with `maxVolumeSet`.
+> A value of 35 has worked well for me
 
 
 
