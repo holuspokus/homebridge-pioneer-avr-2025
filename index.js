@@ -40,17 +40,24 @@ function pioneerAvrAccessory(log, config) {
     if(Object.hasOwn(config, 'maxVolumeSet') || typeof(config.maxVolumeSet) == 'undefined'){
         this.maxVolumeSet = config.maxVolumeSet;
     }else{
-        this.maxVolumeSet = 70;
+        this.maxVolumeSet = 80;
     }
 
     this.maxVolumeSet = parseInt(String(this.maxVolumeSet).replace(/[^0-9]/g, ""), 10);
     if (this.maxVolumeSet > 100) { this.maxVolumeSet = 100; }
     if (this.maxVolumeSet < 0) { this.maxVolumeSet = 0; }
 
-    this.model =
-        config.model.replace(/[^a-zA-Z0-9]/g, "") ||
-        config.name.replace(/[^a-zA-Z0-9]/g, "") ||
-        "VSX923";
+    if(Object.hasOwn(config, 'minVolumeSet') || typeof(config.minVolumeSet) == 'undefined'){
+        this.minVolumeSet = config.minVolumeSet;
+    }else{
+        this.minVolumeSet = 20;
+    }
+
+    this.minVolumeSet = parseInt(String(this.minVolumeSet).replace(/[^0-9]/g, ""), 10);
+    if (this.minVolumeSet > this.maxVolumeSet - 20) { this.minVolumeSet = this.maxVolumeSet - 20; }
+    if (this.minVolumeSet < 0) { this.minVolumeSet = 0; }
+
+    this.model = config.model || config.name || "VSX923";
     this.prefsDir = config.prefsDir || ppath("pioneerAvr/");
 
     log.debug("Preferences directory : %s", this.prefsDir);
@@ -129,7 +136,7 @@ function pioneerAvrAccessory(log, config) {
     }
 
     try {
-        thisThis.avr = new PioneerAvr(thisThis.log, thisThis.host, thisThis.port, thisThis.maxVolumeSet, function(){
+        thisThis.avr = new PioneerAvr(thisThis.log, thisThis.host, thisThis.port, thisThis.maxVolumeSet, thisThis.minVolumeSet, function(){
             try{
                 thisThis.enabledServices = [];
                 require("deasync").sleep(1050);
@@ -165,7 +172,7 @@ pioneerAvrAccessory.prototype.prepareInformationService = function () {
             Characteristic.Name,
             this.name.replace(/[^a-zA-Z0-9 ]/g, ""),
         )
-        .setCharacteristic(Characteristic.Manufacturer, this.manufacturer)
+        .setCharacteristic(Characteristic.Manufacturer, this.manufacturer.replace(/[^a-zA-Z0-9 ]/g, ""))
         .setCharacteristic(
             Characteristic.Model,
             this.model.replace(/[^a-zA-Z0-9]/g, ""),
