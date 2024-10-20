@@ -14,10 +14,10 @@ This plugin enables various controls for your AVR, including:
 * Turn AVR On/Off
 * Select active input in Home app
 * Change Volume (as Lightbulb) in Home app
-* Save visibility status for inputs
+* Save visibility status for inputs in Home app
 * Rename inputs in Home app
 * Control AVR with Remote on iOS
-* Remote-Key "Play/Pause" to toggle Listening-Mode
+* Remote-Key "Play/Pause" to toggle Listening-Mode (iOS)
 * Auto discover inputs
 
 
