@@ -58,15 +58,20 @@ let inputToTypeList = [
 ],
     inputToType = {}
 
-function PioneerAvr(log, host, port, maxVolumeSet, connectionReadyCallback) {
+function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReadyCallback) {
     let thisThis = this;
     this.log = log;
     this.host = host;
     this.port = port;
     this.maxVolumeSet = parseInt(maxVolumeSet, 10)
+    this.minVolumeSet = parseInt(minVolumeSet, 10)
 
     if(isNaN(this.maxVolumeSet)){
         this.maxVolumeSet = 60
+    }
+
+    if(isNaN(this.minVolumeSet)){
+        this.minVolumeSet = 0
     }
 
     this.lastInputDiscovered = null
@@ -234,9 +239,18 @@ function PioneerAvr(log, host, port, maxVolumeSet, connectionReadyCallback) {
 
             var volPctF = 0
 
-            if(thisThis.maxVolumeSet > 0){
-                volPctF = Math.floor(parseInt(vol, 10) * 100 / ((185/100) * thisThis.maxVolumeSet));
-            }else{
+            if (thisThis.maxVolumeSet > thisThis.minVolumeSet) {
+                // Calculate the min and max values in relation to the range 0-185
+                const minVolumeIn185 = (thisThis.minVolumeSet / 100) * 185;
+                const maxVolumeIn185 = (thisThis.maxVolumeSet / 100) * 185;
+
+                // Parse the input 'vol' to a number and constrain it within the range
+                const parsedVol = parseInt(vol, 10);
+                const adjustedVol = Math.min(Math.max(parsedVol, minVolumeIn185), maxVolumeIn185);
+
+                // Calculate the percentage of the adjusted volume in the new range (0-100)
+                volPctF = Math.floor(((adjustedVol - minVolumeIn185) / (maxVolumeIn185 - minVolumeIn185)) * 100);
+            } else {
                 volPctF = Math.floor(parseInt(vol, 10) * 100 / 185);
             }
 
@@ -685,10 +699,6 @@ PioneerAvr.prototype.__updatePower = function (callback) {
 PioneerAvr.prototype.powerStatus = function (callback) {
     let thisThis = this;
 
-    // if (
-    //     thisThis.state.lastGetPowerStatus !== null &&
-    //     Date.now() - thisThis.state.lastGetPowerStatus < 100000
-    // ) {
     if(thisThis.state.on !== null){
         try {
             callback(null, thisThis.state.on);
@@ -786,12 +796,18 @@ PioneerAvr.prototype.setVolume = function (targetVolume, callback) {
 
     lastSetVol = targetVolume
 
-    let vsxVol = 0
-    if(this.maxVolumeSet > 0){
-        vsxVol = targetVolume * ((185/100) * this.maxVolumeSet) / 100;
-    }else{
-        vsxVol = (targetVolume * 185) / 100;
+    let vsxVol = 0;
+
+    if (thisThis.maxVolumeSet > 0) {
+        const minVolumeIn185 = (thisThis.minVolumeSet / 100) * 185; // e.g., 30% of 185 = 55.5
+        const maxVolumeIn185 = (thisThis.maxVolumeSet / 100) * 185; // e.g., 80% of 185 = 148
+
+        // Calculate vsxVol considering minVolumeSet and maxVolumeSet
+        vsxVol = ((targetVolume / 100) * (maxVolumeIn185 - minVolumeIn185)) + minVolumeIn185;
+    } else {
+        vsxVol = (targetVolume * 185) / 100; // Fallback case
     }
+
     vsxVol = Math.floor(vsxVol);
     let pad = "000";
     let vsxVolStr =
@@ -799,12 +815,15 @@ PioneerAvr.prototype.setVolume = function (targetVolume, callback) {
         vsxVol.toString();
     if (thisThis.setVolumeTimeout === null){
         thisThis.sendCommand(`${vsxVolStr}VL`);
+        thisThis.setVolumeTimeout = setTimeout(()=>{
+            thisThis.setVolumeTimeout = null
+        }, 30)
     }else{
         clearTimeout(thisThis.setVolumeTimeout)
         thisThis.setVolumeTimeout = setTimeout(()=>{
             thisThis.sendCommand(`${vsxVolStr}VL`);
             thisThis.setVolumeTimeout = null
-        }, 600)
+        }, 30)
     }
 
     lastUserInteraction = Date.now()
