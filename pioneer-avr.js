@@ -334,9 +334,9 @@ function PioneerAvr(log, host, port, maxVolumeSet, connectionReadyCallback) {
                         inputBeingAddedWaitCount = 0;
                     }
 
-                    if (thisThis.initCount == Object.keys(inputToType).length){
-                        thisThis.isReady = true;
-                    }
+                    // if (thisThis.initCount == Object.keys(inputToType).length){
+                    //     thisThis.isReady = true;
+                    // }
 
                     break;
                 }
@@ -359,7 +359,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, connectionReadyCallback) {
             let alreadyExists = false;
             for (let x in thisThis.inputs) {
                 if (String(thisThis.inputs[x].id) == String(tmpInput.id)) {
-                    // thisThis.log.error(' [ERROR] INPUT ALREADY EXISTS (programmer error)', tmpInput, thisThis.inputs[x])
+                    thisThis.log.debug(' [' + String(tmpInput.id) + '] INPUT ALREADY EXISTS (programmer error)', tmpInput, thisThis.inputs[x])
                     //update!
                     thisThis.inputs[x] = tmpInput;
                     alreadyExists = true;
@@ -426,6 +426,10 @@ function PioneerAvr(log, host, port, maxVolumeSet, connectionReadyCallback) {
                         Object.keys(inputToType).length,
                         thisThis.inputMissing,
                     );
+
+                    // if (thisThis.initCount == Object.keys(inputToType).length){
+                    //     thisThis.isReady = true;
+                    // }
                 }
 
                 for (let x in thisThis.inputs) {
@@ -439,6 +443,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, connectionReadyCallback) {
                     }
                 }
             }
+
         }
 
 
@@ -666,6 +671,10 @@ PioneerAvr.prototype.loadInputs = function (callback) {
             this.sendCommand(`?RGB${key}`, `RGB${key}`, callback);
             require("deasync").sleep(500);
         }
+    }
+
+    if (this.inputMissing.length === 0 && Object.keys(inputToType).length > 0){
+        thisThis.isReady = true;
     }
 };
 
