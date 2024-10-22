@@ -20,7 +20,7 @@ let checkQueueIntervalIsRunning = null
 
 let onlyOnce = true
 
-let disconnectOnExitFunction = function (err) {
+let disconnectOnExitFunction = function(err) {
     if (err && String(err).length > 3) {
         console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
         console.error(err.stack)
@@ -33,7 +33,7 @@ class TelnetAvr {
         this.host = host || HOST;
         this.port = port || PORT;
         this.display = null;
-        this.displayChanged = function (error, data) {
+        this.displayChanged = function(error, data) {
             console.log(" ++ displayChanged called.", error, data);
         };
         this.queueLock = false;
@@ -45,19 +45,19 @@ class TelnetAvr {
         this.queueCallbackChars = {};
         this.queueQuerys = [];
         this.clearQueueTimeout = null
-        this.clearQueue = function(){
+        this.clearQueue = function() {
             thisThis.queue = [];
             thisThis.queueCallbackChars = {};
             thisThis.queueQuerys = [];
         }
         this.lastConnect = null
 
-        this.onDisconnect = function(){}
-        this.onConnect = function(){}
+        this.onDisconnect = function() {}
+        this.onConnect = function() {}
 
         this.socket = null;
 
-        this.fallbackOnData = function (error, data) {
+        this.fallbackOnData = function(error, data) {
             console.log(" ++ fallbackOnData called.", error, data);
         };
 
@@ -70,7 +70,7 @@ class TelnetAvr {
             if (this.socket != null) {
                 this.socket.end();
                 this.socket.destroy();
-                setTimeout(function () {
+                setTimeout(function() {
                     thisThis.socket = null;
                 }, 200);
                 clearInterval(checkQueueInterval);
@@ -83,7 +83,7 @@ class TelnetAvr {
 
     connect(callback) {
         if (typeof callback !== "function") {
-            callback = function () {};
+            callback = function() {};
         }
 
         if (
@@ -117,7 +117,7 @@ class TelnetAvr {
                 } catch (e) {
                     console.error(e);
                 }
-            }else{
+            } else {
                 try {
                     require("deasync").sleep(1500);
                     callback();
@@ -129,7 +129,7 @@ class TelnetAvr {
         } else {
             // when connect() called the first time, with initialization
             if (thisThis.socket === null && thisThis !== null) {
-                disconnectOnExitFunction = function (err) {
+                disconnectOnExitFunction = function(err) {
                     if (err && String(err).length > 3) {
                         console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
                         console.error(err.stack)
@@ -167,8 +167,8 @@ class TelnetAvr {
                 }
 
                 clearInterval(checkQueueInterval);
-                checkQueueInterval = setInterval(function () {
-                    if (connectionReady && thisThis.lastWrite !== null && thisThis.lastWrite - thisThis.lastMessageRecieved > (60*1000)) {
+                checkQueueInterval = setInterval(function() {
+                    if (connectionReady && thisThis.lastWrite !== null && thisThis.lastWrite - thisThis.lastMessageRecieved > (60 * 1000)) {
                         // no response? not connectet anymore?
                         connectionReady = false
                         thisThis.queue = []
@@ -206,7 +206,7 @@ class TelnetAvr {
                             connectionReady === true &&
                             thisThis.queue.length > 0
                         ) {
-                            (function (message) {
+                            (function(message) {
                                 if (
                                     !message.startsWith("?") &&
                                     !message.startsWith("!")
@@ -306,16 +306,16 @@ class TelnetAvr {
                         sleepTime = 60;
                     }
                     clearTimeout(tryToReconnectTimeout);
-                    tryToReconnectTimeout = setTimeout(function(){
-                      console.log(
-                          (new Date).toUTCString() +
-                          " try to connect ..."
-                      );
-                      reconnectCounter++;
-                      thisThis.connect(function () {
-                          //only called when successfully
-                          reconnectCounter = 0
-                      });
+                    tryToReconnectTimeout = setTimeout(function() {
+                        console.log(
+                            (new Date).toUTCString() +
+                            " try to connect ..."
+                        );
+                        reconnectCounter++;
+                        thisThis.connect(function() {
+                            //only called when successfully
+                            reconnectCounter = 0
+                        });
                     }, sleepTime * 1000);
 
                 });
@@ -336,9 +336,9 @@ class TelnetAvr {
                             // message on display
                             // data = FL0020204558542E53544552454F2020
                             let displayedMessage = data
-                                    .substr(2)
-                                    .trim()
-                                    .match(/(..?)/g),
+                                .substr(2)
+                                .trim()
+                                .match(/(..?)/g),
                                 displayChars = {
                                     '00': ' ', '01': '[🔁🔀]', '02': '🔁', '03': '🔀', '04': '↕️', '05': '', '06': '', '07': 'I', '08': 'II', '09': '<', '0a': '>', '0b': '❤️', '0c': '.', '0d': '.0', '0e': '.5', '0f': 'Ω', '10': '0', '11': '1', '12': '2', '13': '3', '14': '4', '15': '5', '16': '6', '17': '7', '18': '8', '19': '9', '1a': 'A', '1b': 'B', '1c': 'C', '1d': 'F', '1e': 'M', '1f': '-', '20': ' ', '21': '!', '22': '"', '23': '#', '24': '$', '25': '%', '26': '&', '27': '\'', '28': '(', '29': ')', '2a': '*', '2b': '+', '2c': ',', '2d': '-', '2e': '.', '2f': '/', '30': '0', '31': '1', '32': '2', '33': '3', '34': '4', '35': '5', '36': '6', '37': '7', '38': '8', '39': '9', '3a': ':', '3b': ';', '3c': '<', '3d': '=', '3e': '>', '3f': '?', '40': '@', '41': 'A', '42': 'B', '43': 'C', '44': 'D', '45': 'E', '46': 'F', '47': 'G', '48': 'H', '49': 'I', '4a': 'J', '4b': 'K', '4c': 'L', '4d': 'M', '4e': 'N', '4f': 'O', '50': 'P', '51': 'Q', '52': 'R', '53': 'S', '54': 'T', '55': 'U', '56': 'V', '57': 'W', '58': 'X', '59': 'Y', '5a': 'Z', '5b': '[', '5c': '\\', '5d': ']', '5e': '^', '5f': '_', '60': '||', '61': 'a', '62': 'b', '63': 'c', '64': 'd', '65': 'e', '66': 'f', '67': 'g', '68': 'h', '69': 'i', '6a': 'j', '6b': 'k', '6c': 'l', '6d': 'm', '6e': 'n', '6f': 'o', '70': 'p', '71': 'q', '72': 'r', '73': 's', '74': 't', '75': 'u', '76': 'v', '77': 'w', '78': 'x', '79': 'y', '7a': 'z', '7b': '{', '7c': '|', '7d': '}', '7e': '~', '7f': '◼︎', '80': 'Œ', '81': 'œ', '82': 'Ĳ', '83': 'ĳ', '84': '∏', '85': '∓', '86': ' ', '87': ' ', '88': ' ', '89': ' ', '8a': ' ', '8b': ' ', '8c': '←', '8d': '↑', '8e': '→', '8f': '↓', '90': '+', '91': '♪', '92': '📁', '93': ' ', '94': ' ', '95': ' ', '96': ' ', '97': ' ', '98': ' ', '99': ' ', '9a': ' ', '9b': ' ', '9c': ' ', '9d': ' ', '9e': ' ', '9f': ' ', 'a0': ' ', 'a1': '¡', 'a2': '¢', 'a3': '£', 'a4': '⦻', 'a5': '¥', 'a6': ':', 'a7': '', 'a8': '¨', 'a9': '©', 'aa': 'a', 'ab': '<<', 'ac': ' ', 'ad': ' ', 'ae': '®', 'af': ' ', 'b0': '°', 'b1': '±', 'b2': '', 'b3': '', 'b4': '', 'b5': '', 'b6': '', 'b7': '', 'b8': '', 'b9': '', 'ba': '', 'bb': '', 'bc': '', 'bd': '', 'be': '', 'bf': '', 'c0': '', 'c1': '', 'c2': '', 'c3': '', 'c4': '', 'c5': '', 'c6': '', 'c7': '', 'c8': '', 'c9': '', 'ca': '', 'cb': '', 'cc': '', 'cd': '', 'ce': '', 'cf': '', 'd0': '', 'd1': '', 'd2': '', 'd3': '', 'd4': '', 'd5': '', 'd6': '', 'd7': '', 'd8': '', 'd9': '', 'da': '', 'db': '', 'dc': 'Ü', 'dd': '', 'de': '', 'df': 'ß', 'e0': '', 'e1': '', 'e2': '', 'e3': '', 'e4': 'ä', 'e5': '', 'e6': '', 'e7': '', 'e8': '', 'e9': '', 'ea': '', 'eb': '', 'ec': '', 'ed': '', 'ee': '', 'ef': '', 'f0': '', 'f1': '', 'f2': '', 'f3': '', 'f4': '', 'f5': '', 'f6': 'ö', 'f7': '', 'f8': '', 'f9': '', 'fa': '', 'fb': '', 'fc': 'ü', 'fd': '', 'fe': '', 'ff': ''
                                 };
@@ -378,17 +378,15 @@ class TelnetAvr {
                                     data.indexOf(callbackKeys[callbackKey]) > -1
                                 ) {
                                     for (let i in thisThis.queueCallbackChars[
-                                        callbackKeys[callbackKey]
-                                    ]) {
+                                            callbackKeys[callbackKey]
+                                        ]) {
                                         let runThis =
                                             thisThis.queueCallbackChars[
                                                 callbackKeys[callbackKey]
                                             ][i];
                                         if (typeof runThis == "function") {
                                             try {
-                                                let runThisThis = runThis.bind(
-                                                    {},
-                                                );
+                                                let runThisThis = runThis.bind({}, );
                                                 runThisThis(null, data);
                                                 callbackCalled = true;
                                             } catch (e) {
@@ -430,17 +428,15 @@ class TelnetAvr {
                                     ).indexOf(thisCallbackKey) > -1
                                 ) {
                                     for (let i in thisThis.queueCallbackChars[
-                                        thisCallbackKey
-                                    ]) {
+                                            thisCallbackKey
+                                        ]) {
                                         let runThis =
                                             thisThis.queueCallbackChars[
                                                 thisCallbackKey
                                             ][i];
                                         if (typeof runThis == "function") {
                                             try {
-                                                let runThisThis = runThis.bind(
-                                                    {},
-                                                );
+                                                let runThisThis = runThis.bind({}, );
                                                 runThisThis(
                                                     null,
                                                     data + thisCallbackKey,
@@ -478,13 +474,10 @@ class TelnetAvr {
                             callbackCalled === false &&
                             !data.startsWith("FL") &&
                             !data.startsWith("R") &&
-                            !data.startsWith("ST") &&
-                            ["RGC","RGD","GBH","GHH","VTA","AUA","AUB","GEH"].indexOf(data.substr(0, 3)) === -1
+                            !data.startsWith("ST") && ["RGC", "RGD", "GBH", "GHH", "VTA", "AUA", "AUB", "GEH"].indexOf(data.substr(0, 3)) === -1
                         ) {
                             try {
-                                let runThisOnData = this.fallbackOnData.bind(
-                                    {},
-                                );
+                                let runThisOnData = this.fallbackOnData.bind({}, );
                                 runThisOnData(null, data);
                             } catch (e) {
                                 console.error(e);
@@ -498,7 +491,7 @@ class TelnetAvr {
                 this.socket.on("error", (err) => {
                     console.log("Telnet:Error " + String(err));
 
-                    if (String(err).indexOf('CONN') > -1){
+                    if (String(err).indexOf('CONN') > -1) {
                         connectionReady = false;
                         thisThis.connectionReady = false;
 
@@ -516,7 +509,7 @@ class TelnetAvr {
     }
 
     sendMessage(message, callbackChars, onData) {
-        if (connectionReady && thisThis.lastWrite !== null && thisThis.lastWrite - thisThis.lastMessageRecieved > (60*1000)) {
+        if (connectionReady && thisThis.lastWrite !== null && thisThis.lastWrite - thisThis.lastMessageRecieved > (60 * 1000)) {
             // no response? not connectet anymore?
             connectionReady = false
             try {
@@ -528,7 +521,7 @@ class TelnetAvr {
         }
 
         if (callbackChars === undefined) {
-            if (connectionReady){
+            if (connectionReady) {
                 if (Date.now() - thisThis.lastWrite < 38) {
                     while (Date.now() - thisThis.lastWrite < 38) {
                         require("deasync").sleep(10);
@@ -548,7 +541,9 @@ class TelnetAvr {
         }
 
         clearTimeout(this.clearQueueTimeout)
-        this.clearQueueTimeout = setTimeout( () => { thisThis.clearQueue(); }, (5*60*1000))
+        this.clearQueueTimeout = setTimeout(() => {
+            thisThis.clearQueue();
+        }, (5 * 60 * 1000))
 
         if (this.queueQuerys.indexOf(message) === -1) {
             this.queue.push([message, callbackChars]);
@@ -561,8 +556,8 @@ class TelnetAvr {
         this.queueQuerys.push(message);
 
         if (connectionReady === false) {
-            setTimeout(function () {
-                thisThis.connect(function () {});
+            setTimeout(function() {
+                thisThis.connect(function() {});
             }, 0);
         }
 
@@ -571,8 +566,8 @@ class TelnetAvr {
             require("deasync").sleep(1000);
         }
 
-        if (connectionReady === false){
-            thisThis.connect(function () {});
+        if (connectionReady === false) {
+            thisThis.connect(function() {});
 
             whileCounter = 0;
             while (connectionReady === false && whileCounter++ < 150) {

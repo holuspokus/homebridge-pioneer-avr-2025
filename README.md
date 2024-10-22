@@ -76,7 +76,7 @@ Below is a sample configuration for your accessory:
 > 100 = -0dB (i.e., 185 = No Limit),  
 > 60 = -16dB,  
 > 0 = disabled (this only affects the volume as a brightness feature, not the remote).  
-> Defaults to 80 if undefined.
+> Defaults to 80 if undefined.  
 > A value of 60 has worked well for me
 
 > **Note:** The difference between `maxVolumeSet` and `minVolumeSet` should be at least 20.
@@ -84,7 +84,7 @@ Below is a sample configuration for your accessory:
 > **minVolumeSet:**  
 > A number between 0 and 100; for example, 30 means 30% of the max volume.  
 > Defaults to 20 if undefined.  
-> This setting is only active in combination with `maxVolumeSet`.
+> This setting is only active in combination with `maxVolumeSet`.  
 > A value of 35 has worked well for me
 
 
@@ -103,6 +103,7 @@ Below is a sample configuration for your accessory:
 
 ## Release Notes
 
+- **v0.1.1**: Reduced npm dependencies and updated `package.json`, less info-logging.
 - **v0.1.0**: Some final improvements for stabilization.
 - **v0.0.9**: Fixed an issue related to volume control on Apple Watch.
 - **v0.0.8**: Volume as Lightbulb works even finer now!
