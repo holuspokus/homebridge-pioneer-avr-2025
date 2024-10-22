@@ -7,7 +7,6 @@
 
 */
 
-const request = require("request");
 const TelnetAvr = require("./telnet-avr");
 
 
@@ -18,44 +17,44 @@ let lastUserInteraction = null;
 
 // Reference fot input id -> Characteristic.InputSourceType
 let inputToTypeList = [
-    ['25', 3], // BD -> Characteristic.InputSourceType.HDMI --> Apple TV
-    ['04', 0], // DVD -> Characteristic.InputSourceType.OTHER ---> NintendoSwitch
-    ['01', 0], // CD -> Characteristic.InputSourceType.OTHER
-    ['20', 3], // HDMI2 -> Characteristic.InputSourceType.HDMI
-    ['19', 3], // HDMI1 -> Characteristic.InputSourceType.HDMI
-    ['21', 3], // HDMI3 -> Characteristic.InputSourceType.HDMI
-    ['22', 3], // HDMI4 -> Characteristic.InputSourceType.HDMI
-    ['23', 3], // HDMI5 -> Characteristic.InputSourceType.HDMI
-    ['24', 3], // HDMI6 -> Characteristic.InputSourceType.HDMI
-    ['34', 3], // HDMI7-> Characteristic.InputSourceType.HDMI
-    ['35', 3], // HDMI8-> Characteristic.InputSourceType.HDMI
-    ['00', 0], // PHONO -> Characteristic.InputSourceType.OTHER
-    ['02', 2], // TUNER -> Characteristic.InputSourceType.TUNER
-    ['03', 0], // TAPE -> Characteristic.InputSourceType.OTHER
-    ['05', 3], // TV -> Characteristic.InputSourceType.HDMI
-    ['06', 3], // CBL/SAT -> Characteristic.InputSourceType.HDMI
-    ['10', 4], // VIDEO -> Characteristic.InputSourceType.COMPOSITE_VIDEO
-    ['12', 0], // MULTI CH IN -> Characteristic.InputSourceType.OTHER
-    ['13', 0], // USB-DAC -> Characteristic.InputSourceType.OTHER
-    ['14', 6], // VIDEOS2 -> Characteristic.InputSourceType.COMPONENT_VIDEO
-    ['15', 3], // DVR/BDR -> Characteristic.InputSourceType.HDMI
-    ['17', 9], // USB/iPod -> Characteristic.InputSourceType.USB
-    ['18', 2], // XM RADIO -> Characteristic.InputSourceType.TUNER
-    ['26', 10], // MEDIA GALLERY -> Characteristic.InputSourceType.APPLICATION
-    ['27', 0], // SIRIUS -> Characteristic.InputSourceType.OTHER
-    ['31', 3], // HDMI CYCLE -> Characteristic.InputSourceType.HDMI
-    ['33', 0], // ADAPTER -> Characteristic.InputSourceType.OTHER
-    ['38', 2], // NETRADIO -> Characteristic.InputSourceType.TUNER
-    ['40', 0], // SIRIUS -> Characteristic.InputSourceType.OTHER
-    ['41', 0], // PANDORA -> Characteristic.InputSourceType.OTHER
-    ['44', 0], // MEDIA SERVER -> Characteristic.InputSourceType.OTHER
-    ['45', 0], // FAVORITE -> Characteristic.InputSourceType.OTHER
-    ['46', 8], // AIRPLAY -> Characteristic.InputSourceType.AIRPLAY
-    ['48', 0], // MHL -> Characteristic.InputSourceType.OTHER
-    ['49', 0], // GAME -> Characteristic.InputSourceType.OTHER
-    ['53', 0], // SPOTIFY -> Characteristic.InputSourceType.OTHER
-    ['57', 0] // SPOTIFY -> Characteristic.InputSourceType.OTHER
-],
+        ['25', 3], // BD -> Characteristic.InputSourceType.HDMI --> Apple TV
+        ['04', 0], // DVD -> Characteristic.InputSourceType.OTHER ---> NintendoSwitch
+        ['01', 0], // CD -> Characteristic.InputSourceType.OTHER
+        ['20', 3], // HDMI2 -> Characteristic.InputSourceType.HDMI
+        ['19', 3], // HDMI1 -> Characteristic.InputSourceType.HDMI
+        ['21', 3], // HDMI3 -> Characteristic.InputSourceType.HDMI
+        ['22', 3], // HDMI4 -> Characteristic.InputSourceType.HDMI
+        ['23', 3], // HDMI5 -> Characteristic.InputSourceType.HDMI
+        ['24', 3], // HDMI6 -> Characteristic.InputSourceType.HDMI
+        ['34', 3], // HDMI7-> Characteristic.InputSourceType.HDMI
+        ['35', 3], // HDMI8-> Characteristic.InputSourceType.HDMI
+        ['00', 0], // PHONO -> Characteristic.InputSourceType.OTHER
+        ['02', 2], // TUNER -> Characteristic.InputSourceType.TUNER
+        ['03', 0], // TAPE -> Characteristic.InputSourceType.OTHER
+        ['05', 3], // TV -> Characteristic.InputSourceType.HDMI
+        ['06', 3], // CBL/SAT -> Characteristic.InputSourceType.HDMI
+        ['10', 4], // VIDEO -> Characteristic.InputSourceType.COMPOSITE_VIDEO
+        ['12', 0], // MULTI CH IN -> Characteristic.InputSourceType.OTHER
+        ['13', 0], // USB-DAC -> Characteristic.InputSourceType.OTHER
+        ['14', 6], // VIDEOS2 -> Characteristic.InputSourceType.COMPONENT_VIDEO
+        ['15', 3], // DVR/BDR -> Characteristic.InputSourceType.HDMI
+        ['17', 9], // USB/iPod -> Characteristic.InputSourceType.USB
+        ['18', 2], // XM RADIO -> Characteristic.InputSourceType.TUNER
+        ['26', 10], // MEDIA GALLERY -> Characteristic.InputSourceType.APPLICATION
+        ['27', 0], // SIRIUS -> Characteristic.InputSourceType.OTHER
+        ['31', 3], // HDMI CYCLE -> Characteristic.InputSourceType.HDMI
+        ['33', 0], // ADAPTER -> Characteristic.InputSourceType.OTHER
+        ['38', 2], // NETRADIO -> Characteristic.InputSourceType.TUNER
+        ['40', 0], // SIRIUS -> Characteristic.InputSourceType.OTHER
+        ['41', 0], // PANDORA -> Characteristic.InputSourceType.OTHER
+        ['44', 0], // MEDIA SERVER -> Characteristic.InputSourceType.OTHER
+        ['45', 0], // FAVORITE -> Characteristic.InputSourceType.OTHER
+        ['46', 8], // AIRPLAY -> Characteristic.InputSourceType.AIRPLAY
+        ['48', 0], // MHL -> Characteristic.InputSourceType.OTHER
+        ['49', 0], // GAME -> Characteristic.InputSourceType.OTHER
+        ['53', 0], // SPOTIFY -> Characteristic.InputSourceType.OTHER
+        ['57', 0] // SPOTIFY -> Characteristic.InputSourceType.OTHER
+    ],
     inputToType = {}
 
 function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReadyCallback) {
@@ -66,11 +65,11 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
     this.maxVolumeSet = parseInt(maxVolumeSet, 10)
     this.minVolumeSet = parseInt(minVolumeSet, 10)
 
-    if(isNaN(this.maxVolumeSet)){
+    if (isNaN(this.maxVolumeSet)) {
         this.maxVolumeSet = 60
     }
 
-    if(isNaN(this.minVolumeSet)){
+    if (isNaN(this.minVolumeSet)) {
         this.minVolumeSet = 0
     }
 
@@ -81,24 +80,24 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
     this.setVolumeTimeout = null
 
     if (typeof connectionReadyCallback !== "function") {
-        connectionReadyCallback = function () {
+        connectionReadyCallback = function() {
             thisThis.log.debug('PioneerAvr() conn ready')
         };
     }
 
-    this.functionSetLightbulbMuted = function () {
+    this.functionSetLightbulbMuted = function() {
         thisThis.log.debug('dummy functionSetLightbulbMuted called')
     };
 
-    this.functionSetLightbulbVolume = function () {
+    this.functionSetLightbulbVolume = function() {
         thisThis.log.debug('dummy functionSetLightbulbVolume called')
     };
 
-    this.functionSetPowerState = function () {
+    this.functionSetPowerState = function() {
         thisThis.log.debug('dummy functionSetPowerState called')
     };
 
-    this.functionSetActiveIdentifier = function () {
+    this.functionSetActiveIdentifier = function() {
         thisThis.log.debug('dummy functionSetActiveIdentifier called')
     };
 
@@ -114,11 +113,11 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
         lastGetPowerStatus: null
     };
 
-    this.onData = function (error, data, callback) {
+    this.onData = function(error, data, callback) {
         thisThis.log.debug("Receive data : %s", data);
 
         if (typeof callback !== "function") {
-            callback = function () {};
+            callback = function() {};
         }
 
         if (error) {
@@ -130,7 +129,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
             }
             return;
 
-        // E06 is returned when input not exists, E06RGB is separate, sometimes E04RGBB
+            // E06 is returned when input not exists, E06RGB is separate, sometimes E04RGBB
         } else if (data.startsWith("E") && !data.startsWith("E06RGB") && !data.startsWith("E04RGB")) {
             thisThis.log.debug("Receive error: " + String(data));
             try {
@@ -170,7 +169,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
             }
 
 
-            setTimeout(function(){
+            setTimeout(function() {
                 try {
                     thisThis.functionSetPowerState(thisThis.state.on)
                 } catch (e) {
@@ -178,7 +177,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
                 }
             }, 2)
 
-            setTimeout(function(){
+            setTimeout(function() {
                 try {
                     thisThis.functionSetLightbulbMuted(thisThis.state.muted)
                 } catch (e) {
@@ -191,7 +190,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
         else if (data.indexOf("MUT") > -1) {
             data = data.substring(data.indexOf("MUT"));
             thisThis.state.muted = parseInt(data[3], 10) === 0;
-            setTimeout(function(){
+            setTimeout(function() {
                 try {
                     thisThis.functionSetLightbulbMuted(thisThis.state.muted)
                 } catch (e) {
@@ -221,8 +220,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
             } catch (e) {
                 thisThis.log.debug("onData", e);
             }
-        }
-        else if (data.indexOf("LM") > -1 && data.length === 6) {
+        } else if (data.indexOf("LM") > -1 && data.length === 6) {
             data = data.substring(data.indexOf("LM"));
             thisThis.state.listeningModeLM = data.substr(2, 4); // SR0018 -> 0018
             try {
@@ -255,9 +253,9 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
             }
 
 
-            if(vol.length === 3 && !isNaN(volPctF)){
+            if (vol.length === 3 && !isNaN(volPctF)) {
                 thisThis.state.volume = Math.floor(volPctF);
-                setTimeout(function(){
+                setTimeout(function() {
                     try {
                         thisThis.functionSetLightbulbVolume(thisThis.state.volume)
                     } catch (e) {
@@ -302,7 +300,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
                 return;
             }
             thisThis.state.input = inputIndex;
-            setTimeout(function(){
+            setTimeout(function() {
                 try {
                     thisThis.functionSetActiveIdentifier(thisThis.state.input)
                 } catch (e) {
@@ -333,7 +331,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
 
                     let indexMissing = -1
                     for (let i in thisThis.inputMissing) {
-                        if(thisThis.inputMissing[i].indexOf(String(thisid)) > -1){
+                        if (thisThis.inputMissing[i].indexOf(String(thisid)) > -1) {
                             let i = indexMissing
                             break
                         }
@@ -381,8 +379,8 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
                 }
             }
             let filter = ['CYCLE', 'NET']
-            for (let i in filter){
-                if(tmpInput.name.indexOf(filter[i]) > -1){
+            for (let i in filter) {
+                if (tmpInput.name.indexOf(filter[i]) > -1) {
                     thisThis.log.debug(
                         "[filteret out] Input [%s] discovered (id: %s, type: %s). InitCount=%s/%s, inputMissing: %s",
                         tmpInput.name,
@@ -397,7 +395,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
 
                     let indexMissing = -1
                     for (let i in thisThis.inputMissing) {
-                        if(thisThis.inputMissing[i].indexOf(String(data.substr(3, 2))) > -1){
+                        if (thisThis.inputMissing[i].indexOf(String(data.substr(3, 2))) > -1) {
                             let i = indexMissing
                             break
                         }
@@ -419,7 +417,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
 
                 let indexMissing = -1
                 for (let i in thisThis.inputMissing) {
-                    if(thisThis.inputMissing[i].indexOf(String(data.substr(3, 2))) > -1){
+                    if (thisThis.inputMissing[i].indexOf(String(data.substr(3, 2))) > -1) {
                         let i = indexMissing
                         break
                     }
@@ -472,12 +470,34 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
     this.webEventHandlerBaseUrl =
         "http://" + this.host + "/EventHandler.asp?WebToHostItem=";
 
-    request.get(this.webStatusUrl).on("response", function (response) {
-        if (response.statusCode == "200") {
-            thisThis.log.info("Web Interface enabled");
-            this.web = true;
-        }
-    });
+
+      (async () => {
+
+          try {
+
+              let fetch = (await import("node-fetch")).default;
+
+              fetch(this.webEventHandlerBaseUrl + "PO", {
+                      method: 'GET'
+                  })
+                  .then(response => {
+                      if (response.status === 200) {
+                          thisThis.log.info("Web Interface enabled");
+                          thisThis.web = true;
+                      }else{
+                          thisThis.log.debug(response)
+                      }
+                  })
+                  .catch(error => {
+                      thisThis.log.debug("Error fetching web interface:", error);
+                  });
+
+          } catch (e) {
+              this.log.debug('check web enabled ERROR', e);
+          }
+      })();
+
+
 
     // Communication Initialization
     this.s = new TelnetAvr(this.host, this.port);
@@ -491,9 +511,9 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
 
     thisThis.log.debug("wait until telnet connected");
 
-    this.s.onDisconnect = function(){
+    this.s.onDisconnect = function() {
         thisThis.state.on = false
-        setTimeout(function(){
+        setTimeout(function() {
             try {
                 thisThis.functionSetPowerState(thisThis.state.on)
             } catch (e) {
@@ -511,8 +531,8 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
         // }, 2)
     }
 
-    this.s.onConnect = function(){
-        thisThis.powerStatus(function () {});
+    this.s.onConnect = function() {
+        thisThis.powerStatus(function() {});
 
         // thisThis.state.muted = true
         // setTimeout(function(){
@@ -528,7 +548,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
     this.initCount = 0;
     this.isReady = false;
 
-    this.s.displayChanged = function (error, text) {
+    this.s.displayChanged = function(error, text) {
         if (error) {
             thisThis.log.error(error);
         }
@@ -538,9 +558,9 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
     };
 
     clearInterval(allInterval);
-    allInterval = setInterval(function () {
+    allInterval = setInterval(function() {
         try {
-            if (lastUserInteraction !==null && Date.now() - lastUserInteraction > (48*60*60*1000)){ // telnet-avr.js timeout: 2*60*60*1000
+            if (lastUserInteraction !== null && Date.now() - lastUserInteraction > (48 * 60 * 60 * 1000)) { // telnet-avr.js timeout: 2*60*60*1000
                 return;
             }
             if (
@@ -561,11 +581,11 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
         }
     }, 29000);
 
-    setTimeout(function () {
-        try{
+    setTimeout(function() {
+        try {
             while (!thisThis.s || !thisThis.s.connectionReady) {
                 try {
-                  require("deasync").sleep(250);
+                    require("deasync").sleep(250);
                 } catch (e) {
                     thisThis.log.debug("pioneer-avr waitready1", e);
                 }
@@ -579,34 +599,34 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
 
             while (!thisThis.s || !thisThis.s.connectionReady || thisThis.state.lastGetPowerStatus === null) {
                 try {
-                  require("deasync").sleep(250);
+                    require("deasync").sleep(250);
                 } catch (e) {
                     thisThis.log.debug("pioneer-avr waitready2", e);
                 }
             }
 
-            if(thisThis.s.connectionReady){
-              thisThis.log.info("Telnet connected");
+            if (thisThis.s.connectionReady) {
+                thisThis.log.info("Telnet connected");
 
-              require("deasync").sleep(50);
-              thisThis.__updateListeningMode(() => {});
+                require("deasync").sleep(50);
+                thisThis.__updateListeningMode(() => {});
 
-              //reset input locks
-              thisThis.sendCommand("0PKL");
-              require("deasync").sleep(250);
-              thisThis.sendCommand("0RML");
+                //reset input locks
+                thisThis.sendCommand("0PKL");
+                require("deasync").sleep(250);
+                thisThis.sendCommand("0RML");
 
-              require("deasync").sleep(500);
-              let runThis = connectionReadyCallback.bind({})
-              try {
-                runThis()
-              } catch (e) {
-                  thisThis.log.debug("connectionReadyCallback() Error", e);
-              }
+                require("deasync").sleep(500);
+                let runThis = connectionReadyCallback.bind({})
+                try {
+                    runThis()
+                } catch (e) {
+                    thisThis.log.debug("connectionReadyCallback() Error", e);
+                }
 
-              thisThis.__updateInput(() => {});
-              thisThis.__updateVolume(() => {});
-              thisThis.__updateMute(() => {});
+                thisThis.__updateInput(() => {});
+                thisThis.__updateVolume(() => {});
+                thisThis.__updateMute(() => {});
             }
         } catch (e) {
             thisThis.log.debug("connectionReadyCallback timeout Error", e);
@@ -619,7 +639,7 @@ module.exports = PioneerAvr;
 
 let inputBeingAdded = false,
     inputBeingAddedWaitCount = 0;
-PioneerAvr.prototype.loadInputs = function (callback) {
+PioneerAvr.prototype.loadInputs = function(callback) {
     // Queue and send all inputs discovery commands
     // this.log.debug('loadInputs -> %s', Object.keys(inputToType).join(', '))
 
@@ -642,7 +662,7 @@ PioneerAvr.prototype.loadInputs = function (callback) {
 
         let index = -1
         for (let i in this.inputMissing) {
-            if(this.inputMissing[i].indexOf(key) > -1){
+            if (this.inputMissing[i].indexOf(key) > -1) {
                 let i = index
                 break
             }
@@ -687,19 +707,19 @@ PioneerAvr.prototype.loadInputs = function (callback) {
         }
     }
 
-    if (this.inputMissing.length === 0 && Object.keys(inputToType).length > 0){
+    if (this.inputMissing.length === 0 && Object.keys(inputToType).length > 0) {
         this.isReady = true;
     }
 };
 
 // Power methods
-PioneerAvr.prototype.__updatePower = function (callback) {
+PioneerAvr.prototype.__updatePower = function(callback) {
     this.sendCommand("?P", "PWR", callback);
 };
-PioneerAvr.prototype.powerStatus = function (callback) {
+PioneerAvr.prototype.powerStatus = function(callback) {
     let thisThis = this;
 
-    if(thisThis.state.on !== null){
+    if (thisThis.state.on !== null) {
         try {
             callback(null, thisThis.state.on);
         } catch (e) {
@@ -718,41 +738,52 @@ PioneerAvr.prototype.powerStatus = function (callback) {
     });
 };
 
-PioneerAvr.prototype.powerOn = function () {
+PioneerAvr.prototype.powerOn = function() {
     this.log.debug("Power on");
 
     if (this.web) {
-        request.get(this.webEventHandlerBaseUrl + "PO");
+      (async () => {
+          let fetch = (await import("node-fetch")).default;
+          fetch(this.webEventHandlerBaseUrl + "PO", {
+              method: 'GET'
+          })
+      })();
+
     } else {
         this.sendCommand("PO");
     }
-    lastUserInteraction = Date.now()
+    lastUserInteraction = Date.now();
     let thisThis = this;
-    setTimeout(function () {
-        thisThis.powerStatus(function () {});
+    setTimeout(() => {
+        thisThis.powerStatus(() => {});
     }, 500);
 };
 
-PioneerAvr.prototype.powerOff = function () {
+PioneerAvr.prototype.powerOff = function() {
     this.log.debug("Power off");
     if (this.web) {
-        request.get(this.webEventHandlerBaseUrl + "PF");
+      (async () => {
+          let fetch = (await import("node-fetch")).default;
+          fetch(this.webEventHandlerBaseUrl + "PF", {
+              method: 'GET'
+          })
+      })();
     } else {
         this.sendCommand("PF");
     }
     lastUserInteraction = Date.now()
     let thisThis = this;
-    setTimeout(function () {
-        thisThis.powerStatus(function () {});
+    setTimeout(function() {
+        thisThis.powerStatus(function() {});
     }, 500);
 };
 
 // Volume methods
-PioneerAvr.prototype.__updateVolume = function (callback) {
+PioneerAvr.prototype.__updateVolume = function(callback) {
     this.sendCommand("?V", "VOL", callback);
 };
 
-PioneerAvr.prototype.volumeStatus = function (callback) {
+PioneerAvr.prototype.volumeStatus = function(callback) {
     if (this !== null && this.state.volume !== null) {
         callback(null, this.state.volume);
         return;
@@ -770,8 +801,10 @@ PioneerAvr.prototype.volumeStatus = function (callback) {
 
 
 let lastSetVol = null
-PioneerAvr.prototype.setVolume = function (targetVolume, callback) {
-    if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
+PioneerAvr.prototype.setVolume = function(targetVolume, callback) {
+    if (!this.s || !this.s.connectionReady || !this.state.on) {
+        return;
+    }
     let thisThis = this;
 
     targetVolume = parseInt(targetVolume, 10)
@@ -785,7 +818,7 @@ PioneerAvr.prototype.setVolume = function (targetVolume, callback) {
         return
     }
 
-    if (Math.floor(targetVolume) == thisThis.state.volume || lastSetVol === targetVolume){
+    if (Math.floor(targetVolume) == thisThis.state.volume || lastSetVol === targetVolume) {
         try {
             callback();
         } catch (e) {
@@ -813,14 +846,14 @@ PioneerAvr.prototype.setVolume = function (targetVolume, callback) {
     let vsxVolStr =
         pad.substring(0, pad.length - vsxVol.toString().length) +
         vsxVol.toString();
-    if (thisThis.setVolumeTimeout === null){
+    if (thisThis.setVolumeTimeout === null) {
         thisThis.sendCommand(`${vsxVolStr}VL`);
-        thisThis.setVolumeTimeout = setTimeout(()=>{
+        thisThis.setVolumeTimeout = setTimeout(() => {
             thisThis.setVolumeTimeout = null
         }, 30)
-    }else{
+    } else {
         clearTimeout(thisThis.setVolumeTimeout)
-        thisThis.setVolumeTimeout = setTimeout(()=>{
+        thisThis.setVolumeTimeout = setTimeout(() => {
             thisThis.sendCommand(`${vsxVolStr}VL`);
             thisThis.setVolumeTimeout = null
         }, 30)
@@ -837,38 +870,45 @@ PioneerAvr.prototype.setVolume = function (targetVolume, callback) {
 let changeVolBlocked = false;
 let blocktimer = false;
 let updateVolumeTimeout = false;
-PioneerAvr.prototype.volumeUp = function () {
+PioneerAvr.prototype.volumeUp = function() {
     lastUserInteraction = Date.now()
-    if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
+    if (!this.s || !this.s.connectionReady || !this.state.on) {
+        return;
+    }
     this.log.debug("Volume up", !changeVolBlocked);
     let thisThis = this;
     clearTimeout(updateVolumeTimeout);
     changeVolBlocked = true;
-    blocktimer = setTimeout(function () {
+    blocktimer = setTimeout(function() {
         changeVolBlocked = false;
         clearTimeout(updateVolumeTimeout);
-        updateVolumeTimeout = setTimeout(function () {
+        updateVolumeTimeout = setTimeout(function() {
             thisThis.__updateVolume(() => {});
             thisThis.__updateMute(() => {});
         }, 1000);
     }, 500);
 
     if (this.web) {
-        request.get(this.webEventHandlerBaseUrl + "VU", function () {
-            clearTimeout(blocktimer);
-            changeVolBlocked = false;
-            clearTimeout(updateVolumeTimeout);
-            updateVolumeTimeout = setTimeout(function () {
-                thisThis.__updateVolume(() => {});
-                thisThis.__updateMute(() => {});
-            }, 1000);
-        });
+        (async () => {
+
+            fetch(this.webEventHandlerBaseUrl + "PO", {
+                method: 'GET'
+            }).then(() => {
+                clearTimeout(blocktimer);
+                changeVolBlocked = false;
+                clearTimeout(updateVolumeTimeout);
+                updateVolumeTimeout = setTimeout(function() {
+                    thisThis.__updateVolume(() => {});
+                    thisThis.__updateMute(() => {});
+                }, 1000);
+            });
+        })();
     } else {
-        this.sendCommand("VU", function () {
+        this.sendCommand("VU", function() {
             clearTimeout(blocktimer);
             changeVolBlocked = false;
             clearTimeout(updateVolumeTimeout);
-            updateVolumeTimeout = setTimeout(function () {
+            updateVolumeTimeout = setTimeout(function() {
                 thisThis.__updateVolume(() => {});
                 thisThis.__updateMute(() => {});
             }, 1000);
@@ -876,56 +916,60 @@ PioneerAvr.prototype.volumeUp = function () {
     }
 };
 
-PioneerAvr.prototype.volumeDown = function () {
+PioneerAvr.prototype.volumeDown = function() {
     lastUserInteraction = Date.now()
-    if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
+    if (!this.s || !this.s.connectionReady || !this.state.on) {
+        return;
+    }
     let thisThis = this;
     this.log.debug("Volume down", !changeVolBlocked);
     clearTimeout(updateVolumeTimeout);
 
     if (true) {
         changeVolBlocked = true;
-        blocktimer = setTimeout(function () {
+        blocktimer = setTimeout(function() {
             changeVolBlocked = false;
             clearTimeout(updateVolumeTimeout);
-            updateVolumeTimeout = setTimeout(function () {
+            updateVolumeTimeout = setTimeout(function() {
                 thisThis.__updateVolume(() => {});
                 thisThis.__updateMute(() => {});
             }, 1000);
         }, 500);
 
         if (this.web) {
-            request.get(this.webEventHandlerBaseUrl + "VD", function () {
-                require("deasync").sleep(100);
-                request.get(
-                    thisThis.webEventHandlerBaseUrl + "VD",
-                    function () {
-                        require("deasync").sleep(100);
-                        request.get(
-                            thisThis.webEventHandlerBaseUrl + "VD",
-                            function () {
-                                clearTimeout(blocktimer);
-                                changeVolBlocked = false;
-                                clearTimeout(updateVolumeTimeout);
-                                updateVolumeTimeout = setTimeout(function () {
-                                    thisThis.__updateVolume(() => {});
-                                    thisThis.__updateMute(() => {});
-                                }, 1000);
-                            },
-                        );
-                    },
-                );
-            });
-        } else {
-            this.sendCommand("VD", function () {
-                require("deasync").sleep(100);
-                thisThis.sendCommand("VD", function () {
+            (async () => {
+                fetch(this.webEventHandlerBaseUrl + "VD", {
+                    method: 'GET'
+                }).then(() => {
                     require("deasync").sleep(100);
-                    thisThis.sendCommand("VD", function () {
+                    fetch(this.webEventHandlerBaseUrl + "VD", {
+                        method: 'GET'
+                    }).then(() => {
+                        require("deasync").sleep(100);
+                        fetch(this.webEventHandlerBaseUrl + "VD", {
+                            method: 'GET'
+                        }).then(() => {
+                            clearTimeout(blocktimer);
+                            changeVolBlocked = false;
+                            clearTimeout(updateVolumeTimeout);
+                            updateVolumeTimeout = setTimeout(function() {
+                                thisThis.__updateVolume(() => {});
+                                thisThis.__updateMute(() => {});
+                            }, 1000);
+                        }, );
+                    }, );
+                });
+            })();
+        } else {
+            this.sendCommand("VD", function() {
+                require("deasync").sleep(100);
+                thisThis.sendCommand("VD", function() {
+                    require("deasync").sleep(100);
+                    thisThis.sendCommand("VD", function() {
                         clearTimeout(blocktimer);
                         changeVolBlocked = false;
                         clearTimeout(updateVolumeTimeout);
-                        updateVolumeTimeout = setTimeout(function () {
+                        updateVolumeTimeout = setTimeout(function() {
                             thisThis.__updateVolume(() => {});
                             thisThis.__updateMute(() => {});
                         }, 1000);
@@ -937,11 +981,11 @@ PioneerAvr.prototype.volumeDown = function () {
 };
 
 // request listening mode
-PioneerAvr.prototype.__updateListeningMode = function (callback) {
+PioneerAvr.prototype.__updateListeningMode = function(callback) {
     this.sendCommand("?S", "SR", callback);
 };
 
-PioneerAvr.prototype.getListeningMode = function (callback) {
+PioneerAvr.prototype.getListeningMode = function(callback) {
     let thisThis = this;
 
     this.__updateListeningMode(() => {
@@ -954,7 +998,7 @@ PioneerAvr.prototype.getListeningMode = function (callback) {
 };
 
 // set Listeing Mode toggle [EXTENDED STEREO]
-PioneerAvr.prototype.toggleListeningMode = function (callback) {
+PioneerAvr.prototype.toggleListeningMode = function(callback) {
     lastUserInteraction = Date.now()
 
     let thisThis = this;
@@ -986,7 +1030,7 @@ PioneerAvr.prototype.toggleListeningMode = function (callback) {
     } else {
         // from ext. stero to PL2
         thisThis.state.listeningMode = "0013";
-        thisThis.sendCommand("!0013SR", "SR", function (error, data) {
+        thisThis.sendCommand("!0013SR", "SR", function(error, data) {
             if (error) {
                 //fallback to Listeningmode "Action"
                 thisThis.state.listeningMode = "0101";
@@ -1008,12 +1052,12 @@ PioneerAvr.prototype.toggleListeningMode = function (callback) {
 };
 
 // Mute methods
-PioneerAvr.prototype.__updateMute = function (callback) {
+PioneerAvr.prototype.__updateMute = function(callback) {
     this.sendCommand("?M", "MUT", callback);
 };
 
 let lastMuteStatus = null;
-PioneerAvr.prototype.muteStatus = function (callback) {
+PioneerAvr.prototype.muteStatus = function(callback) {
     // if (!this.s || !this.s.connectionReady || !this.state.on) { callback(null, false); return; }
 
     let thisThis = this;
@@ -1037,34 +1081,46 @@ PioneerAvr.prototype.muteStatus = function (callback) {
     });
 };
 
-PioneerAvr.prototype.muteOn = function () {
+PioneerAvr.prototype.muteOn = function() {
     lastUserInteraction = Date.now()
-    if (!this.s || !this.s.connectionReady || !this.state.on || this.state.muted === true) { return; }
+    if (!this.s || !this.s.connectionReady || !this.state.on || this.state.muted === true) {
+        return;
+    }
     this.log.debug("Mute on");
     if (this.web) {
-        request.get(this.webEventHandlerBaseUrl + "MO");
+        (async () => {
+            fetch(this.webEventHandlerBaseUrl + "MO", {
+                method: 'GET'
+            })
+        })();
     } else {
         this.sendCommand("MO");
     }
 };
 
-PioneerAvr.prototype.muteOff = function () {
+PioneerAvr.prototype.muteOff = function() {
     lastUserInteraction = Date.now()
-    if (!this.s || !this.s.connectionReady || !this.state.on || this.state.muted === false) { return; }
+    if (!this.s || !this.s.connectionReady || !this.state.on || this.state.muted === false) {
+        return;
+    }
     this.log.debug("Mute off");
     if (this.web) {
-        request.get(this.webEventHandlerBaseUrl + "MF");
+      (async () => {
+          fetch(this.webEventHandlerBaseUrl + "MF", {
+              method: 'GET'
+          })
+      })();
     } else {
         this.sendCommand("MF");
     }
 };
 
 // Input management method
-PioneerAvr.prototype.__updateInput = function (callback) {
+PioneerAvr.prototype.__updateInput = function(callback) {
     this.sendCommand("?F", "FN", callback);
 };
 
-PioneerAvr.prototype.inputStatus = function (callback) {
+PioneerAvr.prototype.inputStatus = function(callback) {
     // if (!this.s || !this.s.connectionReady || !this.state.on || this.state.input === null) { callback(null, 0); return; }
 
     this.log.debug("inputStatus updated %s", this.state.input);
@@ -1087,26 +1143,36 @@ PioneerAvr.prototype.inputStatus = function (callback) {
     // });
 };
 
-PioneerAvr.prototype.setInput = function (id) {
+PioneerAvr.prototype.setInput = function(id) {
     lastUserInteraction = Date.now()
-    if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
+    if (!this.s || !this.s.connectionReady || !this.state.on) {
+        return;
+    }
     if (this.web) {
-        request.get(this.webEventHandlerBaseUrl + `${id}FN`);
+        (async () => {
+            fetch(this.webEventHandlerBaseUrl + `${id}FN`, {
+                method: 'GET'
+            })
+        })();
     } else {
         this.sendCommand(`${id}FN`);
     }
 };
 
-PioneerAvr.prototype.renameInput = function (id, newName) {
-    if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
+PioneerAvr.prototype.renameInput = function(id, newName) {
+    if (!this.s || !this.s.connectionReady || !this.state.on) {
+        return;
+    }
     let shrinkName = newName.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 14);
     this.sendCommand(`${shrinkName}1RGB${id}`);
 };
 
 // Remote Key methods
-PioneerAvr.prototype.remoteKey = function (rk) {
+PioneerAvr.prototype.remoteKey = function(rk) {
     lastUserInteraction = Date.now()
-    if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
+    if (!this.s || !this.s.connectionReady || !this.state.on) {
+        return;
+    }
     // Implemented key from CURSOR OPERATION
     switch (rk) {
         case "UP":
@@ -1136,7 +1202,7 @@ PioneerAvr.prototype.remoteKey = function (rk) {
 };
 
 // Send command and process return
-PioneerAvr.prototype.sendCommand = async function (
+PioneerAvr.prototype.sendCommand = function(
     command,
     callbackChars,
     callback,
@@ -1145,16 +1211,16 @@ PioneerAvr.prototype.sendCommand = async function (
     let thisThis = this;
 
     if (typeof callback !== "function") {
-        callback = function () {};
+        callback = function() {};
     }
 
     this.log.debug("Send command : %s", command);
     if (typeof callbackChars === "function") {
-        this.s.sendMessage(command, undefined, function (error, data) {
+        this.s.sendMessage(command, undefined, function(error, data) {
             thisThis.onData(error, data, callbackChars);
         });
     } else {
-        this.s.sendMessage(command, callbackChars, function (error, data) {
+        this.s.sendMessage(command, callbackChars, function(error, data) {
             thisThis.onData(error, data, callback);
         });
     }
