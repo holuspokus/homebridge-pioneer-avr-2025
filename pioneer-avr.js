@@ -477,7 +477,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
 
               let fetch = (await import("node-fetch")).default;
 
-              fetch(this.webEventHandlerBaseUrl + "PO", {
+              fetch(this.webStatusUrl, {
                       method: 'GET'
                   })
                   .then(response => {

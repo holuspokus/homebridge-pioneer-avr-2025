@@ -103,6 +103,7 @@ Below is a sample configuration for your accessory:
 
 ## Release Notes
 
+- **v0.1.2**: Fixed an issue where "Web Interface enabled" unintentionally turned on the receiver.
 - **v0.1.1**: Reduced npm dependencies and updated `package.json`, less info-logging.
 - **v0.1.0**: Some final improvements for stabilization.
 - **v0.0.9**: Fixed an issue related to volume control on Apple Watch.
