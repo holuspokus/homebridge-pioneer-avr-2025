@@ -103,7 +103,7 @@ Below is a sample configuration for your accessory:
 
 ## Release Notes
 
-- **v0.1.1**: Reduced npm dependencies and updated `package.json`.
+- **v0.1.1**: Reduced npm dependencies and updated `package.json`, less info-logging.
 - **v0.1.0**: Some final improvements for stabilization.
 - **v0.0.9**: Fixed an issue related to volume control on Apple Watch.
 - **v0.0.8**: Volume as Lightbulb works even finer now!
