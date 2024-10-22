@@ -4,7 +4,6 @@
 const PioneerAvr = require("./pioneer-avr");
 const ppath = require("persist-path");
 const fs = require("fs");
-const mkdirp = require("mkdirp");
 
 let initP = function(){},
     initPTimeout = null,
@@ -77,7 +76,7 @@ function pioneerAvrAccessory(log, config) {
     try {
         // check if the preferences directory exists, if not then create it
         if (fs.existsSync(this.prefsDir) === false) {
-            mkdirp(this.prefsDir);
+            fs.mkdirSync(this.prefsDir, { recursive: true });
         }
 
         fs.access(thisThis.inputVisibilityFile, fs.constants.F_OK, (err) => {
@@ -476,7 +475,7 @@ pioneerAvrAccessory.prototype.addInputSourceService = function (inputkey) {
 pioneerAvrAccessory.prototype.getPowerOn = function (callback) {
     if (!this.avr || !this.avr.s || !this.avr.s.connectionReady) { callback(null, false); return; }
 
-    this.log.info("Get power status");
+    this.log.debug("Get power status");
     this.avr.powerStatus(callback);
 };
 
@@ -497,7 +496,7 @@ let lastgetActiveIdentifierTime = undefined;
 
 pioneerAvrAccessory.prototype.getActiveIdentifier = function (callback) {
     // Update current unput
-    this.log.info("Get input status");
+    this.log.debug("Get input status");
     this.avr.inputStatus(callback);
     lastgetActiveIdentifierTime = Date.now();
 };
@@ -583,7 +582,7 @@ pioneerAvrAccessory.prototype.setVolumeSwitch = function (
 pioneerAvrAccessory.prototype.listeningMode = function (callback) {
     if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(); return; }
     // Get listening Mode
-    this.log.info("Get listening Mode");
+    this.log.debug("Get listening Mode");
     this.avr.listeningMode(callback);
 };
 
@@ -602,7 +601,7 @@ pioneerAvrAccessory.prototype.getMuted = function (callback) {
     if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(null, true); return; }
 
     // Get mute status
-    this.log.info("Get mute status");
+    this.log.debug("Get mute status");
     this.avr.muteStatus(callback);
 };
 
@@ -648,7 +647,7 @@ pioneerAvrAccessory.prototype.setMuted = function (mute, callback) {
 pioneerAvrAccessory.prototype.getVolume = function (callback) {
     // Get volume status
     if (!this.avr || !this.avr.s || !this.avr.s.connectionReady || !this.avr.state.on) { callback(30); return; }
-    this.log.info("Get volume status");
+    this.log.debug("Get volume status");
     this.avr.volumeStatus(callback);
 };
 
