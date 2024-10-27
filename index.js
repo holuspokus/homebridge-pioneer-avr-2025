@@ -256,67 +256,6 @@ pioneerAvrAccessory.prototype.prepareTvService = function() {
                           thisThis.log.debug('functionSetPowerState Error', e)
                       }
                   }, 150)
-
-
-
-
-                  // if(set){
-                  //     clearTimeout(letSetPowerSleepDiscoveryModeTimeout)
-                  //     letSetPowerSleepDiscoveryModeTimeout = setTimeout(()=>{
-                  //         thisThis.enabledServices.forEach((service) => {
-                  //             const onCharacteristic = service.getCharacteristic(Characteristic.SleepDiscoveryMode);
-                  //             console.log(onCharacteristic)
-                  //             if (onCharacteristic) {
-                  //                 onCharacteristic.updateValue(false);
-                  //             }
-                  //             //  else {
-                  //             //     service.setCharacteristic(Characteristic.SleepDiscoveryMode, false);
-                  //             // }
-                  //         });
-                  //     }, 0)
-                  //
-                  //     clearTimeout(letSetPowerOnServiceOnTimeout)
-                  //     letSetPowerOnServiceOnTimeout = setTimeout(()=>{
-                  //         thisThis.enabledServices.forEach((service) => {
-                  //             const onCharacteristic = service.getCharacteristic(Characteristic.On);
-                  //             // console.log(onCharacteristic)
-                  //             if (onCharacteristic) {
-                  //                 onCharacteristic.updateValue(true);
-                  //             }
-                  //             //  else {
-                  //             //     service.setCharacteristic(Characteristic.On, true);
-                  //             // }
-                  //         });
-                  //     }, 1000)
-                  // }else{
-                  //     // onOFF
-                  //     clearTimeout(letSetPowerOnServiceOnTimeout)
-                  //     letSetPowerOnServiceOnTimeout = setTimeout(()=>{
-                  //         thisThis.enabledServices.forEach((service) => {
-                  //           const onCharacteristic = service.getCharacteristic(Characteristic.On);
-                  //           // console.log(onCharacteristic)
-                  //           if (onCharacteristic) {
-                  //               onCharacteristic.updateValue(false);
-                  //           }
-                  //           //  else {
-                  //           //     service.setCharacteristic(Characteristic.On, false);
-                  //           // }
-                  //         });
-                  //     }, 1000)
-                  //
-                  //     clearTimeout(letSetPowerSleepDiscoveryModeTimeout)
-                  //     letSetPowerSleepDiscoveryModeTimeout = setTimeout(()=>{
-                  //         thisThis.enabledServices.forEach((service) => {
-                  //           const onCharacteristic = service.getCharacteristic(Characteristic.SleepDiscoveryMode);
-                  //           if (onCharacteristic) {
-                  //               onCharacteristic.updateValue(true);
-                  //           }
-                  //           //  else {
-                  //           //     service.setCharacteristic(Characteristic.SleepDiscoveryMode, true);
-                  //           // }
-                  //         });
-                  //     }, 10000)
-                  // }
               }
         } catch (e) {
             thisThis.log.debug('functionSetPowerState()', e)
@@ -331,10 +270,6 @@ pioneerAvrAccessory.prototype.prepareTvService = function() {
             functionSetActiveIdentifierTimeout = setTimeout(function() {
                 // thisThis.log.debug('functionSetActiveIdentifierTimeout called')
                 try {
-                    // thisThis.tvService
-                    //     .getCharacteristic(Characteristic.ActiveIdentifier)
-                    //     .updateValue(set);
-
                     thisThis.tvService
                         .setCharacteristic(Characteristic.ActiveIdentifier, set);
                 } catch (e) {
@@ -359,45 +294,25 @@ pioneerAvrAccessory.prototype.prepareVolumeService = function() {
         .on("get", this.getVolume.bind(this))
         .on("set", this.setVolume.bind(this));
 
-    // this.volumeServiceLightbulb
-    //     .getCharacteristic(Characteristic.On)
-    //     .updateValue(true);
-    //
-    // this.volumeServiceLightbulb
-    //     .getCharacteristic(Characteristic.Brightness)
-    //     .updateValue(70);
-
     this.tvService.addLinkedService(this.volumeServiceLightbulb);
     this.enabledServices.push(this.volumeServiceLightbulb);
 
     thisThis.avr.functionSetLightbulbVolume = function(set) {
-      // set this.avr.state.volume
-
-        // this.log.debug('123Characteristic.Brightness', thisThis.volumeServiceLightbulb.getCharacteristic(Characteristic.Brightness).value)
-        // this.log.debug('2123Characteristic.Brightness', thisThis.volumeServiceLightbulb.getCharacteristic(Characteristic.On).value)
 
         clearTimeout(functionSetLightbulbVolumeTimeout)
         functionSetLightbulbVolumeTimeout = setTimeout(function() {
 
             try {
 
-                thisThis.log.info('volumeServiceLightbulb br:', thisThis.volumeServiceLightbulb.getCharacteristic(Characteristic.Brightness).value, set, (thisThis.avr.state.muted || !thisThis.avr.state.on) ? 0 : set)
                 if (thisThis.volumeServiceLightbulb.getCharacteristic(Characteristic.Brightness).value != set) {
-                    // thisThis.volumeServiceLightbulb
-                    //     .getCharacteristic(Characteristic.Brightness)
-                    //     .updateValue((thisThis.avr.state.muted || !thisThis.avr.state.on) ? 0 : set);
 
                     thisThis.volumeServiceLightbulb.setCharacteristic(Characteristic.Brightness, (thisThis.avr.state.muted || !thisThis.avr.state.on) ? 0 : set);
 
 
                 }
 
-                thisThis.log.info('volumeServiceLightbulb on:', thisThis.volumeServiceLightbulb.getCharacteristic(Characteristic.On).value, (thisThis.avr.state.muted || !thisThis.avr.state.on) ? false : true)
                 if (thisThis.volumeServiceLightbulb.getCharacteristic(Characteristic.On).value != (!(thisThis.avr.state.muted || !thisThis.avr.state.on) ) ) {
                     thisThis.volumeServiceLightbulb.setCharacteristic(Characteristic.On, (thisThis.avr.state.muted || !thisThis.avr.state.on) ? false : true);
-                    // thisThis.volumeServiceLightbulb
-                    //     .getCharacteristic(Characteristic.On)
-                    //     .updateValue((thisThis.avr.state.muted || !thisThis.avr.state.on) ? false : true);
                 }
 
             } catch (e) {
@@ -405,6 +320,7 @@ pioneerAvrAccessory.prototype.prepareVolumeService = function() {
             }
         }, 500)
     }
+
 
     volumeServiceLightbulbTimeout = null;
     this.avr.functionSetLightbulbMuted = function() {
@@ -928,8 +844,8 @@ pioneerAvrAccessory.prototype.getServices = function() {
 
     onExit = () => {
         this.avr.state.on = false
-        thisThis.avr.functionSetPowerState(this.avr.state.on)
-        thisThis.avr.functionSetLightbulbVolume(this.avr.state.volume)
+        this.avr.functionSetPowerState(this.avr.state.on)
+        this.avr.functionSetLightbulbVolume(this.avr.state.volume)
     };
 
     addExitHandler(onExit, this);
