@@ -512,7 +512,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
 
 
     // Communication Initialization
-    this.s = new TelnetAvr(this.host, this.port);
+    this.s = new TelnetAvr(this.host, this.port, this.log);
     this.s.fallbackOnData = this.onData; //.bind({})
 
     try {
@@ -1151,18 +1151,6 @@ PioneerAvr.prototype.inputStatus = function(callback) {
     } catch (e) {
         this.log.debug("__updateInput", e);
     }
-
-    // this.__updateInput(() => {    });
-
-    // let thisThis = this;
-    // this.__updateInput(() => {
-    //     thisThis.log.debug("inputStatus updated %s", thisThis.state.input);
-    //     try {
-    //         callback(null, thisThis.state.input);
-    //     } catch (e) {
-    //         thisThis.log.debug("__updateInput", e);
-    //     }
-    // });
 };
 
 PioneerAvr.prototype.setInput = function(id) {
