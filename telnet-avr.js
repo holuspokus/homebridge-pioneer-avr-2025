@@ -25,16 +25,17 @@ let disconnectOnExitFunction = function(err) {
         console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
         console.error(err.stack)
     }
-    console.log("nothing to disconnect, connectionReady:", connectionReady);
+    thisThis.log.debug("Telnet> nothing to disconnect, connectionReady:", connectionReady);
 };
 
 class TelnetAvr {
-    constructor(host, port) {
+    constructor(host, port, log) {
+        this.log = log
         this.host = host || HOST;
         this.port = port || PORT;
         this.display = null;
         this.displayChanged = function(error, data) {
-            console.log(" ++ displayChanged called.", error, data);
+            thisThis.log.debug("Telnet> ++ displayChanged called.", error, data);
         };
         this.queueLock = false;
         this.connectionReady = false;
@@ -58,7 +59,7 @@ class TelnetAvr {
         this.socket = null;
 
         this.fallbackOnData = function(error, data) {
-            console.log(" ++ fallbackOnData called.", error, data);
+            thisThis.log.debug("Telnet> ++ fallbackOnData called.", error, data);
         };
 
         thisThis = this;
@@ -76,8 +77,10 @@ class TelnetAvr {
                 clearInterval(checkQueueInterval);
             }
 
+            thisThis.log.info('Telnet> disconnected.')
+
         } catch (e) {
-            console.error(e);
+            thisThis.log.error("Telnet> ", e);
         }
     }
 
@@ -102,8 +105,8 @@ class TelnetAvr {
                         try {
                             thisThis.onConnect();
                         } catch (e) {
-                            console.error('onConnect Error')
-                            console.error(e);
+                            thisThis.log.error('Telnet> onConnect Error')
+                            thisThis.log.error(e);
                         }
 
                         require("deasync").sleep(10);
@@ -111,18 +114,18 @@ class TelnetAvr {
                         try {
                             callback();
                         } catch (e) {
-                            console.error(e);
+                            thisThis.log.error(e);
                         }
                     });
                 } catch (e) {
-                    console.error(e);
+                    thisThis.log.error(e);
                 }
             } else {
                 try {
                     require("deasync").sleep(1500);
                     callback();
                 } catch (e) {
-                    console.error(e);
+                    thisThis.log.error(e);
                 }
             }
 
@@ -133,14 +136,14 @@ class TelnetAvr {
                     onlyOnce = false
 
                     disconnectOnExitFunction = function(err) {
-                        // console.log('disconnectOnExitFunction():')
+                        // thisThis.log.debug('Telnet> disconnectOnExitFunction():')
                         if (err && String(err).length > 3) {
                             console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
                             console.error(err.stack)
                         }
                         if (connectionReady === true) {
-                            // console.log(
-                            //     "disconnecting from telnet",
+                            // thisThis.log.debug(
+                            //     "Telnet> disconnecting from telnet",
                             //     connectionReady,
                             // );
                             thisThis.disconnect();
@@ -160,8 +163,8 @@ class TelnetAvr {
                         try {
                             thisThis.onDisconnect();
                         } catch (e) {
-                            console.error('onDisconnect Error')
-                            console.error(e);
+                            thisThis.log.error('Telnet> onDisconnect Error')
+                            thisThis.log.error(e);
                         }
                     }
                     if (
@@ -203,6 +206,7 @@ class TelnetAvr {
                                             require("deasync").sleep(10);
                                         }
                                     }
+                                    // thisThis.log.debug('Telnet 2write > ' + message)
                                     thisThis.socket.write(message + "\r\n");
                                     thisThis.lastWrite = Date.now();
                                 } else {
@@ -219,6 +223,7 @@ class TelnetAvr {
                                             require("deasync").sleep(10);
                                         }
                                     }
+                                    // thisThis.log.debug('Telnet 3write > ' + message)
                                     thisThis.socket.write(message + "\r\n");
                                     thisThis.lastWrite = Date.now();
                                 }
@@ -226,7 +231,7 @@ class TelnetAvr {
                         }
 
                     } catch (e) {
-                        console.error(e);
+                        thisThis.log.error(e);
                     }
                     checkQueueIntervalIsRunning = false
                 }, 50);
@@ -245,8 +250,8 @@ class TelnetAvr {
                     try {
                         thisThis.onConnect();
                     } catch (e) {
-                        console.error('onConnect Error')
-                        console.error(e);
+                        thisThis.log.error('Telnet> onConnect Error')
+                        thisThis.log.error(e);
                     }
 
                     require("deasync").sleep(10);
@@ -254,7 +259,7 @@ class TelnetAvr {
                     try {
                         callback();
                     } catch (e) {
-                        console.error(e);
+                        thisThis.log.error(e);
                     }
                 });
 
@@ -265,20 +270,17 @@ class TelnetAvr {
                     try {
                         thisThis.onDisconnect();
                     } catch (e) {
-                        console.error('onDisconnect Error')
-                        console.error(e);
+                        thisThis.log.error('Telnet> onDisconnect Error')
+                        thisThis.log.error(e);
                     }
 
 
-                    console.log(
-                        (new Date).toUTCString() +
-                        " [" + String(reconnectCounter) + "] sendMessage:Close"
-                    )
+                    thisThis.log.debug("Telnet> sendMessage:Close" )
 
                     try {
                         thisThis.disconnect();
                     } catch (e) {
-                        // console.log(e);
+                        // thisThis.log.debug(e);
                     }
 
 
@@ -291,10 +293,7 @@ class TelnetAvr {
                     }
                     clearTimeout(tryToReconnectTimeout);
                     tryToReconnectTimeout = setTimeout(function() {
-                        console.log(
-                            (new Date).toUTCString() +
-                            " try to connect ..."
-                        );
+                        thisThis.log.info("Telnet> try to connect ...");
                         reconnectCounter++;
                         thisThis.connect(function() {
                             //only called when successfully
@@ -305,6 +304,7 @@ class TelnetAvr {
                 });
 
                 this.socket.on("data", (d) => {
+                    // thisThis.log.debug('Telnet data> ' + d)
                     connectionReady = true
                     this.connectionReady = true
 
@@ -345,8 +345,8 @@ class TelnetAvr {
                             try {
                                 thisThis.displayChanged(null, outMessage);
                             } catch (e) {
-                                console.log("[DISPLAY] " + outMessage);
-                                console.error(e);
+                                thisThis.log.debug("Telnet> [DISPLAY] " + String(outMessage));
+                                thisThis.log.error(e);
                             }
                         }
 
@@ -374,7 +374,7 @@ class TelnetAvr {
                                                 runThisThis(null, data);
                                                 callbackCalled = true;
                                             } catch (e) {
-                                                console.error(e);
+                                                thisThis.log.error(e);
                                             }
                                         }
                                         thisThis.queueCallbackChars[
@@ -427,7 +427,7 @@ class TelnetAvr {
                                                 );
                                                 callbackCalled = true;
                                             } catch (e) {
-                                                console.error(e);
+                                                thisThis.log.error(e);
                                             }
                                         }
                                         thisThis.queueCallbackChars[
@@ -464,16 +464,16 @@ class TelnetAvr {
                                 let runThisOnData = this.fallbackOnData.bind({}, );
                                 runThisOnData(null, data);
                             } catch (e) {
-                                console.error(e);
+                                thisThis.log.error(e);
                             }
                         }
                     } catch (e) {
-                        console.error(e);
+                        thisThis.log.error(e);
                     }
                 });
 
                 this.socket.on("error", (err) => {
-                    console.log("Telnet " + String(err));
+                    thisThis.log.error("Telnet> " + String(err));
 
                     if (String(err).indexOf('CONN') > -1) {
                         connectionReady = false;
@@ -482,8 +482,8 @@ class TelnetAvr {
                         try {
                             thisThis.onDisconnect();
                         } catch (e) {
-                            console.error('onDisconnect Error')
-                            console.error(e);
+                            thisThis.log.error('Telnet> onDisconnect Error')
+                            thisThis.log.error(e);
                         }
                     }
 
@@ -493,15 +493,15 @@ class TelnetAvr {
     }
 
     sendMessage(message, callbackChars, onData) {
-        // console.log('in sendMessage()', (connectionReady && thisThis.lastWrite !== null && thisThis.lastWrite - thisThis.lastMessageRecieved > (60 * 1000)) )
+        // thisThis.log.debug('Telnet> in sendMessage()', message, (connectionReady && thisThis.lastWrite !== null && thisThis.lastWrite - thisThis.lastMessageRecieved > (60 * 1000)) )
         if (connectionReady && thisThis.lastWrite !== null && thisThis.lastWrite - thisThis.lastMessageRecieved > (60 * 1000)) {
             // no response? not connectet anymore?
             connectionReady = false
             try {
                 thisThis.onDisconnect();
             } catch (e) {
-                console.error('onDisconnect Error')
-                console.error(e);
+                thisThis.log.error('Telnet> onDisconnect Error')
+                thisThis.log.error(e);
             }
         }
 
@@ -512,13 +512,14 @@ class TelnetAvr {
                         require("deasync").sleep(10);
                     }
                 }
+                // thisThis.log.debug('Telnet 1write > ' + message)
                 thisThis.socket.write(message + "\r\n");
                 thisThis.lastWrite = Date.now();
 
                 try {
                     onData(null, message + ":SENT");
                 } catch (e) {
-                    console.error(e);
+                    thisThis.log.error(e);
                 }
             }
 
@@ -561,7 +562,7 @@ class TelnetAvr {
         }
 
         if (connectionReady === false) {
-            console.error("connection still not ready...");
+            thisThis.log.error("Telnet> connection still not ready...");
             return;
         }
         clearTimeout(disconnectTimeout);
