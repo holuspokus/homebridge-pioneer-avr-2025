@@ -4,10 +4,12 @@
 const PioneerAvr = require("./pioneer-avr");
 const ppath = require("persist-path");
 const fs = require("fs");
+const { addExitHandler } = require('./exitHandler');
 
 let initP = function() {},
     initPTimeout = null,
-    thisThis = null
+    thisThis = null,
+    onExit = function(){}
 
 let Service;
 let Characteristic;
@@ -26,6 +28,9 @@ let functionSetLightbulbVolumeTimeout = null
 let volumeServiceLightbulbTimeout = null
 let updatePowerStateTimeout = null
 let functionSetActiveIdentifierTimeout = null
+
+let letSetPowerSleepDiscoveryModeTimeout = null
+let letSetPowerOnServiceOnTimeout = null
 
 function pioneerAvrAccessory(log, config) {
     // Main accessory initialization
@@ -69,7 +74,7 @@ function pioneerAvrAccessory(log, config) {
 
     log.debug("Preferences directory : %s", this.prefsDir);
     this.manufacturer = "Pioneer";
-    this.version = "0.1.2";
+    this.version = "0.1.3";
 
     // check if prefs directory ends with a /, if not then add it
     if (this.prefsDir.endsWith("/") === false) {
@@ -235,32 +240,43 @@ pioneerAvrAccessory.prototype.prepareTvService = function() {
 
     // let thisThis = this
     thisThis.avr.functionSetPowerState = function(set) {
-        clearTimeout(updatePowerStateTimeout)
-        updatePowerStateTimeout = setTimeout(function() {
-            // thisThis.log.debug('functionSetPowerState called')
-            try {
-                thisThis.tvService
-                    .getCharacteristic(Characteristic.Active)
-                    .updateValue(set);
+        this.log.debug('functionSetPowerState called')
 
-            } catch (e) {
-                thisThis.log.debug('functionSetPowerState Error', e)
-            }
-        }, 50)
+        try{
+
+            clearTimeout(updatePowerStateTimeout)
+            if(thisThis.tvService.getCharacteristic(Characteristic.Active).value != set){
+
+                  updatePowerStateTimeout = setTimeout(function() {
+                      thisThis.log.debug('functionSetPowerState called', set)
+                      try {
+                          thisThis.tvService.setCharacteristic(Characteristic.SleepDiscoveryMode, !set);
+                          thisThis.tvService.setCharacteristic(Characteristic.Active, set);
+                      } catch (e) {
+                          thisThis.log.debug('functionSetPowerState Error', e)
+                      }
+                  }, 150)
+              }
+        } catch (e) {
+            thisThis.log.debug('functionSetPowerState()', e)
+        }
+
     }
 
     thisThis.avr.functionSetActiveIdentifier = function(set) {
         clearTimeout(functionSetActiveIdentifierTimeout)
-        functionSetActiveIdentifierTimeout = setTimeout(function() {
-            // thisThis.log.debug('functionSetActiveIdentifierTimeout called')
-            try {
-                thisThis.tvService
-                    .getCharacteristic(Characteristic.ActiveIdentifier)
-                    .updateValue(set);
-            } catch (e) {
-                thisThis.log.debug('functionSetActiveIdentifierTimeout Error', e)
-            }
-        }, 50)
+
+        if (thisThis.tvService.getCharacteristic(Characteristic.ActiveIdentifier).value != set){
+            functionSetActiveIdentifierTimeout = setTimeout(function() {
+                // thisThis.log.debug('functionSetActiveIdentifierTimeout called')
+                try {
+                    thisThis.tvService
+                        .setCharacteristic(Characteristic.ActiveIdentifier, set);
+                } catch (e) {
+                    thisThis.log.debug('functionSetActiveIdentifierTimeout Error', e)
+                }
+            }, 500)
+        }
     }
 }
 
@@ -278,54 +294,56 @@ pioneerAvrAccessory.prototype.prepareVolumeService = function() {
         .on("get", this.getVolume.bind(this))
         .on("set", this.setVolume.bind(this));
 
-    this.volumeServiceLightbulb
-        .getCharacteristic(Characteristic.On)
-        // .updateValue(true);
-        .updateValue((thisThis.avr.state.muted || !thisThis.avr.state.on) ? false : true);
-
-    this.volumeServiceLightbulb
-        .getCharacteristic(Characteristic.Brightness)
-        .updateValue(70);
-
     this.tvService.addLinkedService(this.volumeServiceLightbulb);
     this.enabledServices.push(this.volumeServiceLightbulb);
 
     thisThis.avr.functionSetLightbulbVolume = function(set) {
 
-        if (thisThis.volumeServiceLightbulb.getCharacteristic(Characteristic.Brightness).value != set) {
-            clearTimeout(functionSetLightbulbVolumeTimeout)
-            functionSetLightbulbVolumeTimeout = setTimeout(function() {
+        clearTimeout(functionSetLightbulbVolumeTimeout)
+        functionSetLightbulbVolumeTimeout = setTimeout(function() {
 
-                try {
-                    thisThis.volumeServiceLightbulb
-                        .getCharacteristic(Characteristic.On)
-                        .updateValue((thisThis.avr.state.muted || !thisThis.avr.state.on) ? false : true);
-
-                    thisThis.volumeServiceLightbulb
-                        .getCharacteristic(Characteristic.Brightness)
-                        .updateValue(set);
-
-                } catch (e) {
-                    thisThis.log.debug('updateValueVol', e)
-                }
-            }, 50)
-        }
-    }
-
-
-    thisThis.avr.functionSetLightbulbMuted = function(set) {
-        clearTimeout(volumeServiceLightbulbTimeout)
-        volumeServiceLightbulbTimeout = setTimeout(function() {
             try {
-                thisThis.volumeServiceLightbulb
-                    .getCharacteristic(Characteristic.On)
-                    .updateValue((thisThis.avr.state.muted || !thisThis.avr.state.on) ? false : true);
+
+                if (thisThis.volumeServiceLightbulb.getCharacteristic(Characteristic.Brightness).value != set) {
+
+                    thisThis.volumeServiceLightbulb.setCharacteristic(Characteristic.Brightness, (thisThis.avr.state.muted || !thisThis.avr.state.on) ? 0 : set);
+
+
+                }
+
+                if (thisThis.volumeServiceLightbulb.getCharacteristic(Characteristic.On).value != (!(thisThis.avr.state.muted || !thisThis.avr.state.on) ) ) {
+                    thisThis.volumeServiceLightbulb.setCharacteristic(Characteristic.On, (thisThis.avr.state.muted || !thisThis.avr.state.on) ? false : true);
+                }
+
             } catch (e) {
-                thisThis.log.debug('functionSetLightbulbMuted Error', e)
+                thisThis.log.debug('updateValueVol', e)
             }
-        }, 50)
+        }, 500)
     }
 
+
+    volumeServiceLightbulbTimeout = null;
+    this.avr.functionSetLightbulbMuted = function() {
+        const chk = volumeServiceLightbulbTimeout === null;
+        const timeoutTime = chk ? 0 : 50;
+
+        clearTimeout(volumeServiceLightbulbTimeout);
+        volumeServiceLightbulbTimeout = setTimeout(() => {
+            try {
+                thisThis.volumeServiceLightbulb.getCharacteristic(Characteristic.On)
+                    .updateValue(!(thisThis.avr.state.muted || !thisThis.avr.state.on));
+            } catch (e) {
+                thisThis.log.debug('functionSetLightbulbMuted Error', e);
+            }
+            volumeServiceLightbulbTimeout = null;
+        }, timeoutTime);
+
+        if (chk) {
+            volumeServiceLightbulbTimeout = setTimeout(() => {
+                volumeServiceLightbulbTimeout = null;
+            }, 50);
+        }
+    };
 };
 
 pioneerAvrAccessory.prototype.prepareTvSpeakerService = function() {
@@ -386,6 +404,11 @@ pioneerAvrAccessory.prototype.addInputSourceService = function(inputkey) {
     }
     let me = this;
     this.log.info(
+        "Add input n°%s - %s",
+        key,
+        this.avr.inputs[key].name
+    );
+    this.log.debug(
         "Add input n°%s - Name: %s Id: %s Type: %s",
         key,
         this.avr.inputs[key].name,
@@ -494,14 +517,21 @@ pioneerAvrAccessory.prototype.getPowerOn = function(callback) {
     this.avr.powerStatus(callback);
 };
 
+
+
+
+
+
 pioneerAvrAccessory.prototype.setPowerOn = function(on, callback) {
     // Set power on/off
     if (on) {
         this.log.info("Power on");
         this.avr.powerOn();
+
     } else {
         this.log.info("Power off");
         this.avr.powerOff();
+
     }
 
     callback();
@@ -780,6 +810,7 @@ pioneerAvrAccessory.prototype.remoteKeyPress = function(remoteKey, callback) {
     }
 };
 
+
 pioneerAvrAccessory.prototype.getServices = function() {
     // This method is called once on startup. We need to wait for accessory to be ready
     // ie all inputs are created
@@ -807,6 +838,20 @@ pioneerAvrAccessory.prototype.getServices = function() {
 
 
     this.log.debug("Enabled services : %s", this.enabledServices.length);
+
+    thisThis.avr.functionSetPowerState(this.avr.state.on)
+    thisThis.avr.functionSetLightbulbVolume(this.avr.state.volume)
+
+    onExit = () => {
+        this.avr.state.on = false
+        this.avr.functionSetPowerState(this.avr.state.on)
+        this.avr.functionSetLightbulbVolume(this.avr.state.volume)
+    };
+
+    addExitHandler(onExit, this);
+
+
+
 
     return this.enabledServices;
 };

@@ -101,7 +101,6 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
         thisThis.log.debug('dummy functionSetActiveIdentifier called')
     };
 
-
     // Current AV status
     this.state = {
         volume: 30,
@@ -115,6 +114,8 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
 
     this.onData = function(error, data, callback) {
         thisThis.log.debug("Receive data : %s", data);
+
+        try {
 
         if (typeof callback !== "function") {
             callback = function() {};
@@ -154,36 +155,43 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
             //   thisThis.log.debug("onData", e)
             // };
         } else if (data.indexOf("PWR") > -1) {
-            data = data.substring(data.indexOf("PWR"));
-            thisThis.state.on = parseInt(data[3], 10) === 0;
-            thisThis.log.debug(
-                "Receive Power status : %s (%s)",
-                thisThis.state.on ? "On" : "off",
-                data,
-            );
-            thisThis.state.lastGetPowerStatus = Date.now();
             try {
-                callback(error, data);
+                data = data.substring(data.indexOf("PWR"));
+                let oldPowerState = thisThis.state.on ? true : false
+                thisThis.state.on = parseInt(data[3], 10) === 0;
+                thisThis.log.debug(
+                    "Receive Power status : %s (%s)",
+                    thisThis.state.on ? "On" : "off",
+                    data,
+                );
+                thisThis.state.lastGetPowerStatus = Date.now();
+                try {
+                    callback(error, data);
+                } catch (e) {
+                    thisThis.log.debug("onData", e);
+                }
+
+                if (oldPowerState != thisThis.state.on){
+                    setTimeout(function() {
+                        try {
+                            thisThis.functionSetPowerState(thisThis.state.on)
+                        } catch (e) {
+                            thisThis.log.debug("functionSetPowerState", e);
+                        }
+                    }, 2)
+
+                    setTimeout(function() {
+                        try {
+                            thisThis.functionSetLightbulbVolume(thisThis.state.volume)
+                        } catch (e) {
+                            thisThis.log.debug("functionSetLightbulbVolume", e);
+                        }
+                    }, 20)
+                }
             } catch (e) {
-                thisThis.log.debug("onData", e);
+                thisThis.log.debug("PWR", e);
             }
 
-
-            setTimeout(function() {
-                try {
-                    thisThis.functionSetPowerState(thisThis.state.on)
-                } catch (e) {
-                    thisThis.log.debug("functionSetPowerState", e);
-                }
-            }, 2)
-
-            setTimeout(function() {
-                try {
-                    thisThis.functionSetLightbulbMuted(thisThis.state.muted)
-                } catch (e) {
-                    thisThis.log.debug("functionSetLightbulbMuted", e);
-                }
-            }, 20)
         }
 
         // Data returned for mute status
@@ -192,7 +200,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
             thisThis.state.muted = parseInt(data[3], 10) === 0;
             setTimeout(function() {
                 try {
-                    thisThis.functionSetLightbulbMuted(thisThis.state.muted)
+                    thisThis.functionSetLightbulbMuted()
                 } catch (e) {
                     thisThis.log.debug("functionSetLightbulbMuted", e);
                 }
@@ -458,6 +466,10 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
 
         }
 
+      } catch (e) {
+          thisThis.log.debug("this.onData", e);
+      }
+
 
     };
 
@@ -500,7 +512,7 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
 
 
     // Communication Initialization
-    this.s = new TelnetAvr(this.host, this.port);
+    this.s = new TelnetAvr(this.host, this.port, this.log);
     this.s.fallbackOnData = this.onData; //.bind({})
 
     try {
@@ -521,6 +533,14 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
             }
         }, 2)
 
+        setTimeout(function() {
+            try {
+                thisThis.functionSetLightbulbVolume(thisThis.state.volume)
+            } catch (e) {
+                thisThis.log.debug("functionSetLightbulbVolume", e);
+            }
+        }, 2)
+
         // thisThis.state.muted = true
         // setTimeout(function(){
         //     try {
@@ -532,7 +552,9 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
     }
 
     this.s.onConnect = function() {
-        thisThis.powerStatus(function() {});
+        thisThis.__updatePower(function() {});
+        thisThis.__updateMute(function() {});
+        thisThis.__updateVolume(function() {});
 
         // thisThis.state.muted = true
         // setTimeout(function(){
@@ -891,7 +913,7 @@ PioneerAvr.prototype.volumeUp = function() {
     if (this.web) {
         (async () => {
 
-            fetch(this.webEventHandlerBaseUrl + "PO", {
+            fetch(this.webEventHandlerBaseUrl + "VU", {
                 method: 'GET'
             }).then(() => {
                 clearTimeout(blocktimer);
@@ -1129,18 +1151,6 @@ PioneerAvr.prototype.inputStatus = function(callback) {
     } catch (e) {
         this.log.debug("__updateInput", e);
     }
-
-    // this.__updateInput(() => {    });
-
-    // let thisThis = this;
-    // this.__updateInput(() => {
-    //     thisThis.log.debug("inputStatus updated %s", thisThis.state.input);
-    //     try {
-    //         callback(null, thisThis.state.input);
-    //     } catch (e) {
-    //         thisThis.log.debug("__updateInput", e);
-    //     }
-    // });
 };
 
 PioneerAvr.prototype.setInput = function(id) {

@@ -1,8 +1,11 @@
 # homebridge-pioneer-avr-2025
 
-A [Homebridge](https://github.com/nfarina/homebridge) plugin that allows you to declare your Pioneer AVR as a TV in HomeKit. This project is ready for Node 22 or lower, Homebridge 2 or lower and is forked from [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr).
+A [Homebridge](https://github.com/nfarina/homebridge) plugin that allows you to declare your Pioneer AVR as a TV in HomeKit. This project is ready for Node 22 or lower, Homebridge 2 or lower and is forked from [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr).  
 
-![npm](https://img.shields.io/npm/v/homebridge-pioneer-avr-2025) ![license](https://img.shields.io/badge/license-MIT-blue)
+> This plugin is specifically designed for Pioneer models that utilize the PRONTO protocol (e.g., VSX-922). It is not intended for newer models that use the ISCP protocol (e.g., VSX-LX304). For those newer models, we recommend using the [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer) plugin or checking the "Alternatively" section below.
+
+
+![npm](https://img.shields.io/npm/v/homebridge-pioneer-avr-2025) ![license](https://img.shields.io/badge/license-MIT-blue) ![PRs](https://img.shields.io/github/issues-pr/holuspokus/homebridge-pioneer-avr-2025) ![Issues](https://img.shields.io/github/issues/holuspokus/homebridge-pioneer-avr-2025)
 
 
 
@@ -17,14 +20,19 @@ This plugin enables various controls for your AVR, including:
 * Save visibility status for inputs in Home app
 * Rename inputs in Home app
 * Control AVR with Remote on iOS
-* Remote-Key "Play/Pause" to toggle Listening-Mode (iOS)
+* Remote-Key "Play/Pause" (iOS) to toggle between EXTENDED STEREO and PRO LOGIC 2 MOVIE
 * Auto discover inputs
-
+* No code modifications are necessary for the plugin to function correctly. Give it a try!
 
 
 
 ## Installation
 
+1. Install Homebridge: [Homebridge Installation Guide](https://github.com/homebridge/homebridge/wiki)  
+2. Install the **homebridge-pioneer-avr-2025** plugin using Homebridge UI.  
+3. Add the configuration as shown in the example below or in `sample-config.json`, adjusting the IP address and port as needed.
+
+Alternatively:
 1. Install the Homebridge framework using `npm install -g homebridge`
 2. Install **homebridge-pioneer-avr-2025** using `npm i homebridge-pioneer-avr-2025`
 3. Update your configuration file. See `sample-config.json` in this repository for a sample.
@@ -75,17 +83,18 @@ Below is a sample configuration for your accessory:
 > A number between 0 and 100; for example, 60 means 60% of the max volume.  
 > 100 = -0dB (i.e., 185 = No Limit),  
 > 60 = -16dB,  
-> 0 = disabled (this only affects the volume as a brightness feature, not the remote).  
+> 0: disables the volume as brightness feature  
 > Defaults to 80 if undefined.  
-> A value of 60 has worked well for me
+> A value of 60 has worked well for me.  
 
-> **Note:** The difference between `maxVolumeSet` and `minVolumeSet` should be at least 20.
+> **Note:** The difference between `maxVolumeSet` and `minVolumeSet` should be at least 20.  
+> Both only affects the volume as a brightness feature, not the remote.
 
 > **minVolumeSet:**  
 > A number between 0 and 100; for example, 30 means 30% of the max volume.  
 > Defaults to 20 if undefined.  
 > This setting is only active in combination with `maxVolumeSet`.  
-> A value of 35 has worked well for me
+> A value of 35 has worked well for me.  
 
 
 
@@ -101,8 +110,18 @@ Below is a sample configuration for your accessory:
 
 
 
+## Alternatives
+
+- [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer)
+- [home-assistant](https://www.home-assistant.io/integrations/pioneer/)
+- [openhab.org](https://www.openhab.org/addons/bindings/pioneeravr/)
+
+
+
+
 ## Release Notes
 
+- **v0.1.3**: Improved communication of device status with HomeKit and fixed a bug with volume control in the iOS Remote.
 - **v0.1.2**: Fixed an issue where "Web Interface enabled" unintentionally turned on the receiver.
 - **v0.1.1**: Reduced npm dependencies and updated `package.json`, less info-logging.
 - **v0.1.0**: Some final improvements for stabilization.
