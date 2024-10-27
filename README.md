@@ -26,7 +26,6 @@ This plugin enables various controls for your AVR, including:
 
 
 
-
 ## Installation
 
 1. Install Homebridge: [Homebridge Installation Guide](https://github.com/homebridge/homebridge/wiki)  
@@ -84,17 +83,18 @@ Below is a sample configuration for your accessory:
 > A number between 0 and 100; for example, 60 means 60% of the max volume.  
 > 100 = -0dB (i.e., 185 = No Limit),  
 > 60 = -16dB,  
-> 0 = disabled (this only affects the volume as a brightness feature, not the remote).  
+> 0: disables the volume as brightness feature  
 > Defaults to 80 if undefined.  
-> A value of 60 has worked well for me
+> A value of 60 has worked well for me.  
 
-> **Note:** The difference between `maxVolumeSet` and `minVolumeSet` should be at least 20.
+> **Note:** The difference between `maxVolumeSet` and `minVolumeSet` should be at least 20.  
+> Both only affects the volume as a brightness feature, not the remote.
 
 > **minVolumeSet:**  
 > A number between 0 and 100; for example, 30 means 30% of the max volume.  
 > Defaults to 20 if undefined.  
 > This setting is only active in combination with `maxVolumeSet`.  
-> A value of 35 has worked well for me
+> A value of 35 has worked well for me.  
 
 
 
@@ -121,7 +121,7 @@ Below is a sample configuration for your accessory:
 
 ## Release Notes
 
-- **v0.1.3**: Enhanced usage of `SleepDiscoveryMode` for improved performance.
+- **v0.1.3**: Improved communication of device status with HomeKit and fixed a bug with volume control in the iOS Remote.
 - **v0.1.2**: Fixed an issue where "Web Interface enabled" unintentionally turned on the receiver.
 - **v0.1.1**: Reduced npm dependencies and updated `package.json`, less info-logging.
 - **v0.1.0**: Some final improvements for stabilization.
