@@ -1,7 +1,7 @@
 "use strict";
 
 const net = require("net");
-
+const { addExitHandler } = require('./exitHandler');
 
 
 const PORT = 23;
@@ -129,41 +129,25 @@ class TelnetAvr {
         } else {
             // when connect() called the first time, with initialization
             if (thisThis.socket === null && thisThis !== null) {
-                disconnectOnExitFunction = function(err) {
-                    if (err && String(err).length > 3) {
-                        console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
-                        console.error(err.stack)
-                    }
-                    if (connectionReady === true) {
-                        // console.log(
-                        //     "disconnecting from telnet",
-                        //     connectionReady,
-                        // );
-                        thisThis.disconnect();
-                    }
-                };
-
                 if (onlyOnce) {
                     onlyOnce = false
 
-                    process.stdin.resume();
-                    // so the program will not close instantly
+                    disconnectOnExitFunction = function(err) {
+                        // console.log('disconnectOnExitFunction():')
+                        if (err && String(err).length > 3) {
+                            console.error((new Date).toUTCString() + ' uncaughtException:', err.message)
+                            console.error(err.stack)
+                        }
+                        if (connectionReady === true) {
+                            // console.log(
+                            //     "disconnecting from telnet",
+                            //     connectionReady,
+                            // );
+                            thisThis.disconnect();
+                        }
+                    };
 
-                    // do something when app is closing
-                    process.on("exit", disconnectOnExitFunction.bind({}));
-
-                    // catches ctrl+c event
-                    process.on("SIGINT", disconnectOnExitFunction.bind({}));
-
-                    // catches "kill pid" (for example: nodemon restart)
-                    process.on("SIGUSR1", disconnectOnExitFunction.bind({}));
-                    process.on("SIGUSR2", disconnectOnExitFunction.bind({}));
-
-                    // catches uncaught exceptions
-                    process.on(
-                        "uncaughtException",
-                        disconnectOnExitFunction.bind({}),
-                    );
+                    addExitHandler(disconnectOnExitFunction, thisThis);
                 }
 
                 clearInterval(checkQueueInterval);
@@ -489,7 +473,7 @@ class TelnetAvr {
                 });
 
                 this.socket.on("error", (err) => {
-                    console.log("Telnet:Error " + String(err));
+                    console.log("Telnet " + String(err));
 
                     if (String(err).indexOf('CONN') > -1) {
                         connectionReady = false;
@@ -509,6 +493,7 @@ class TelnetAvr {
     }
 
     sendMessage(message, callbackChars, onData) {
+        // console.log('in sendMessage()', (connectionReady && thisThis.lastWrite !== null && thisThis.lastWrite - thisThis.lastMessageRecieved > (60 * 1000)) )
         if (connectionReady && thisThis.lastWrite !== null && thisThis.lastWrite - thisThis.lastMessageRecieved > (60 * 1000)) {
             // no response? not connectet anymore?
             connectionReady = false
