@@ -129,7 +129,8 @@ Below is a sample configuration for your accessory:
 
 ## Alternatives
 
-- [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer)
+- [homebridge-onkyo-pioneer](https://www.npmjs.com/package/homebridge-onkyo-pioneer)
+- [homebridge-onkyo](https://www.npmjs.com/package/homebridge-onkyo)
 - [home-assistant](https://www.home-assistant.io/integrations/pioneer/)
 - [openhab.org](https://www.openhab.org/addons/bindings/pioneeravr/)
 
