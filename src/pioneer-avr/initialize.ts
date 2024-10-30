@@ -1,11 +1,15 @@
+// src/pioneer-avr/initialize.ts
+
+let allInterval: NodeJS.Timeout; // oder einfach 'let allInterval;' für den Fall, dass du es erst später initialisierst
+let lastUserInteraction: number | null = null; // Initialisiere es mit null, falls es zu Beginn nicht gesetzt ist
+
+import { AVState } from './pioneerAvr'; // Importiere AVState direkt
+import { TelnetAvr } from '../telnet-avr/telnetAvr'; // Importiere TelnetAvr
+import { onDataHandler } from './onDataHandler'; // Importiere onDataHandler
+
 export const initialize = async function() {
     // Implementation of the initialize function here
     this.log.debug('Initializing Pioneer AVR...');
-
-    // Ensure these imports are correct
-    const { TelnetAvr } = await import('./telnetAvr'); // Ensure this import is correct
-    const { AVState } = await import('./pioneerAvr'); // Import AVState
-    const { onDataHandler } = await import('./onDataHandler');
 
     // Initialize instance variables
     this.inputs = [];
@@ -23,7 +27,7 @@ export const initialize = async function() {
     };
 
     // Set up the onData handler
-    this.onData = onDataHandler(this.log, this.state);
+    this.onData = onDataHandler(this);
 
     // Web interface check
     try {
@@ -37,11 +41,11 @@ export const initialize = async function() {
     }
 
     // Communication Initialization
-    this.s = new TelnetAvr(this.host, this.port, this.log);
-    this.s.fallbackOnData = this.onData;
+    this.telnetAvr = new TelnetAvr(this.host, this.port, this.log);
+    this.telnetAvr.fallbackOnData = this.onData;
 
     try {
-        this.s.connect();
+        this.telnetAvr.connect();
     } catch (e) {
         this.log.debug('Pioneer AVR connection error', e);
     }
@@ -49,7 +53,7 @@ export const initialize = async function() {
     this.log.debug("Wait until telnet connected");
 
     // Handle disconnection
-    this.s.onDisconnect = () => {
+    this.telnetAvr.onDisconnect = () => {
         this.state.on = false;
         // Logic for handling disconnection
         // For example:
@@ -57,7 +61,7 @@ export const initialize = async function() {
 
         setTimeout(() => {
             try {
-                this.telnetAvr.functionSetPowerState();
+                this.functionSetPowerState(this.state.on);
             } catch (e) {
                 console.error("Error setting power state:", e);
             }
@@ -65,7 +69,7 @@ export const initialize = async function() {
 
         setTimeout(() => {
             try {
-                this.telnetAvr.functionSetLightbulbVolume(this.telnetAvr.state.volume);
+                this.functionSetLightbulbVolume(this.state.volume);
             } catch (e) {
                 console.error("Error setting lightbulb volume:", e);
             }
@@ -73,10 +77,10 @@ export const initialize = async function() {
     };
 
     // Handle connection
-    this.s.onConnect = () => {
+    this.telnetAvr.onConnect = async () => {
         this.powerStatus(() => {});
 
-        if (this.s.connectionReady) {
+        if (this.telnetAvr.connectionReady) {
             this.log.info("Telnet connected");
             await new Promise(resolve => setTimeout(resolve, 50));
             await this.__updateListeningMode(() => {});
@@ -99,13 +103,13 @@ export const initialize = async function() {
             }, 500);
 
             try {
-                this.telnetAvr.functionSetPowerState(false);
+                this.functionSetPowerState(this.state.on);
             } catch (e) {
                 console.error("Error setting power state:", e);
             }
 
             try {
-                this.telnetAvr.functionSetLightbulbVolume(this.telnetAvr.state.volume);
+                this.functionSetLightbulbVolume(this.state.volume);
             } catch (e) {
                 console.error("Error setting lightbulb volume:", e);
             }
@@ -117,7 +121,7 @@ export const initialize = async function() {
     this.isReady = false;
 
     // Display change handling
-    this.s.displayChanged = (error: any, text: string) => {
+    this.telnetAvr.displayChanged = (error: any, text: string) => {
         if (error) {
             this.log.error(error);
         }
@@ -134,14 +138,14 @@ export const initialize = async function() {
                 return;
             }
             if (
-                this.s.connectionReady &&
+                this.telnetAvr.connectionReady &&
                 this.isReady &&
                 this.state.on &&
                 this.state.lastGetPowerStatus !== null
             ) {
                 this.__updateVolume(() => {});
             }
-            if (this.isReady && this.s.connectionReady) {
+            if (this.isReady && this.telnetAvr.connectionReady) {
                 this.__updatePower(() => {});
             }
         } catch (e) {
@@ -150,20 +154,3 @@ export const initialize = async function() {
     }, 29000);
 
 };
-
-// Dummy method placeholders
-protected functionSetPowerState(state: boolean) {
-    // Implement your logic here
-}
-
-protected functionSetLightbulbMuted(muted: boolean) {
-    // Implement your logic here
-}
-
-protected functionSetActiveIdentifier(input: number) {
-    // Implement your logic here
-}
-
-protected functionSetLightbulbVolume(volume: number) {
-    // Implement your logic here
-}

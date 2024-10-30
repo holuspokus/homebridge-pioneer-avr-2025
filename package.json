@@ -1,14 +1,12 @@
 {
   "name": "homebridge-pioneer-avr-2025",
-  "version": "0.2.0-alpha.1",
+  "version": "0.2.0-alpha.0",
   "description": "Fast Pioneer AVR plugin for homebridge, ready for Node 22 or lower.",
   "main": "dist/dynamic-platform.js",
   "scripts": {
-    "clean": "rimraf ./dist",
-    "build": "rimraf ./dist && tsc",
-    "prepublishOnly": "npm run build",
-    "postpublish": "npm run clean",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "lint": "eslint src/**.ts src/**/*.ts --max-warnings=0",
+    "start": "node dist/dynamic-platform.js"
   },
   "author": "Toeffligang",
   "engines": {
@@ -21,28 +19,37 @@
     "dist"
   ],
   "repository": {
-      "type": "git",
-      "url": "git://github.com/holuspokus/homebridge-pioneer-avr-2025.git"
+    "type": "git",
+    "url": "git://github.com/holuspokus/homebridge-pioneer-avr-2025.git"
   },
   "bugs": {
-      "url": "https://github.com/holuspokus/homebridge-pioneer-avr-2025/issues"
+    "url": "https://github.com/holuspokus/homebridge-pioneer-avr-2025/issues"
   },
+  "homepage": "https://github.com/holuspokus/homebridge-pioneer-avr-2025#readme",
+  "keywords": [
+    "homebridge-plugin",
+    "pioneer",
+    "vsx",
+    "avr",
+    "av",
+    "tv",
+    "receiver"
+  ],
   "devDependencies": {
-      "@eslint/eslintrc": "^3.1.0",
-      "@eslint/js": "^9.12.0",
-      "@stylistic/eslint-plugin-js": "^2.9.0",
-      "@stylistic/eslint-plugin-ts": "^2.9.0",
-      "@types/md5": "^2.3.5",
-      "@types/node": "^22.10.0",
-      "@typescript-eslint/eslint-plugin": "^8.10.0",
-      "@typescript-eslint/parser": "^8.10.0",
-      "eslint": "^9.12.0",
-      "homebridge": "^2.0.0-beta.0",
-      "homebridge-config-ui-x": "^4.61.0",
-      "nodemon": "^3.1.7",
-      "rimraf": "^6.0.1",
-      "standard-version": "^9.5.0",
-      "ts-node": "^10.9.2",
-      "typescript": "^5.5.4"
+    "@eslint/eslintrc": "^3.1.0",
+    "@eslint/js": "^9.12.0",
+    "@stylistic/eslint-plugin-js": "^2.9.0",
+    "@stylistic/eslint-plugin-ts": "^2.9.0",
+    "@types/md5": "^2.3.5",
+    "@types/node": "^22.8.2",
+    "@typescript-eslint/eslint-plugin": "^8.10.0",
+    "@typescript-eslint/parser": "^8.10.0",
+    "eslint": "^9.12.0",
+    "homebridge-config-ui-x": "^4.50.6",
+    "nodemon": "^3.1.7",
+    "rimraf": "^6.0.1",
+    "standard-version": "^9.5.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.4"
   }
 }

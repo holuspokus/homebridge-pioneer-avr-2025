@@ -6,7 +6,7 @@ import { DataHandler } from "./dataHandler"; // Importiere die neue Klasse
 const PORT = 23;
 const HOST = "127.0.0.1";
 
-class TelnetAvr {
+export class TelnetAvr {
     protected connection: Connection;
     private dataHandler: DataHandler; // Neue Instanz der DataHandler-Klasse
 
@@ -23,9 +23,7 @@ class TelnetAvr {
         });
     }
 
-    sendMessage(message: string) {
-        this.connection.sendMessage(message);
+    public sendMessage(command: string, key: string, callback: Function) {
+        return this.connection.sendMessage(command, key, callback);
     }
 }
-
-export default TelnetAvr;

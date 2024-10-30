@@ -1,4 +1,4 @@
-// src/pioneerAvr/inputs.ts
+// src/pioneer-avr/inputs.ts
 
 import PioneerAvr from './pioneerAvr';
 
@@ -45,114 +45,118 @@ const inputToTypeList = [
 
 const inputToType: { [key: string]: number } = {};
 
-let inputBeingAdded = false;
-let inputBeingAddedWaitCount = 0;
-
 // Input management method
-export const loadInputs = async function (this: PioneerAvr, callback: () => void) {
+export const loadInputs = async function (pioneerThis: PioneerAvr, callback: () => void) {
     for (let inputi in inputToTypeList) {
         let key = String(inputToTypeList[inputi][0]);
-        let value = String(inputToTypeList[inputi][1]);
+        let value = Number(inputToTypeList[inputi][1]);
         inputToType[key] = value;
 
-        if (inputBeingAdded !== false && inputBeingAddedWaitCount++ < 30) {
+        if (typeof pioneerThis.inputBeingAdded === 'string' && pioneerThis.inputBeingAddedWaitCount++ < 30) {
             await new Promise(resolve => setTimeout(resolve, 10));
-            inputBeingAddedWaitCount = 0;
+            pioneerThis.inputBeingAddedWaitCount = 0;
 
-            while (inputBeingAdded !== false && inputBeingAddedWaitCount++ < 30) {
+            while (typeof pioneerThis.inputBeingAdded === 'string' && pioneerThis.inputBeingAddedWaitCount++ < 30) {
                 await new Promise(resolve => setTimeout(resolve, 150));
             }
         }
 
-        inputBeingAdded = String(key);
+        pioneerThis.inputBeingAdded = String(key);
 
-        let index = -1;
-        for (let i in this.inputMissing) {
-            if (this.inputMissing[i].indexOf(key) > -1) {
-                index = i;
+        let index: number = -1; // Set index as number
+
+        // Loop through the inputMissing array
+        for (let i in pioneerThis.inputMissing) {
+            // Check if the key exists in the inner array
+            if (pioneerThis.inputMissing[i].indexOf(key) > -1) {
+                index = parseInt(i, 10); // Convert i to number
                 break;
             }
         }
-        if (index !== -1) {
-            this.inputMissing.push([key]);
+
+        // If the key is not found, push it as a new inner array
+        if (index === -1) {
+            pioneerThis.inputMissing.push([key]);
         }
 
-        await this.sendCommand(`?RGB${key}`, `RGB${key}`, callback);
+
+
+        await this.telnetAvr.sendMessage(`?RGB${key}`, `RGB${key}`, callback);
         await new Promise(resolve => setTimeout(resolve, 150));
     }
 
-    if (inputBeingAdded !== false && inputBeingAddedWaitCount++ < 30) {
+    if (typeof pioneerThis.inputBeingAdded === 'string' && pioneerThis.inputBeingAddedWaitCount++ < 30) {
         await new Promise(resolve => setTimeout(resolve, 10));
-        inputBeingAddedWaitCount = 0;
+        pioneerThis.inputBeingAddedWaitCount = 0;
 
-        while (inputBeingAdded !== false && inputBeingAddedWaitCount++ < 30) {
+        while (typeof pioneerThis.inputBeingAdded === 'string' && pioneerThis.inputBeingAddedWaitCount++ < 30) {
             await new Promise(resolve => setTimeout(resolve, 500));
         }
     }
 
     let inputMissingWhileMax = 0;
-    while (this.inputMissing.length > 0 && inputMissingWhileMax++ < 30) {
-        for (let thiskey in this.inputMissing) {
-            let key = this.inputMissing[thiskey][0];
+    while (pioneerThis.inputMissing.length > 0 && inputMissingWhileMax++ < 30) {
+        for (let pioneerThiskey in pioneerThis.inputMissing) {
+            let key = pioneerThis.inputMissing[pioneerThiskey][0];
 
-            if (inputBeingAdded !== false && inputBeingAddedWaitCount++ < 30) {
+            if (typeof pioneerThis.inputBeingAdded === 'string' && pioneerThis.inputBeingAddedWaitCount++ < 30) {
                 await new Promise(resolve => setTimeout(resolve, 10));
-                inputBeingAddedWaitCount = 0;
+                pioneerThis.inputBeingAddedWaitCount = 0;
 
-                while (inputBeingAdded !== false && inputBeingAddedWaitCount++ < 30) {
+                while (typeof pioneerThis.inputBeingAdded === 'string' && pioneerThis.inputBeingAddedWaitCount++ < 30) {
                     await new Promise(resolve => setTimeout(resolve, 500));
                 }
             }
 
             key = String(key);
-            inputBeingAdded = key;
+            pioneerThis.inputBeingAdded = key;
 
-            this.log.debug('inputMissing called key', key, this.inputMissing);
+            pioneerThis.log.debug('inputMissing called key', key, pioneerThis.inputMissing);
 
-            await this.sendCommand(`?RGB${key}`, `RGB${key}`, callback);
+            await this.telnetAvr.sendMessage(`?RGB${key}`, `RGB${key}`, callback);
             await new Promise(resolve => setTimeout(resolve, 500));
         }
     }
 
-    if (this.inputMissing.length === 0 && Object.keys(inputToType).length > 0) {
-        this.isReady = true;
+    if (pioneerThis.inputMissing.length === 0 && Object.keys(inputToType).length > 0) {
+        pioneerThis.isReady = true;
     }
 };
 
 // Input management methods
-export const inputManagementMethods = (pioneerAvr: PioneerAvr) => {
-    pioneerAvr.__updateInput = async function (callback: () => void) {
-        this.sendCommand("?F", "FN", callback);
+export const inputManagementMethods = (pioneerThis: PioneerAvr) => {
+    pioneerThis.__updateInput = async function (callback: () => void) {
+        this.telnetAvr.sendMessage("?F", "FN", callback);
     };
 
-    pioneerAvr.inputStatus = async function (callback: (err: any, status?: number) => void) {
-        this.log.debug("inputStatus updated %s", this.state.input);
+    pioneerThis.inputStatus = async function (callback: (err: any, status?: number) => void) {
+        pioneerThis.log.debug("inputStatus updated %s", pioneerThis.state.input);
         try {
-            callback(null, this.state.input);
+            callback(null, pioneerThis.state.input);
         } catch (e) {
-            this.log.debug("__updateInput", e);
+            pioneerThis.log.debug("__updateInput", e);
         }
     };
 
-    pioneerAvr.setInput = async function (id: string) {
+    pioneerThis.setInput = async function (id: string) {
         lastUserInteraction = Date.now();
-        if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
-        if (this.web) {
-            await fetch(this.webEventHandlerBaseUrl + `${id}FN`, { method: 'GET' });
+        if (!pioneerThis.telnetAvr || !pioneerThis.telnetAvr.connectionReady || !pioneerThis.state.on) { return; }
+        if (pioneerThis.web) {
+            await fetch(pioneerThis.webEventHandlerBaseUrl + `${id}FN`, { method: 'GET' });
         } else {
-            this.sendCommand(`${id}FN`);
+            this.telnetAvr.sendMessage(`${id}FN`);
         }
     };
 
-    pioneerAvr.renameInput = async function (id: string, newName: string) {
-        if (!this.s || !this.s.connectionReady || !this.state.on) { return; }
+    pioneerThis.renameInput = async function (id: string, newName: string) {
+        if (!pioneerThis.telnetAvr || !pioneerThis.telnetAvr.connectionReady || !pioneerThis.state.on) { return; }
         let shrinkName = newName.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 14);
-        this.sendCommand(`${shrinkName}1RGB${id}`);
+        this.telnetAvr.sendMessage(`${shrinkName}1RGB${id}`);
     };
 };
 
 // Optional: Methode zur Initialisierung in PioneerAvr
-export const initializeInputs = (pioneerAvr: PioneerAvr) => {
-    pioneerAvr.loadInputs = loadInputs.bind(pioneerAvr);
-    inputManagementMethods(pioneerAvr);
+export const initializeInputs = (pioneerThis: PioneerAvr) => {
+    pioneerThis.loadInputs = loadInputs.bind(pioneerThis);
+    inputManagementMethods(pioneerThis);
 };
