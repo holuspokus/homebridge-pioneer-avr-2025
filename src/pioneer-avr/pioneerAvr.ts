@@ -1,6 +1,7 @@
 // src/pioneer-avr/pioneerAvr.ts
 
-import { initialize } from './initialize';
+import type { API, Characteristic, Service, Logging } from 'homebridge';
+import { initializePioneerAvr } from './initialize';
 import { loadInputs } from './inputs';
 import { powerMethods } from './power';
 import { volumeMethods } from './volume';
@@ -17,24 +18,30 @@ export interface AVState {
 }
 
 class PioneerAvr {
-    private log: any;
-    private host: string;
-    private port: number;
-    private maxVolumeSet: number;
-    private minVolumeSet: number;
-    private state: AVState;
-    public inputBeingAdded: string | boolean = false;
-    public inputBeingAddedWaitCount = 0;
-    public inputMissing: string[][] = [];
-    public telnetAvr!: TelnetAvr; // TelnetAvr property declaration with definite assignment
+    public readonly api: API;
+    public readonly log: Logging;
+    public readonly host: string;
+    public readonly port: number;
+    public maxVolumeSet: number;
+    public minVolumeSet: number;
+    public state: AVState;
+    public pioneerAvrClassCallback: any;
+    public initCount: number;
+    public readonly characteristic: typeof Characteristic;
+    public readonly service: typeof Service;
 
 
-    constructor(log: any, host: string, port: number, maxVolumeSet: number, minVolumeSet: number, pioneerAvrClassCallback?: () => Promise<void>) {
+
+    constructor(api: API, log: Logging, host: string, port: number, maxVolumeSet: number, minVolumeSet: number, service: Service, characteristic: Characteristic, pioneerAvrClassCallback?: () => Promise<void>) {
+        this.api = api;
         this.log = log;
         this.host = host;
         this.port = port;
         this.maxVolumeSet = isNaN(maxVolumeSet) ? 60 : maxVolumeSet;
         this.minVolumeSet = isNaN(minVolumeSet) ? 0 : minVolumeSet;
+
+        this.service = service;
+        this.characteristic = characteristic;
 
         this.state = {
             volume: 30,
@@ -55,28 +62,10 @@ class PioneerAvr {
         this.pioneerAvrClassCallback = pioneerAvrClassCallback;
 
         // Hier die Initialisierung aufrufen
-        initialize.call(this);
+        initializePioneerAvr.call(this);
         loadInputs.call(this);
-        powerMethods(this);
-        volumeMethods(this);
-    }
-
-
-    // Dummy method placeholders
-    public functionSetPowerState(state: boolean) {
-        // Implement your logic here
-    }
-
-    public functionSetLightbulbMuted(muted: boolean) {
-        // Implement your logic here
-    }
-
-    public functionSetActiveIdentifier(input: number) {
-        // Implement your logic here
-    }
-
-    public functionSetLightbulbVolume(volume: number) {
-        // Implement your logic here
+        initializePower.call(this);
+        initializeVolume.call(this);
     }
 
 }

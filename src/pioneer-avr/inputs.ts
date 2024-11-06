@@ -1,162 +1,229 @@
 // src/pioneer-avr/inputs.ts
 
+import * as fs from 'fs';
+import * as path from 'path';
 import PioneerAvr from './pioneerAvr';
-
-// Reference for input id -> Characteristic.InputSourceType
-const inputToTypeList = [
-    ['25', 3], // BD -> Characteristic.InputSourceType.HDMI
-    ['04', 0], // DVD -> Characteristic.InputSourceType.OTHER
-    ['01', 0], // CD -> Characteristic.InputSourceType.OTHER
-    ['20', 3], // HDMI2 -> Characteristic.InputSourceType.HDMI
-    ['19', 3], // HDMI1 -> Characteristic.InputSourceType.HDMI
-    ['21', 3], // HDMI3 -> Characteristic.InputSourceType.HDMI
-    ['22', 3], // HDMI4 -> Characteristic.InputSourceType.HDMI
-    ['23', 3], // HDMI5 -> Characteristic.InputSourceType.HDMI
-    ['24', 3], // HDMI6 -> Characteristic.InputSourceType.HDMI
-    ['34', 3], // HDMI7 -> Characteristic.InputSourceType.HDMI
-    ['35', 3], // HDMI8 -> Characteristic.InputSourceType.HDMI
-    ['00', 0], // PHONO -> Characteristic.InputSourceType.OTHER
-    ['02', 2], // TUNER -> Characteristic.InputSourceType.TUNER
-    ['03', 0], // TAPE -> Characteristic.InputSourceType.OTHER
-    ['05', 3], // TV -> Characteristic.InputSourceType.HDMI
-    ['06', 3], // CBL/SAT -> Characteristic.InputSourceType.HDMI
-    ['10', 4], // VIDEO -> Characteristic.InputSourceType.COMPOSITE_VIDEO
-    ['12', 0], // MULTI CH IN -> Characteristic.InputSourceType.OTHER
-    ['13', 0], // USB-DAC -> Characteristic.InputSourceType.OTHER
-    ['14', 6], // VIDEOS2 -> Characteristic.InputSourceType.COMPONENT_VIDEO
-    ['15', 3], // DVR/BDR -> Characteristic.InputSourceType.HDMI
-    ['17', 9], // USB/iPod -> Characteristic.InputSourceType.USB
-    ['18', 2], // XM RADIO -> Characteristic.InputSourceType.TUNER
-    ['26', 10], // MEDIA GALLERY -> Characteristic.InputSourceType.APPLICATION
-    ['27', 0], // SIRIUS -> Characteristic.InputSourceType.OTHER
-    ['31', 3], // HDMI CYCLE -> Characteristic.InputSourceType.HDMI
-    ['33', 0], // ADAPTER -> Characteristic.InputSourceType.OTHER
-    ['38', 2], // NETRADIO -> Characteristic.InputSourceType.TUNER
-    ['40', 0], // SIRIUS -> Characteristic.InputSourceType.OTHER
-    ['41', 0], // PANDORA -> Characteristic.InputSourceType.OTHER
-    ['44', 0], // MEDIA SERVER -> Characteristic.InputSourceType.OTHER
-    ['45', 0], // FAVORITE -> Characteristic.InputSourceType.OTHER
-    ['46', 8], // AIRPLAY -> Characteristic.InputSourceType.AIRPLAY
-    ['48', 0], // MHL -> Characteristic.InputSourceType.OTHER
-    ['49', 0], // GAME -> Characteristic.InputSourceType.OTHER
-    ['53', 0], // SPOTIFY -> Characteristic.InputSourceType.OTHER
-    ['57', 0]  // SPOTIFY -> Characteristic.InputSourceType.OTHER
-];
+import { TelnetAvr } from '../telnet-avr/telnetAvr';
+import { API, Logging, Service, Characteristic } from 'homebridge';
 
 const inputToType: { [key: string]: number } = {};
 
-// Input management method
-export const loadInputs = async function (pioneerThis: PioneerAvr, callback: () => void) {
-    for (let inputi in inputToTypeList) {
-        let key = String(inputToTypeList[inputi][0]);
-        let value = Number(inputToTypeList[inputi][1]);
-        inputToType[key] = value;
+class InputManagementMethods extends PioneerAvr {
+    public prefsDir: string = '';
+    public inputVisibilityFile: string = '';
+    public savedVisibility: { [key: string]: number } = {};
+    public inputBeingAdded: string | boolean = false;
+    public inputBeingAddedWaitCount: number = 0;
+    public inputMissing: string[][] = [];
+    public inputs: any[] = [];
+    public tvService!: Service;
+    public enabledServices: Service[] = [];
+    public telnetAvr!: TelnetAvr;
+    public isReady: boolean = false;
 
-        if (typeof pioneerThis.inputBeingAdded === 'string' && pioneerThis.inputBeingAddedWaitCount++ < 30) {
-            await new Promise(resolve => setTimeout(resolve, 10));
-            pioneerThis.inputBeingAddedWaitCount = 0;
+    constructor(api: API, log: Logging, host: string, port: number, maxVolumeSet: number, minVolumeSet: number, service: Service, characteristic: Characteristic, pioneerAvrClassCallback?: () => Promise<void>) {
+        super(api, log, host, port, maxVolumeSet, minVolumeSet, service, characteristic, pioneerAvrClassCallback);
 
-            while (typeof pioneerThis.inputBeingAdded === 'string' && pioneerThis.inputBeingAddedWaitCount++ < 30) {
-                await new Promise(resolve => setTimeout(resolve, 150));
-            }
-        }
+        this.prefsDir = this.getStoragePath();
+        this.inputVisibilityFile = path.join(this.prefsDir, `inputsVisibility_${this.host}`);
+        this.inputs = [];
 
-        pioneerThis.inputBeingAdded = String(key);
+        this.initializeVisibilityFile();
 
-        let index: number = -1; // Set index as number
-
-        // Loop through the inputMissing array
-        for (let i in pioneerThis.inputMissing) {
-            // Check if the key exists in the inner array
-            if (pioneerThis.inputMissing[i].indexOf(key) > -1) {
-                index = parseInt(i, 10); // Convert i to number
-                break;
-            }
-        }
-
-        // If the key is not found, push it as a new inner array
-        if (index === -1) {
-            pioneerThis.inputMissing.push([key]);
-        }
-
-
-
-        await this.telnetAvr.sendMessage(`?RGB${key}`, `RGB${key}`, callback);
-        await new Promise(resolve => setTimeout(resolve, 150));
+        this.telnetAvr.addOnConnectCallback(async () => {
+            await this.loadInputs(() => {
+                this.__updateInput(() => {});
+            });
+        });
     }
 
-    if (typeof pioneerThis.inputBeingAdded === 'string' && pioneerThis.inputBeingAddedWaitCount++ < 30) {
-        await new Promise(resolve => setTimeout(resolve, 10));
-        pioneerThis.inputBeingAddedWaitCount = 0;
+    private getStoragePath(): string {
+        return path.resolve('./data');
+    }
 
-        while (typeof pioneerThis.inputBeingAdded === 'string' && pioneerThis.inputBeingAddedWaitCount++ < 30) {
-            await new Promise(resolve => setTimeout(resolve, 500));
+    private initializeVisibilityFile() {
+        try {
+            if (!fs.existsSync(this.prefsDir)) {
+                fs.mkdirSync(this.prefsDir, { recursive: true });
+            }
+
+            fs.access(this.inputVisibilityFile, fs.constants.F_OK, (err) => {
+                if (err) {
+                    fs.writeFile(this.inputVisibilityFile, "{}", (err) => {
+                        if (err) {
+                            this.log.error("Error creating the Input visibility file:", err);
+                        } else {
+                            this.log.debug("Input visibility file successfully created.");
+                            this.loadSavedVisibility();
+                        }
+                    });
+                } else {
+                    this.log.debug("The Input visibility file already exists:", this.inputVisibilityFile);
+                    this.loadSavedVisibility();
+                }
+            });
+        } catch (err) {
+            this.log.debug("Input visibility file could not be created (%s)", err);
         }
     }
 
-    let inputMissingWhileMax = 0;
-    while (pioneerThis.inputMissing.length > 0 && inputMissingWhileMax++ < 30) {
-        for (let pioneerThiskey in pioneerThis.inputMissing) {
-            let key = pioneerThis.inputMissing[pioneerThiskey][0];
+    private loadSavedVisibility() {
+        try {
+            const fileData = fs.readFileSync(this.inputVisibilityFile, 'utf-8');
+            this.savedVisibility = JSON.parse(fileData);
+        } catch (err) {
+            this.log.debug("Input visibility file does not exist or JSON parsing failed (%s)", err);
+        }
+    }
 
-            if (typeof pioneerThis.inputBeingAdded === 'string' && pioneerThis.inputBeingAddedWaitCount++ < 30) {
+    public async loadInputs(callback?: () => void) {
+        for (let i = 1; i <= 60; i++) {
+            let key = i.toString().padStart(2, '0');
+            let value = 0;
+
+            if ([2, 18, 38].includes(i)) value = 2;
+            else if ([19, 20, 21, 22, 23, 24, 25, 26, 31, 5, 6, 15].includes(i)) value = 3;
+            else if (i === 10) value = 4;
+            else if (i === 14) value = 6;
+            else if (i === 17) value = 9;
+            else if (i === 26) value = 10;
+            else if (i === 46) value = 8;
+
+            inputToType[key] = value;
+
+            if (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
                 await new Promise(resolve => setTimeout(resolve, 10));
-                pioneerThis.inputBeingAddedWaitCount = 0;
+                this.inputBeingAddedWaitCount = 0;
 
-                while (typeof pioneerThis.inputBeingAdded === 'string' && pioneerThis.inputBeingAddedWaitCount++ < 30) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                while (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
+                    await new Promise(resolve => setTimeout(resolve, 150));
                 }
             }
 
-            key = String(key);
-            pioneerThis.inputBeingAdded = key;
+            this.inputBeingAdded = String(key);
 
-            pioneerThis.log.debug('inputMissing called key', key, pioneerThis.inputMissing);
+            let index: number = -1;
 
-            await this.telnetAvr.sendMessage(`?RGB${key}`, `RGB${key}`, callback);
-            await new Promise(resolve => setTimeout(resolve, 500));
+            for (let i in this.inputMissing) {
+                if (this.inputMissing[i].indexOf(key) > -1) {
+                    index = parseInt(i, 10);
+                    break;
+                }
+            }
+
+            if (index === -1) {
+                this.inputMissing.push([key]);
+            }
+
+            await this.telnetAvr.sendMessage(`?RGB${key}`, `RGB${key}`, this.addInputSourceService.bind(this));
+            await new Promise(resolve => setTimeout(resolve, 150));
+        }
+
+        if (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
+            await new Promise(resolve => setTimeout(resolve, 10));
+            this.inputBeingAddedWaitCount = 0;
+
+            while (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+
+        let inputMissingWhileMax = 0;
+        while (this.inputMissing.length > 0 && inputMissingWhileMax++ < 30) {
+            for (let thiskey in this.inputMissing) {
+                let key = this.inputMissing[thiskey][0];
+
+                if (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                    this.inputBeingAddedWaitCount = 0;
+
+                    while (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
+
+                key = String(key);
+                this.inputBeingAdded = key;
+
+                this.log.debug('inputMissing called key', key, this.inputMissing);
+
+                await this.telnetAvr.sendMessage(`?RGB${key}`, `RGB${key}`, this.addInputSourceService.bind(this));
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+
+        if (this.inputMissing.length === 0 && Object.keys(inputToType).length > 0) {
+            this.isReady = true;
+        }
+
+        if (callback) {
+            callback();
         }
     }
 
-    if (pioneerThis.inputMissing.length === 0 && Object.keys(inputToType).length > 0) {
-        pioneerThis.isReady = true;
-    }
-};
-
-// Input management methods
-export const inputManagementMethods = (pioneerThis: PioneerAvr) => {
-    pioneerThis.__updateInput = async function (callback: () => void) {
+    private async __updateInput(callback: () => void) {
         this.telnetAvr.sendMessage("?F", "FN", callback);
-    };
+    }
 
-    pioneerThis.inputStatus = async function (callback: (err: any, status?: number) => void) {
-        pioneerThis.log.debug("inputStatus updated %s", pioneerThis.state.input);
-        try {
-            callback(null, pioneerThis.state.input);
-        } catch (e) {
-            pioneerThis.log.debug("__updateInput", e);
-        }
-    };
+    public async renameInput(id: string, newName: string) {
+        if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) return;
 
-    pioneerThis.setInput = async function (id: string) {
-        lastUserInteraction = Date.now();
-        if (!pioneerThis.telnetAvr || !pioneerThis.telnetAvr.connectionReady || !pioneerThis.state.on) { return; }
-        if (pioneerThis.web) {
-            await fetch(pioneerThis.webEventHandlerBaseUrl + `${id}FN`, { method: 'GET' });
-        } else {
-            this.telnetAvr.sendMessage(`${id}FN`);
-        }
-    };
-
-    pioneerThis.renameInput = async function (id: string, newName: string) {
-        if (!pioneerThis.telnetAvr || !pioneerThis.telnetAvr.connectionReady || !pioneerThis.state.on) { return; }
         let shrinkName = newName.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 14);
         this.telnetAvr.sendMessage(`${shrinkName}1RGB${id}`);
-    };
-};
+    }
 
-// Optional: Methode zur Initialisierung in PioneerAvr
-export const initializeInputs = (pioneerThis: PioneerAvr) => {
-    pioneerThis.loadInputs = loadInputs.bind(pioneerThis);
-    inputManagementMethods(pioneerThis);
+    public addInputSourceService(this: InputManagementMethods, inputKey: string): void {
+        const key = parseInt(inputKey, 10);
+
+        if (typeof this.inputs[key] === "undefined") {
+            this.log.error("addInputSourceService key undefined %s (input: %s)", key, inputKey);
+            return;
+        }
+
+        this.log.info("Add input n°%s - %s", key, this.inputs[key].name);
+        let savedInputVisibility = this.savedVisibility[this.inputs[key].id] ?? this.characteristic.CurrentVisibilityState.SHOWN;
+
+        const tmpInput = new Service.InputSource(
+            this.inputs[key].name.replace(/[^a-zA-Z0-9]/g, ""),
+            "tvInputService" + String(key)
+        );
+
+        tmpInput
+            .setCharacteristic(this.characteristic.Identifier, key)
+            .setCharacteristic(this.characteristic.ConfiguredName, this.inputs[key].name.replace(/[^a-zA-Z0-9 ]/g, ""))
+            .setCharacteristic(this.characteristic.IsConfigured, this.characteristic.IsConfigured.CONFIGURED)
+            .setCharacteristic(this.characteristic.InputSourceType, this.inputs[key].type)
+            .setCharacteristic(this.characteristic.CurrentVisibilityState, savedInputVisibility)
+            .setCharacteristic(this.characteristic.TargetVisibilityState, savedInputVisibility);
+
+        tmpInput
+            .getCharacteristic(this.characteristic.TargetVisibilityState)
+            .on("set", (state: number, callback: () => void) => {
+                this.log.debug("Set %s TargetVisibilityState %s", this.inputs[key].name, state);
+                this.savedVisibility[this.inputs[key].id] = state;
+                fs.writeFile(this.inputVisibilityFile, JSON.stringify(this.savedVisibility), (err) => {
+                    if (err) this.log.debug("Error: Could not write input visibility %s", err);
+                    else this.log.debug("Input visibility successfully saved");
+                });
+                tmpInput.setCharacteristic(this.characteristic.CurrentVisibilityState, state);
+                callback();
+            });
+
+        tmpInput
+            .getCharacteristic(this.characteristic.ConfiguredName)
+            .on("set", (name: string, callback: () => void) => {
+                this.log.info("Rename input %s to %s", this.inputs[key].name, name.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 14));
+                this.inputs[key].name = name.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 14);
+                this.renameInput(this.inputs[key].id, name);
+                callback();
+            });
+
+        this.tvService.addLinkedService(tmpInput);
+        this.enabledServices.push(tmpInput);
+    }
+}
+
+export const initializeInputs = function (this: PioneerAvr) {
+    const extendedInstance = new InputManagementMethods(this.api, this.log, this.host, this.port, this.maxVolumeSet, this.minVolumeSet, this.service, this.characteristic, this.pioneerAvrClassCallback);
+    Object.assign(this, extendedInstance);
 };

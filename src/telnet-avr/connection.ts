@@ -6,41 +6,41 @@ export class Connection {
     private socket: net.Socket | null = null;
     private lastConnect: number | null = null;
     private messageQueue: MessageQueue;
-    public connectionReady = false;
+    private connectionReady = false;
     private lastWrite: number | null = null;
     private lastMessageReceived: number | null = null;
-    public onData: (data: Buffer) => void = () => {}; // Callback für empfangene Daten
     private queueCallbackChars: { [key: string]: Function[] } = {};
     private queueQueries: string[] = [];
     private clearQueueTimeout: NodeJS.Timeout | null = null;
     private disconnectTimeout: NodeJS.Timeout | null = null;
+    private log: any;
 
-    constructor(private host: string, private port: number) {
-        this.messageQueue = new MessageQueue(this.sendMessage.bind(this));
+    public onDataCallback: (data: string) => void = () => {};
+
+    constructor(private host: string, private port: number, private log: any) {
+        this.messageQueue = new MessageQueue(this.sendMessage.bind(this), log);
+        this.log = log;
     }
 
     connect(onConnect: () => void) {
         this.socket = net.createConnection({ host: this.host, port: this.port }, () => {
-            this.connectionReady = true;
+            this.setConnectionReady(true);
             this.lastConnect = Date.now();
             onConnect();
-            this.messageQueue.setConnectionReady(this.connectionReady);
         });
 
         this.socket.on("data", (data) => {
-            this.onData(data);
-            this.lastMessageReceived = Date.now();
-            this.messageQueue.setLastMessageReceived(this.lastMessageReceived);
+            this.onDataCallback(data.toString());
+            this.setLastMessageReceived(Date.now());
         });
 
         this.socket.on("error", (err) => {
             console.error("Connection error:", err);
-            this.connectionReady = false;
-            this.messageQueue.setConnectionReady(false);
+            this.setConnectionReady(false);
         });
 
         try {
-            this.onConnect(); // Call the disconnect handler
+            this.onConnect();
         } catch (e) {
             console.error('Connection> onDisconnect Error');
             console.error(e);
@@ -54,8 +54,10 @@ export class Connection {
             this.socket = null;
         }
 
+        this.setConnectionReady(false);
+
         try {
-            this.onDisconnect(); // Call the disconnect handler
+            this.onDisconnect();
         } catch (e) {
             console.error('Connection> onDisconnect Error');
             console.error(e);
@@ -66,13 +68,12 @@ export class Connection {
         return this.connectionReady;
     }
 
-    sendMessage(message: string, callbackChars?: string, onData?: (error: any, response: string) => void) {
+    async sendMessage(message: string, callbackChars?: string, onData?: (error: any, response: string) => void) {
         if (this.connectionReady && this.lastWrite !== null && this.lastWrite - this.lastMessageReceived! > 60 * 1000) {
-            // No response? Not connected anymore?
-            this.connectionReady = false;
-            this.messageQueue.clearQueue(); // Clear queue on disconnection
+            this.setConnectionReady(false);
+            this.messageQueue.clearQueue();
             try {
-                this.onDisconnect(); // Call the disconnect handler
+                this.onDisconnect();
             } catch (e) {
                 console.error('Connection> onDisconnect Error');
                 console.error(e);
@@ -82,10 +83,10 @@ export class Connection {
         if (callbackChars === undefined) {
             if (this.connectionReady) {
                 while (this.lastWrite && Date.now() - this.lastWrite < 38) {
-                    require("deasync").sleep(10);
+                    await new Promise(resolve => setTimeout(resolve, 10));
                 }
                 this.socket?.write(message + "\r\n");
-                this.lastWrite = Date.now();
+                this.setLastWrite(Date.now());
 
                 try {
                     onData?.(null, message + ":SENT");
@@ -104,14 +105,8 @@ export class Connection {
         }, 5 * 60 * 1000);
 
         if (!this.queueQueries.includes(message)) {
-            this.messageQueue.enqueue(message);
+            this.messageQueue.enqueue(message, callbackChars, onData!);
         }
-
-        if (!this.queueCallbackChars[callbackChars]) {
-            this.queueCallbackChars[callbackChars] = [];
-        }
-        this.queueCallbackChars[callbackChars].push(onData!);
-        this.queueQueries.push(message);
 
         if (!this.connectionReady) {
             setTimeout(() => {
@@ -121,7 +116,7 @@ export class Connection {
 
         let whileCounter = 0;
         while (!this.connectionReady && whileCounter++ <= 15) {
-            require("deasync").sleep(1000);
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
         if (!this.connectionReady) {
@@ -129,7 +124,7 @@ export class Connection {
 
             whileCounter = 0;
             while (!this.connectionReady && whileCounter++ < 150) {
-                require("deasync").sleep(100);
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
         }
 
@@ -145,15 +140,26 @@ export class Connection {
     }
 
     public onDisconnect() {
-        // Logic for handling disconnection
-        // For example:
         console.log("Disconnected!");
     }
 
     public onConnect() {
-        // Logic for handling disconnection
-        // For example:
-        console.log("Disconnected!");
+        console.log("Connected!");
+    }
 
+    // Set the connection readiness status
+    public setConnectionReady(ready: boolean) {
+        this.connectionReady = ready;
+        this.messageQueue.setConnectionReady(ready);
+    }
+
+    // Set the last write timestamp
+    public setLastWrite(timestamp: number) {
+        this.lastWrite = timestamp;
+    }
+
+    // Set the last message received timestamp
+    public setLastMessageReceived(timestamp: number) {
+        this.lastMessageReceived = timestamp;
     }
 }

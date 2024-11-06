@@ -13,9 +13,10 @@ class DataHandler {
     private queueQueries: any[] = [];
     private display: string;
 
-    constructor(telnetAvr: TelnetAvr) {
+    constructor(telnetAvr: TelnetAvr, private log: any) {
         this.telnetAvr = telnetAvr;
         this.messageQueue = new MessageQueue(this.telnetAvr.connection.sendMessage.bind(this.telnetAvr.connection)); // Pass the sendMessage method
+        this.log = log;
     }
 
     handleData(data: Buffer) {
@@ -23,7 +24,7 @@ class DataHandler {
             const d = data.toString().replace("\n", "").replace("\r", "").trim();
             let callbackCalled = false;
             this.lastMessageReceived = Date.now();
-            
+
             if (d.startsWith("FL")) {
                 // Message displayed
                 let displayedMessage = d.substr(2).trim().match(/(..?)/g);
@@ -58,7 +59,7 @@ class DataHandler {
                                     runThis(null, d);
                                     callbackCalled = true;
                                 } catch (e) {
-                                    console.error(e);
+                                    this.log.error(e);
                                 }
                             }
                             this.queueCallbackChars[callbackKey] = this.queueCallbackChars[callbackKey].filter(cb => cb !== runThis);
@@ -74,12 +75,12 @@ class DataHandler {
                 this.fallbackOnData(null, d);
             }
         } catch (e) {
-            console.error(e);
+            this.log.error(e);
         }
     }
 
     public displayChanged(error: any, message: string) {
-        // Implement your logic for display change
+        this.telnetAvr.displayChanged(error, message)
     }
 
     public fallbackOnData(error: any, data: string) {

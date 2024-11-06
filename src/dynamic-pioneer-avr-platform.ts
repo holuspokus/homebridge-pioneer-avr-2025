@@ -1,8 +1,6 @@
-// pioneerAvrAccessory.ts
-import { Service } from 'homebridge'; // Importiere die nötigen Typen von homebridge
+// dynamic-pioneer-avr-platform.ts
 import { PioneerAvr } from './pioneerAvr'; // Importiere die PioneerAvr-Klasse
-import { Logging } from 'homebridge'; // Importiere den Logging-Typ (falls nötig)
-
+import type { API, Characteristic, Service, DynamicPlatformPlugin, Logging, PlatformAccessory, PlatformConfig } from 'homebridge';
 import packageJson from "../package.json"; // Importiere die package.json
 
 // const PLUGIN_NAME = packageJson.name; // Verwende den Namen aus package.json
@@ -11,7 +9,7 @@ const VERSION = packageJson.version; // Verwende die Version aus package.json
 
 let functionSetLightbulbVolumeTimeout: NodeJS.Timeout | null = null;
 
-class PioneerAvrAccessory {
+class PioneerAvrPlatform implements DynamicPlatformPlugin {
     private informationService: Service;
     private tvService: Service;
     private volumeServiceLightbulb: Service;
@@ -25,17 +23,27 @@ class PioneerAvrAccessory {
     private port: number; // Beispiel für eine neue Eigenschaft
     private maxVolumeSet: number; // Beispiel für eine neue Eigenschaft
     private minVolumeSet: number; // Beispiel für eine neue Eigenschaft
+    private api: API;
     private log: Logging; // Typ für log hinzufügen
+    public readonly Service: typeof Service;
+    public readonly Characteristic: typeof Characteristic;
 
-    constructor(log: Logging, name: string, manufacturer: string, model: string, host: string, port: number, maxVolumeSet: number, minVolumeSet: number) {
-        this.log = log;
-        this.name = name;
-        this.manufacturer = manufacturer;
-        this.model = model;
-        this.host = host;
-        this.port = port; // Initialisiere hier
-        this.maxVolumeSet = maxVolumeSet; // Initialisiere hier
-        this.minVolumeSet = minVolumeSet; // Initialisiere hier
+    constructor(
+      public readonly logging: Logging,
+      public readonly config: PlatformConfig,
+      public readonly api: API,
+    ) {
+        this.api = api
+        this.log = logging;
+        this.name = this.config.name;
+        this.manufacturer = this.config.manufacturer;
+        this.model = this.config.model;
+        this.host = this.config.host;
+        this.port = this.config.port;
+        this.maxVolumeSet = this.config.maxVolumeSet;
+        this.minVolumeSet = this.config.minVolumeSet;
+        this.Service = api.hap.Service;
+        this.Characteristic = api.hap.Characteristic;
 
         this.initializeAvr();
     }
@@ -43,18 +51,21 @@ class PioneerAvrAccessory {
     private async initializeAvr() {
        try {
            this.avr = new PioneerAvr(
+               this.api,
                this.log,
                this.host,
                this.port,
                this.maxVolumeSet,
                this.minVolumeSet,
+               this.Service,
+               this.Characteristic,
                async () => {
                    try {
                        this.enabledServices = [];
                        await this.prepareInformationService();
                        await this.prepareTvService();
                        await this.prepareTvSpeakerService();
-                       await this.prepareInputSourceService();
+                       // await this.prepareInputSourceService();
 
                        if (this.maxVolumeSet !== 0) {
                            await this.prepareVolumeService();
@@ -65,9 +76,6 @@ class PioneerAvrAccessory {
                    }
                }
            );
-
-           await this.avr.initialize();
-           this.log.debug("PioneerAvr() avr.initialize done");
 
        } catch (err) {
            this.log.debug("new PioneerAvr() Error (%s)", err);
@@ -298,41 +306,41 @@ class PioneerAvrAccessory {
     this.enabledServices.push(this.tvSpeakerService);
   }
 
-  private async prepareInputSourceService() {
-    this.log.info("Discovering inputs");
-    this.avr.loadInputs((key) => {
-      if (String(key).startsWith('E')) { return; }
-      this.addInputSourceService(key);
-    });
-  }
-
-  private async addInputSourceService(inputkey) {
-    let key = parseInt(inputkey, 10);
-    if (typeof this.avr.inputs[key] === "undefined") {
-      this.log.error("addInputSourceService key undefined %s (input: %s)", key, inputkey);
-      return;
-    }
-    let me = this;
-    this.log.info("Add input n°%s - Name: %s Id: %s Type: %s", key, this.avr.inputs[key].name, this.avr.inputs[key].id, this.avr.inputs[key].type);
-
-    let tmpInput = new Service.InputSource(this.avr.inputs[key].name.replace(/[^a-zA-Z0-9]/g, ""), "tvInputService" + String(key));
-    tmpInput
-      .setCharacteristic(Characteristic.Identifier, key)
-      .setCharacteristic(Characteristic.ConfiguredName, this.avr.inputs[key].name.replace(/[^a-zA-Z0-9 ]/g, ""))
-      .setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED)
-      .setCharacteristic(Characteristic.InputSourceType, this.avr.inputs[key].type)
-      .setCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.SHOWN)
-      .setCharacteristic(Characteristic.TargetVisibilityState, Characteristic.TargetVisibilityState.SHOWN);
-
-    tmpInput.getCharacteristic(Characteristic.TargetVisibilityState).on("set", (state, callback) => {
-      me.log.debug("Set %s TargetVisibilityState %s", me.avr.inputs[key].name, state);
-      tmpInput.setCharacteristic(Characteristic.CurrentVisibilityState, state);
-      callback();
-    });
-
-    this.tvService.addLinkedService(tmpInput);
-    this.enabledServices.push(tmpInput);
-  }
+  // private async prepareInputSourceService() {
+  //   this.log.info("Discovering inputs");
+  //   this.avr.loadInputs((key) => {
+  //     if (String(key).startsWith('E')) { return; }
+  //     this.addInputSourceService(key);
+  //   });
+  // }
+  //
+  // private async addInputSourceService(inputkey) {
+  //   let key = parseInt(inputkey, 10);
+  //   if (typeof this.avr.inputs[key] === "undefined") {
+  //     this.log.error("addInputSourceService key undefined %s (input: %s)", key, inputkey);
+  //     return;
+  //   }
+  //   let me = this;
+  //   this.log.info("Add input n°%s - Name: %s Id: %s Type: %s", key, this.avr.inputs[key].name, this.avr.inputs[key].id, this.avr.inputs[key].type);
+  //
+  //   let tmpInput = new Service.InputSource(this.avr.inputs[key].name.replace(/[^a-zA-Z0-9]/g, ""), "tvInputService" + String(key));
+  //   tmpInput
+  //     .setCharacteristic(Characteristic.Identifier, key)
+  //     .setCharacteristic(Characteristic.ConfiguredName, this.avr.inputs[key].name.replace(/[^a-zA-Z0-9 ]/g, ""))
+  //     .setCharacteristic(Characteristic.IsConfigured, Characteristic.IsConfigured.CONFIGURED)
+  //     .setCharacteristic(Characteristic.InputSourceType, this.avr.inputs[key].type)
+  //     .setCharacteristic(Characteristic.CurrentVisibilityState, Characteristic.CurrentVisibilityState.SHOWN)
+  //     .setCharacteristic(Characteristic.TargetVisibilityState, Characteristic.TargetVisibilityState.SHOWN);
+  //
+  //   tmpInput.getCharacteristic(Characteristic.TargetVisibilityState).on("set", (state, callback) => {
+  //     me.log.debug("Set %s TargetVisibilityState %s", me.avr.inputs[key].name, state);
+  //     tmpInput.setCharacteristic(Characteristic.CurrentVisibilityState, state);
+  //     callback();
+  //   });
+  //
+  //   this.tvService.addLinkedService(tmpInput);
+  //   this.enabledServices.push(tmpInput);
+  // }
 
   // Callback methods
   private async getPowerOn(callback) {
@@ -583,4 +591,4 @@ class PioneerAvrAccessory {
 
 
 
-export default PioneerAvrAccessory;
+export default PioneerAvrPlatform;

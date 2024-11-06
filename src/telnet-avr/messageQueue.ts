@@ -1,28 +1,27 @@
 // src/telnet-avr/messageQueue.ts
 
 export class MessageQueue {
+    private log: any;
     private queue: [string, string][] = []; // [message, callbackChars]
     private queueCallbackChars: Record<string, Function[]> = {};
-    private lastWrite: number | null = null;
-    private lastMessageReceived: number | null = null;
-    private connectionReady: boolean = false;
-    private sendMessage: (message: string, callbackChars?: string, onData?: Function) => void;
+    private connection: Connection;
     private clearQueueTimeout: NodeJS.Timeout | null = null;
     private checkQueueInterval: NodeJS.Timeout | null = null;
     private queueLock: boolean = false;
     private queueLockDate: number | null = null;
 
-    constructor(sendMessage: (message: string, callbackChars?: string, onData?: Function) => void) {
-        this.sendMessage = sendMessage;
+    constructor(connection: Connection, private log: any) {
+        this.log = log;
+        this.connection = connection;
         this.startQueueCheck();
     }
 
     private startQueueCheck() {
         this.checkQueueInterval = setInterval(() => {
-            if (!this.connectionReady || !this.lastWrite || this.lastWrite - this.lastMessageReceived! > 60 * 1000) {
-                this.connectionReady = false;
+            if (!this.connection.connectionReady || !this.connection.lastWrite ||
+                this.connection.lastWrite - this.connection.lastMessageReceived! > 60 * 1000) {
+                this.connection.setConnectionReady(false);
                 this.clearQueue();
-                // Handle disconnect logic if needed
                 return;
             }
 
@@ -36,19 +35,19 @@ export class MessageQueue {
         if (this.queue.length === 0 || this.queueLock) return;
 
         const [message, callbackChars] = this.queue[0];
-        if (this.connectionReady) {
+        if (this.connection.connectionReady) {
             this.queueLock = true;
             this.queueLockDate = Date.now();
-            this.sendMessage(message, callbackChars, (err: any, result: string) => {
+            this.connection.sendMessage(message, callbackChars, (err: any, result: string) => {
                 this.queueLock = false;
-                this.lastWrite = Date.now();
-                this.queue.shift(); // Remove processed message from queue
+                this.connection.setLastWrite(Date.now());
+                this.queue.shift();
 
                 if (this.queueCallbackChars[callbackChars]) {
                     for (const callback of this.queueCallbackChars[callbackChars]) {
                         callback(err, result);
                     }
-                    delete this.queueCallbackChars[callbackChars]; // Clear callbacks for this message
+                    delete this.queueCallbackChars[callbackChars];
                 }
             });
         }
@@ -67,17 +66,5 @@ export class MessageQueue {
     public clearQueue() {
         this.queue = [];
         this.queueCallbackChars = {};
-    }
-
-    public setConnectionReady(ready: boolean) {
-        this.connectionReady = ready;
-    }
-
-    public setLastWrite(timestamp: number) {
-        this.lastWrite = timestamp;
-    }
-
-    public setLastMessageReceived(timestamp: number) {
-        this.lastMessageReceived = timestamp;
     }
 }
