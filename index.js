@@ -416,11 +416,14 @@ pioneerAvrAccessory.prototype.addInputSourceService = function(inputkey) {
         this.avr.inputs[key].type,
     );
 
-    let savedInputVisibility;
+    let savedInputVisibilityCurrent;
+    let savedInputVisibilityTarget;
     if (this.avr.inputs[key].id in this.savedVisibility) {
-        savedInputVisibility = this.savedVisibility[this.avr.inputs[key].id];
+        savedInputVisibilityCurrent = this.savedVisibility[this.avr.inputs[key].id];
+        savedInputVisibilityTarget = savedInputVisibilityCurrent
     } else {
-        savedInputVisibility = Characteristic.CurrentVisibilityState.SHOWN;
+        savedInputVisibilityCurrent = Characteristic.CurrentVisibilityState.SHOWN;
+        savedInputVisibilityTarget = Characteristic.TargetVisibilityState.SHOWN;
     }
     let tmpInput = new Service.InputSource(
         this.avr.inputs[key].name.replace(/[^a-zA-Z0-9]/g, ""),
@@ -442,11 +445,11 @@ pioneerAvrAccessory.prototype.addInputSourceService = function(inputkey) {
         )
         .setCharacteristic(
             Characteristic.CurrentVisibilityState,
-            savedInputVisibility,
+            savedInputVisibilityCurrent,
         ) // Show in input list
         .setCharacteristic(
             Characteristic.TargetVisibilityState,
-            savedInputVisibility,
+            savedInputVisibilityCurrent,
         ); // Enable show selection
     tmpInput
         .getCharacteristic(Characteristic.TargetVisibilityState)
