@@ -1,50 +1,107 @@
 // src/telnet-avr/connection.ts
 import net from "net";
+import { TelnetAvr } from './telnetAvr';
 import { MessageQueue } from "./messageQueue";
+import DataHandler from "./dataHandler";
+import { addExitHandler } from "../exitHandler";
 
 export class Connection {
     private socket: net.Socket | null = null;
     private lastConnect: number | null = null;
     private messageQueue: MessageQueue;
     private connectionReady = false;
-    private lastWrite: number | null = null;
-    private lastMessageReceived: number | null = null;
-    private queueCallbackChars: { [key: string]: Function[] } = {};
-    private queueQueries: string[] = [];
+    public lastWrite: number | null = null;
     private clearQueueTimeout: NodeJS.Timeout | null = null;
     private disconnectTimeout: NodeJS.Timeout | null = null;
+    private reconnectCounter = 0;
     private log: any;
+    private dataHandler: DataHandler; // DataHandler instance
+    private host: string;
+    private port: number;
 
-    public onDataCallback: (data: string) => void = () => {};
-
-    constructor(private host: string, private port: number, private log: any) {
-        this.messageQueue = new MessageQueue(this.sendMessage.bind(this), log);
-        this.log = log;
+    constructor(telnetAvr: TelnetAvr) {
+        this.port = telnetAvr.port;
+        this.host = telnetAvr.host;
+        this.log = telnetAvr.log;
+        this.messageQueue = new MessageQueue(this);
+        this.dataHandler = new DataHandler(telnetAvr, this.messageQueue); // Initialize DataHandler
+        addExitHandler(this.disconnectOnExit.bind(telnetAvr), telnetAvr);
     }
 
-    connect(onConnect: () => void) {
-        this.socket = net.createConnection({ host: this.host, port: this.port }, () => {
+    private disconnectOnExit() {
+        if (this.connectionReady) {
+            this.disconnect();
+        }
+    }
+
+    connect(callback: () => void = () => {}) {
+        if (this.connectionReady && this.socket) {
+            if (Date.now() - (this.lastConnect ?? 0) > 15 * 1000) {
+                this.reconnect(callback);
+            } else {
+                this.log.debug("Already connected, delaying callback.");
+                setTimeout(callback, 1500);
+            }
+            return;
+        }
+
+        if (!this.socket) {
+            this.initializeSocket(callback);
+        }
+    }
+
+    private initializeSocket(callback: () => void) {
+        this.socket = new net.Socket();
+        this.socket.setTimeout(2 * 60 * 60 * 1000);
+
+        this.socket.on("connect", () => {
+            this.reconnectCounter = 0;
             this.setConnectionReady(true);
             this.lastConnect = Date.now();
-            onConnect();
+            this.log.debug("Socket connected.");
+
+            try {
+                this.onConnect();
+                callback();
+            } catch (e) {
+                this.log.error("Connect callback error:", e);
+            }
         });
 
-        this.socket.on("data", (data) => {
-            this.onDataCallback(data.toString());
-            this.setLastMessageReceived(Date.now());
-        });
+        this.socket.on("close", () => this.handleClose());
+        this.socket.on("data", (data) => this.handleData(data)); // Directly passing Buffer
+        this.socket.on("error", (err) => this.handleError(err));
 
-        this.socket.on("error", (err) => {
-            console.error("Connection error:", err);
-            this.setConnectionReady(false);
-        });
+        this.socket.connect(this.port, this.host);
+    }
 
-        try {
-            this.onConnect();
-        } catch (e) {
-            console.error('Connection> onDisconnect Error');
-            console.error(e);
+    private handleClose() {
+        this.setConnectionReady(false);
+        this.log.debug("Socket closed, attempting reconnect.");
+        this.tryReconnect();
+    }
+
+    private handleData(data: Buffer) {
+        // Directly pass data as Buffer to DataHandler
+        this.dataHandler.handleData(data);
+    }
+
+    private handleError(err: Error) {
+        this.log.error("Connection error:", err);
+        this.setConnectionReady(false);
+        if (err.message.includes("CONN")) {
+            this.onDisconnect();
         }
+    }
+
+    private tryReconnect() {
+        this.reconnectCounter++;
+        const delay = this.reconnectCounter > 30 ? 60 : 15;
+
+        setTimeout(() => {
+            this.log.info("Attempting reconnection...");
+            this.connect();
+        }, delay * 1000);
     }
 
     disconnect() {
@@ -53,15 +110,8 @@ export class Connection {
             this.socket.destroy();
             this.socket = null;
         }
-
         this.setConnectionReady(false);
-
-        try {
-            this.onDisconnect();
-        } catch (e) {
-            console.error('Connection> onDisconnect Error');
-            console.error(e);
-        }
+        this.onDisconnect();
     }
 
     isConnected() {
@@ -69,74 +119,59 @@ export class Connection {
     }
 
     async sendMessage(message: string, callbackChars?: string, onData?: (error: any, response: string) => void) {
-        if (this.connectionReady && this.lastWrite !== null && this.lastWrite - this.lastMessageReceived! > 60 * 1000) {
-            this.setConnectionReady(false);
-            this.messageQueue.clearQueue();
-            try {
-                this.onDisconnect();
-            } catch (e) {
-                console.error('Connection> onDisconnect Error');
-                console.error(e);
-            }
+        if (!this.connectionReady) {
+            this.connect();
         }
 
         if (callbackChars === undefined) {
-            if (this.connectionReady) {
-                while (this.lastWrite && Date.now() - this.lastWrite < 38) {
-                    await new Promise(resolve => setTimeout(resolve, 10));
-                }
-                this.socket?.write(message + "\r\n");
-                this.setLastWrite(Date.now());
-
-                try {
-                    onData?.(null, message + ":SENT");
-                } catch (e) {
-                    console.error(e);
-                }
-            }
+            this.directSend(message, onData);
             return;
         }
+
+        this.queueMessage(message, callbackChars, onData);
+    }
+
+    private directSend(message: string, onData?: (error: any, response: string) => void) {
+        if (!this.connectionReady) {
+            this.log.warn("Connection not ready, skipping direct send.");
+            return;
+        }
+
+        if (Date.now() - (this.lastWrite ?? 0) < 38) {
+            setTimeout(() => this.directSend(message, onData), 10);
+            return;
+        }
+
+        this.socket?.write(message + "\r\n");
+        this.setLastWrite(Date.now());
+        onData?.(null, `${message}:SENT`);
+    }
+
+    private queueMessage(message: string, callbackChars: string, onData?: (error: any, response: string) => void) {
+        this.messageQueue.enqueue(message, callbackChars, onData!);
 
         if (this.clearQueueTimeout) {
             clearTimeout(this.clearQueueTimeout);
         }
+
         this.clearQueueTimeout = setTimeout(() => {
             this.messageQueue.clearQueue();
         }, 5 * 60 * 1000);
 
-        if (!this.queueQueries.includes(message)) {
-            this.messageQueue.enqueue(message, callbackChars, onData!);
-        }
-
-        if (!this.connectionReady) {
-            setTimeout(() => {
-                this.connect(() => {});
-            }, 0);
-        }
-
-        let whileCounter = 0;
-        while (!this.connectionReady && whileCounter++ <= 15) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-
-        if (!this.connectionReady) {
-            this.connect(() => {});
-
-            whileCounter = 0;
-            while (!this.connectionReady && whileCounter++ < 150) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-            }
-        }
-
-        if (!this.connectionReady) {
-            console.error("Connection still not ready...");
-            return;
-        }
-
         if (this.disconnectTimeout) {
             clearTimeout(this.disconnectTimeout);
         }
+
         this.disconnectTimeout = setTimeout(() => this.disconnect(), 2 * 60 * 60 * 1000);
+    }
+
+    private reconnect(callback: () => void) {
+        if (!this.socket) {
+            this.initializeSocket(callback);
+        } else if (Date.now() - (this.lastConnect ?? 0) > 15 * 1000) {
+            this.log.debug("Reconnecting socket.");
+            this.socket.connect(this.port, this.host, callback);
+        }
     }
 
     public onDisconnect() {
@@ -147,19 +182,16 @@ export class Connection {
         console.log("Connected!");
     }
 
-    // Set the connection readiness status
     public setConnectionReady(ready: boolean) {
         this.connectionReady = ready;
-        this.messageQueue.setConnectionReady(ready);
     }
 
-    // Set the last write timestamp
     public setLastWrite(timestamp: number) {
         this.lastWrite = timestamp;
     }
 
-    // Set the last message received timestamp
-    public setLastMessageReceived(timestamp: number) {
-        this.lastMessageReceived = timestamp;
+    // Accessor for lastMessageReceived from DataHandler
+    get lastMessageReceived(): number | null {
+        return this.dataHandler.lastMessageReceived;
     }
 }

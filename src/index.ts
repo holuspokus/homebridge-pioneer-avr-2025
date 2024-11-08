@@ -1,14 +1,10 @@
 // src/dynamic-platform.ts
 
 import {
-  API,
-  Logging,
-  PlatformAccessory,
-  Service,
-  Characteristic,
+  API
 } from "homebridge";
-import { PioneerAvr } from './pioneer-avr/pioneerAvr'; // Import PioneerAvr
-import PioneerAvrPlatform from './dynamic-pioneer-avr-platform';
+// import PioneerAvr from "./pioneer-avr/pioneerAvr"
+import { PioneerAvrPlatform } from './pioneer-avr-platform';
 import packageJson from "../package.json"; // Import package.json
 
 

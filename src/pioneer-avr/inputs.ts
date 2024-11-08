@@ -4,9 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import PioneerAvr from './pioneerAvr';
 import { TelnetAvr } from '../telnet-avr/telnetAvr';
-import { API, Logging, Service, Characteristic } from 'homebridge';
-
-const inputToType: { [key: string]: number } = {};
+import {Service } from 'homebridge';
 
 class InputManagementMethods extends PioneerAvr {
     public prefsDir: string = '';
@@ -20,11 +18,12 @@ class InputManagementMethods extends PioneerAvr {
     public enabledServices: Service[] = [];
     public telnetAvr!: TelnetAvr;
     public isReady: boolean = false;
+    public inputToType: { [key: string]: number } = {};
 
-    constructor(api: API, log: Logging, host: string, port: number, maxVolumeSet: number, minVolumeSet: number, service: Service, characteristic: Characteristic, pioneerAvrClassCallback?: () => Promise<void>) {
-        super(api, log, host, port, maxVolumeSet, minVolumeSet, service, characteristic, pioneerAvrClassCallback);
+    constructor(accessory: any, pioneerAvrClassCallback?: () => Promise<void>) {
+        super(accessory, pioneerAvrClassCallback);
 
-        this.prefsDir = this.getStoragePath();
+        this.prefsDir = accessory.prefsDir
         this.inputVisibilityFile = path.join(this.prefsDir, `inputsVisibility_${this.host}`);
         this.inputs = [];
 
@@ -37,8 +36,30 @@ class InputManagementMethods extends PioneerAvr {
         });
     }
 
-    private getStoragePath(): string {
-        return path.resolve('./data');
+    // Method to retrieve the current input status
+    public inputStatus(callback: (err: any, inputStatus?: number) => void) {
+        if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on || this.state.input === null) {
+            callback(null, 0);
+            return;
+        }
+
+        this.log.debug("inputStatus updated %s", this.state.input);
+        try {
+            callback(null, this.state.input);
+        } catch (e) {
+            this.log.debug("inputStatus callback error", e);
+        }
+    }
+
+    // Method to set a specific input
+    public setInput(id: string) {
+        (this as any).lastUserInteraction = Date.now();
+
+        if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) {
+            return;
+        }
+
+        this.telnetAvr.sendMessage(`${id}FN`);
     }
 
     private initializeVisibilityFile() {
@@ -89,7 +110,7 @@ class InputManagementMethods extends PioneerAvr {
             else if (i === 26) value = 10;
             else if (i === 46) value = 8;
 
-            inputToType[key] = value;
+            (this as any).inputToType[key] = value;
 
             if (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
                 await new Promise(resolve => setTimeout(resolve, 10));
@@ -152,7 +173,7 @@ class InputManagementMethods extends PioneerAvr {
             }
         }
 
-        if (this.inputMissing.length === 0 && Object.keys(inputToType).length > 0) {
+        if (this.inputMissing.length === 0 && Object.keys((this as any).inputToType).length > 0) {
             this.isReady = true;
         }
 
@@ -172,58 +193,16 @@ class InputManagementMethods extends PioneerAvr {
         this.telnetAvr.sendMessage(`${shrinkName}1RGB${id}`);
     }
 
-    public addInputSourceService(this: InputManagementMethods, inputKey: string): void {
-        const key = parseInt(inputKey, 10);
-
-        if (typeof this.inputs[key] === "undefined") {
-            this.log.error("addInputSourceService key undefined %s (input: %s)", key, inputKey);
-            return;
-        }
-
-        this.log.info("Add input n°%s - %s", key, this.inputs[key].name);
-        let savedInputVisibility = this.savedVisibility[this.inputs[key].id] ?? this.characteristic.CurrentVisibilityState.SHOWN;
-
-        const tmpInput = new Service.InputSource(
-            this.inputs[key].name.replace(/[^a-zA-Z0-9]/g, ""),
-            "tvInputService" + String(key)
-        );
-
-        tmpInput
-            .setCharacteristic(this.characteristic.Identifier, key)
-            .setCharacteristic(this.characteristic.ConfiguredName, this.inputs[key].name.replace(/[^a-zA-Z0-9 ]/g, ""))
-            .setCharacteristic(this.characteristic.IsConfigured, this.characteristic.IsConfigured.CONFIGURED)
-            .setCharacteristic(this.characteristic.InputSourceType, this.inputs[key].type)
-            .setCharacteristic(this.characteristic.CurrentVisibilityState, savedInputVisibility)
-            .setCharacteristic(this.characteristic.TargetVisibilityState, savedInputVisibility);
-
-        tmpInput
-            .getCharacteristic(this.characteristic.TargetVisibilityState)
-            .on("set", (state: number, callback: () => void) => {
-                this.log.debug("Set %s TargetVisibilityState %s", this.inputs[key].name, state);
-                this.savedVisibility[this.inputs[key].id] = state;
-                fs.writeFile(this.inputVisibilityFile, JSON.stringify(this.savedVisibility), (err) => {
-                    if (err) this.log.debug("Error: Could not write input visibility %s", err);
-                    else this.log.debug("Input visibility successfully saved");
-                });
-                tmpInput.setCharacteristic(this.characteristic.CurrentVisibilityState, state);
-                callback();
-            });
-
-        tmpInput
-            .getCharacteristic(this.characteristic.ConfiguredName)
-            .on("set", (name: string, callback: () => void) => {
-                this.log.info("Rename input %s to %s", this.inputs[key].name, name.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 14));
-                this.inputs[key].name = name.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 14);
-                this.renameInput(this.inputs[key].id, name);
-                callback();
-            });
-
-        this.tvService.addLinkedService(tmpInput);
-        this.enabledServices.push(tmpInput);
+    public addInputSourceService(): void {
+        // needs to be externally overwritten
     }
 }
 
+// Function to initialize input methods and add them to the current instance
 export const initializeInputs = function (this: PioneerAvr) {
-    const extendedInstance = new InputManagementMethods(this.api, this.log, this.host, this.port, this.maxVolumeSet, this.minVolumeSet, this.service, this.characteristic, this.pioneerAvrClassCallback);
-    Object.assign(this, extendedInstance);
+    const extendedInstance = new InputManagementMethods(
+        this.accessory,
+        this.pioneerAvrClassCallback
+    );
+    Object.assign(this, extendedInstance as Omit<typeof extendedInstance, keyof PioneerAvr>);
 };

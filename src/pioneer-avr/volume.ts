@@ -2,62 +2,68 @@
 
 import PioneerAvr from './pioneerAvr';
 import { TelnetAvr } from '../telnet-avr/telnetAvr';
-import { API, Logging, Service, Characteristic } from 'homebridge';
-
+// import { API, Logging, Service, Characteristic } from 'homebridge';
+import { addExitHandler } from '../exitHandler';
 
 class VolumeManagementMethods extends PioneerAvr {
-    private telnetAvr!: TelnetAvr;
-    private changeVolBlocked = false;
-    private blocktimer: NodeJS.Timeout | null = null;
+    public telnetAvr!: TelnetAvr;
     private updateVolumeTimeout: NodeJS.Timeout | null = null;
-    private lastMuteStatus: number | null = null;
+    public lastUserInteraction!: number;
 
-    constructor(api: API, log: Logging, host: string, port: number, maxVolumeSet: number, minVolumeSet: number, service: Service, characteristic: Characteristic, pioneerAvrClassCallback?: () => Promise<void>) {
-        super(api, log, host, port, maxVolumeSet, minVolumeSet, service, characteristic, pioneerAvrClassCallback);
+    constructor(accessory: any, pioneerAvrClassCallback?: () => Promise<void>) {
+        super(accessory, pioneerAvrClassCallback);
 
         // Handle disconnection
         this.telnetAvr.addOnDisconnectCallback(() => {
             try {
-                if (this.functionSetLightbulbVolume && typeof this.functionSetLightbulbVolume === 'function') {
-                    this.functionSetLightbulbVolume(this.state.volume);
-                } else {
-                    this.log.error("functionSetLightbulbVolume is not available");
+                if ((this as any).functionSetLightbulbVolume) {
+                    (this as any).functionSetLightbulbVolume(this.state.volume);
                 }
             } catch (e) {
-                this.log.debug("functionSetLightbulbVolume", e);
+                this.log.debug("functionSetLightbulbVolume error", e);
             }
         });
 
         // Handle connection
         this.telnetAvr.addOnConnectCallback(async () => {
             try {
-                this.functionSetLightbulbVolume(this.state.volume);
+                (this as any).functionSetLightbulbVolume(this.state.volume);
                 this.__updateListeningMode(() => {});
                 this.__updateVolume(() => {});
                 this.__updateMute(() => {});
             } catch (e) {
-                this.log.debug("functionSetLightbulbVolume", e);
+                this.log.debug("functionSetLightbulbVolume error", e);
             }
         });
+
+        // Handle exit
+        addExitHandler(() => {
+            this.state.on = false;
+            try {
+                if ((this as any).functionSetLightbulbVolume) {
+                    (this as any).functionSetLightbulbVolume(this.state.volume);
+                }
+            } catch (e) {
+                this.log.debug("functionSetLightbulbVolume error", e);
+            }
+        }, this);
     }
 
-    // Set volume in lightbulb characteristic
-    public functionSetLightbulbVolume(volume: number) {
+    public functionSetLightbulbVolume() {
         // Implement volume setting logic here
     }
 
-    // Request volume update
-    public __updateVolume = async function (callback: Function) {
+    public functionSetLightbulbMuted() {}
+
+    public async __updateVolume(callback: (error: any, response: string) => void) {
         this.telnetAvr.sendMessage("?V", "VOL", callback);
     };
 
-    // Request mute status update
-    public __updateMute = async function (callback: Function) {
+    public async __updateMute(callback: (error: any, response: string) => void) {
         this.telnetAvr.sendMessage("?M", "MUT", callback);
     };
 
-    // Get volume status with a callback
-    public volumeStatus = function (callback: (err: any, volume?: number) => void) {
+    public volumeStatus (callback: (err: any, volume?: number) => void) {
         if (this.state.volume !== null) {
             callback(null, this.state.volume);
             return;
@@ -68,8 +74,7 @@ class VolumeManagementMethods extends PioneerAvr {
         });
     };
 
-    // Set a specific volume level
-    public setVolume = function (targetVolume: number, callback: Function) {
+    public setVolume (targetVolume: number, callback: (error: any, response: string) => void) {
         if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) {
             return;
         }
@@ -77,112 +82,68 @@ class VolumeManagementMethods extends PioneerAvr {
         targetVolume = parseInt(targetVolume.toString(), 10);
 
         if (isNaN(targetVolume) || Math.floor(targetVolume) === this.state.volume) {
-            callback();
+            callback(null, '');
             return;
         }
 
         let vsxVol = 0;
 
-        // Volume calculation based on min and max volume
         if (this.maxVolumeSet > 0) {
             const minVolumeIn185 = (this.minVolumeSet / 100) * 185;
             const maxVolumeIn185 = (this.maxVolumeSet / 100) * 185;
             vsxVol = ((targetVolume / 100) * (maxVolumeIn185 - minVolumeIn185)) + minVolumeIn185;
         } else {
-            vsxVol = (targetVolume * 185) / 100; // Fallback
+            vsxVol = (targetVolume * 185) / 100;
         }
 
         vsxVol = Math.floor(vsxVol);
-        const vsxVolStr = vsxVol.toString().padStart(3, '0'); // Pad to 3 digits
+        const vsxVolStr = vsxVol.toString().padStart(3, '0');
 
         this.telnetAvr.sendMessage(`${vsxVolStr}VL`, undefined, callback);
         this.lastUserInteraction = Date.now();
     };
 
-    // Increase volume level
-    public volumeUp = function () {
+    public volumeUp () {
         this.lastUserInteraction = Date.now();
         if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) {
             return;
         }
-        this.log.debug("Volume up", !this.changeVolBlocked);
+        this.log.debug("Volume up");
 
-        clearTimeout(this.updateVolumeTimeout as NodeJS.Timeout);
-        this.changeVolBlocked = true;
+        if (this.updateVolumeTimeout) {
+            clearTimeout(this.updateVolumeTimeout);
+        }
 
-        this.blocktimer = setTimeout(() => {
-            this.changeVolBlocked = false;
-            clearTimeout(this.updateVolumeTimeout as NodeJS.Timeout);
+        this.telnetAvr.sendMessage("VU", undefined, () => {
             this.updateVolumeTimeout = setTimeout(() => {
                 this.__updateVolume(() => {});
                 this.__updateMute(() => {});
             }, 1000);
-        }, 500);
+        });
 
-        if (this.web) {
-            fetch(`${this.webEventHandlerBaseUrl}VU`, { method: 'GET' }).then(() => {
-                clearTimeout(this.blocktimer as NodeJS.Timeout);
-                this.changeVolBlocked = false;
-                this.updateVolumeTimeout = setTimeout(() => {
-                    this.__updateVolume(() => {});
-                    this.__updateMute(() => {});
-                }, 1000);
-            });
-        } else {
-            this.telnetAvr.sendMessage("VU", undefined, () => {
-                clearTimeout(this.blocktimer as NodeJS.Timeout);
-                this.changeVolBlocked = false;
-                this.updateVolumeTimeout = setTimeout(() => {
-                    this.__updateVolume(() => {});
-                    this.__updateMute(() => {});
-                }, 1000);
-            });
-        }
     };
 
-    // Decrease volume level
-    public volumeDown = function () {
+    public volumeDown () {
         this.lastUserInteraction = Date.now();
         if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) {
             return;
         }
-        this.log.debug("Volume down", !this.changeVolBlocked);
+        this.log.debug("Volume down");
 
-        clearTimeout(this.updateVolumeTimeout as NodeJS.Timeout);
-        this.changeVolBlocked = true;
+        if (this.updateVolumeTimeout) {
+            clearTimeout(this.updateVolumeTimeout);
+        }
 
-        this.blocktimer = setTimeout(() => {
-            this.changeVolBlocked = false;
-            clearTimeout(this.updateVolumeTimeout as NodeJS.Timeout);
+        this.telnetAvr.sendMessage("VD", undefined, () => {
             this.updateVolumeTimeout = setTimeout(() => {
                 this.__updateVolume(() => {});
                 this.__updateMute(() => {});
             }, 1000);
-        }, 500);
+        });
 
-        if (this.web) {
-            fetch(`${this.webEventHandlerBaseUrl}VD`, { method: 'GET' }).then(() => {
-                clearTimeout(this.blocktimer as NodeJS.Timeout);
-                this.changeVolBlocked = false;
-                this.updateVolumeTimeout = setTimeout(() => {
-                    this.__updateVolume(() => {});
-                    this.__updateMute(() => {});
-                }, 1000);
-            });
-        } else {
-            this.telnetAvr.sendMessage("VD", undefined, () => {
-                clearTimeout(this.blocktimer as NodeJS.Timeout);
-                this.changeVolBlocked = false;
-                this.updateVolumeTimeout = setTimeout(() => {
-                    this.__updateVolume(() => {});
-                    this.__updateMute(() => {});
-                }, 1000);
-            });
-        }
     };
 
-    // Get mute status with a callback
-    public muteStatus = function (callback: (err: any, muted?: boolean) => void) {
+    public muteStatus (callback: (err: any, muted?: boolean) => void) {
         if (this.state.muted !== null) {
             callback(null, this.state.muted);
             return;
@@ -193,68 +154,52 @@ class VolumeManagementMethods extends PioneerAvr {
         });
     };
 
-    // Set mute on
-    public muteOn = function () {
+    public muteOn () {
         this.lastUserInteraction = Date.now();
         if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on || this.state.muted === true) {
             return;
         }
         this.log.debug("Mute on");
-        if (this.web) {
-            fetch(`${this.webEventHandlerBaseUrl}MO`, { method: 'GET' });
-        } else {
-            this.telnetAvr.sendMessage("MO");
-        }
+        this.telnetAvr.sendMessage("MO");
     };
 
-    // Set mute off
-    public muteOff = function () {
+    public muteOff () {
         this.lastUserInteraction = Date.now();
         if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on || this.state.muted === false) {
             return;
         }
         this.log.debug("Mute off");
-        if (this.web) {
-            fetch(`${this.webEventHandlerBaseUrl}MF`, { method: 'GET' });
-        } else {
-            this.telnetAvr.sendMessage("MF");
-        }
+        this.telnetAvr.sendMessage("MF");
     };
 
-    // Request listening mode update
-    public __updateListeningMode = function (callback: Function) {
+    public __updateListeningMode (callback: (error: any, response: string) => void) {
         this.telnetAvr.sendMessage("?S", "SR", callback);
     };
 
-    // Get the current listening mode
-    public getListeningMode = function (callback: (err: any, mode?: string) => void) {
+    public getListeningMode (callback: (err: any, mode?: string) => void) {
         this.__updateListeningMode(() => {
-            callback(null, this.state.listeningMode);
+            callback(null, this.state.listeningMode ?? undefined);
         });
     };
 
-    // Toggle between listening modes
-    public toggleListeningMode = function (callback: Function) {
+    public toggleListeningMode (callback: (error: any, response: string) => void) {
         this.lastUserInteraction = Date.now();
 
-        if (!this.isReady) {
-            callback();
+        if (!this.isReady || !this.state.listeningMode) {
+            callback(null, this.state.listeningMode ?? '');
             return;
         }
 
         this.log.debug("Toggle Listening Mode", this.state.listeningMode);
 
         if (["0013", "0101"].includes(this.state.listeningMode)) {
-            // Toggle from Pro Logic to Extended Stereo
             this.telnetAvr.sendMessage("0112SR");
             this.state.listeningMode = "0112";
             setTimeout(callback, 100);
         } else {
-            // Toggle from Extended Stereo to Pro Logic
             this.state.listeningMode = "0013";
-            this.telnetAvr.sendMessage("0013SR", "SR", (error, data) => {
+            this.telnetAvr.sendMessage("0013SR", "SR", (error, _data) => {
                 if (error) {
-                    // Fallback to Action listening mode if error occurs
                     this.state.listeningMode = "0101";
                     this.telnetAvr.sendMessage("0101SR");
                 }
@@ -264,8 +209,12 @@ class VolumeManagementMethods extends PioneerAvr {
     };
 }
 
-// Function to initialize volume management methods
+// Initialize volume management methods and add them to the current instance
 export const initializeVolume = function (this: PioneerAvr) {
-    const extendedInstance = new VolumeManagementMethods(this.api, this.log, this.host, this.port, this.maxVolumeSet, this.minVolumeSet, this.service, this.characteristic, this.pioneerAvrClassCallback);
-    Object.assign(this, extendedInstance);
+    const extendedInstance = new VolumeManagementMethods(
+        this.accessory,
+        this.pioneerAvrClassCallback
+    );
+
+    Object.assign(this, extendedInstance as Omit<typeof extendedInstance, keyof PioneerAvr>); // Merging methods into the PioneerAvr instance
 };

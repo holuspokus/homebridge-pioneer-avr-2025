@@ -6,9 +6,7 @@ const PORT = 23;
 const HOST = "127.0.0.1";
 
 export class TelnetAvr {
-    private log: any;
-    protected connection: Connection;
-    private dataHandler: DataHandler;
+    public readonly connection: Connection;
     public onData: (error: any, data: string, callback?: Function) => void = () => {};
     private onDisconnectCallbacks: Array<() => void> = []; // Liste für onDisconnect-Callbacks
     private onConnectCallbacks: Array<() => void> = []; // Callbacks für onConnect
@@ -16,17 +14,11 @@ export class TelnetAvr {
 
 
 
-    constructor(private host: string = HOST, private port: number = PORT, private log: any) {
+    constructor(public readonly host: string = HOST, public readonly port: number = PORT, public readonly log: any) {
         this.log = log;
 
 
-        this.connection = new Connection(this.host, this.port, this.log);
-
-        // Bind the TelnetAvr's onData to Connection
-        // Set up onDataCallback to always reference the current onData function
-        this.connection.onDataCallback = (error: any, data: string, callback?: Function) => {
-            this.onData(error, data, callback); // Use the current onData method
-        };
+        this.connection = new Connection(this);
 
         this.connection.onDisconnect = () => {
             this.connectionReady = false
@@ -65,7 +57,11 @@ export class TelnetAvr {
         return this.connection.sendMessage(message, callbackChars, onData);
     }
 
-    public displayChanged(error: any, message: string) {
+    public displayChanged(message: string) {
         this.log.debug('[DISPLAY] ' + message);
+    }
+
+    public fallbackOnData(error: any, message: string, callback?: Function) {
+        this.onData(error, message, callback);
     }
 }

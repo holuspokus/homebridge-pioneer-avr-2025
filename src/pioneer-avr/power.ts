@@ -1,23 +1,20 @@
 // src/pioneer-avr/power.ts
 
-import fetch from "node-fetch";
 import PioneerAvr from './pioneerAvr';
 import { TelnetAvr } from '../telnet-avr/telnetAvr';
-import { API, Logging, Service, Characteristic } from 'homebridge';
-
+import { addExitHandler } from '../exitHandler';
 
 class PowerManagementMethods extends PioneerAvr {
     public telnetAvr!: TelnetAvr;
 
-    constructor(api: API, log: Logging, host: string, port: number, maxVolumeSet: number, minVolumeSet: number, service: Service, characteristic: Characteristic, pioneerAvrClassCallback?: () => Promise<void>) {
-        super(api, log, host, port, maxVolumeSet, minVolumeSet, service, characteristic, pioneerAvrClassCallback);
-
+    constructor(accessory: any, pioneerAvrClassCallback?: () => Promise<void>) {
+        super(accessory, pioneerAvrClassCallback);
 
         // Handle disconnection
         this.telnetAvr.addOnDisconnectCallback(() => {
             this.state.on = false;
             try {
-                this.functionSetPowerState(this.state.on);
+                (this as any).functionSetPowerState(this.state.on);
             } catch (e) {
                 this.log.debug("functionSetPowerState", e);
             }
@@ -26,30 +23,36 @@ class PowerManagementMethods extends PioneerAvr {
         // Handle connection
         this.telnetAvr.addOnConnectCallback(async () => {
             try {
-                this.functionSetPowerState(this.state.on);
+                (this as any).functionSetPowerState(this.state.on);
             } catch (e) {
                 this.log.debug("functionSetPowerState", e);
             }
         });
+
+        // Handle exit
+        addExitHandler(() => {
+            this.state.on = false;
+            (this as any).functionSetPowerState(this.state.on);
+        }, this);
     }
 
     // Dummy method placeholders
-    public functionSetPowerState(state: boolean) {
+    public functionSetPowerState() {
         // Implement your logic here
     }
 
-    __updatePower = async function (callback: () => void) {
+    public async __updatePower (callback: () => void) {
         this.telnetAvr.sendMessage("?P", "PWR", () => {
             this.state.lastGetPowerStatus = Date.now();
             try {
-                callback()
+                callback();
             } catch (e) {
                 this.log.debug("__updatePower callback", e);
             }
         });
     };
 
-    powerStatus = async function (callback: (err: any, status?: boolean) => void) {
+    public async powerStatus (callback: (err: any, status?: boolean) => void) {
         if (this.state.on !== null) {
             try {
                 callback(null, this.state.on);
@@ -68,37 +71,34 @@ class PowerManagementMethods extends PioneerAvr {
         });
     };
 
-    powerOn = async function () {
+    public async powerOn () {
         this.log.debug("Power on");
 
-        if (this.web) {
-            await fetch(this.webEventHandlerBaseUrl + "PO", { method: 'GET' });
-        } else {
-            this.telnetAvr.sendMessage("PO"); // Direkter Aufruf von sendMessage
-        }
-        this.lastUserInteraction = Date.now(); // Sicherstellen, dass 'lastUserInteraction' korrekt referenziert wird
+        this.telnetAvr.sendMessage("PO");
+
+        (this as any).lastUserInteraction = Date.now();
         setTimeout(() => {
             this.powerStatus(() => {});
         }, 500);
     };
 
-    powerOff = async function () {
+    public async powerOff () {
         this.log.debug("Power off");
 
-        if (this.web) {
-            await fetch(this.webEventHandlerBaseUrl + "PF", { method: 'GET' });
-        } else {
-            this.telnetAvr.sendMessage("PF"); // Direkter Aufruf von sendMessage
-        }
-        this.lastUserInteraction = Date.now(); // Sicherstellen, dass 'lastUserInteraction' korrekt referenziert wird
+        this.telnetAvr.sendMessage("PF");
+        (this as any).lastUserInteraction = Date.now();
         setTimeout(() => {
             this.powerStatus(() => {});
         }, 500);
     };
 }
 
-// Funktion zum Initialisieren der Power-Methoden
+// Initialize power methods and add them to the current instance
 export const initializePower = function (this: PioneerAvr) {
-    const extendedInstance = new PowerManagementMethods(this.api, this.log, this.host, this.port, this.maxVolumeSet, this.minVolumeSet, this.service, this.characteristic, this.pioneerAvrClassCallback);
-    Object.assign(this, extendedInstance); // Bindet die Methoden an die aktuelle PioneerAvr-Instanz
+    const extendedInstance = new PowerManagementMethods(
+        this.accessory,
+        this.pioneerAvrClassCallback
+    );
+
+    Object.assign(this, extendedInstance as Omit<typeof extendedInstance, keyof PioneerAvr>); // Merging methods into the PioneerAvr instance
 };

@@ -2,10 +2,9 @@
 
 import type { API, Characteristic, Service, Logging } from 'homebridge';
 import { initializePioneerAvr } from './initialize';
-import { loadInputs } from './inputs';
-import { powerMethods } from './power';
-import { volumeMethods } from './volume';
-import { TelnetAvr } from '../telnet-avr/telnetAvr'; // Import the TelnetAvr class
+import { initializeInputs } from './inputs';
+import { initializePower } from './power';
+import { initializeVolume } from './volume';
 
 export interface AVState {
     volume: number;
@@ -26,22 +25,24 @@ class PioneerAvr {
     public minVolumeSet: number;
     public state: AVState;
     public pioneerAvrClassCallback: any;
-    public initCount: number;
-    public readonly characteristic: typeof Characteristic;
-    public readonly service: typeof Service;
+    public characteristic: Characteristic;
+    public service: Service;
+    public isReady: boolean = false;
+    protected accessory: any;
 
 
 
-    constructor(api: API, log: Logging, host: string, port: number, maxVolumeSet: number, minVolumeSet: number, service: Service, characteristic: Characteristic, pioneerAvrClassCallback?: () => Promise<void>) {
-        this.api = api;
-        this.log = log;
-        this.host = host;
-        this.port = port;
-        this.maxVolumeSet = isNaN(maxVolumeSet) ? 60 : maxVolumeSet;
-        this.minVolumeSet = isNaN(minVolumeSet) ? 0 : minVolumeSet;
+    constructor(accessory: any, pioneerAvrClassCallback?: () => Promise<void>) {
+        this.api = accessory.platform.api;
+        this.log = accessory.platform.log;
+        this.host = accessory.host;
+        this.port = accessory.port;
 
-        this.service = service;
-        this.characteristic = characteristic;
+        this.maxVolumeSet = isNaN(accessory.platform.config.maxVolumeSet) ? 60 : accessory.platform.config.maxVolumeSet;
+        this.minVolumeSet = isNaN(accessory.platform.config.minVolumeSet) ? 0 : accessory.platform.config.minVolumeSet;
+
+        this.service = accessory.platform.service;
+        this.characteristic = accessory.platform.characteristic;
 
         this.state = {
             volume: 30,
@@ -63,7 +64,7 @@ class PioneerAvr {
 
         // Hier die Initialisierung aufrufen
         initializePioneerAvr.call(this);
-        loadInputs.call(this);
+        initializeInputs.call(this);
         initializePower.call(this);
         initializeVolume.call(this);
     }
