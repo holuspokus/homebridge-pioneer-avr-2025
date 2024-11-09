@@ -2,9 +2,15 @@
 
 import PioneerAvr from './pioneer-avr/pioneerAvr';
 import { Service, Logging, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import fs from 'fs';
+import * as fs from 'fs';
 import packageJson from "../package.json";
 import { PioneerAvrPlatform } from './pioneer-avr-platform';
+
+type Device = {
+    name: string;
+    ip: string;
+    port: number;
+};
 
 class PioneerAvrAccessory {
     private informationService!: Service;
@@ -27,20 +33,24 @@ class PioneerAvrAccessory {
     private version: string;
     private functionSetLightbulbVolumeTimeout: NodeJS.Timeout | null = null;
 
-    constructor(platform: PioneerAvrPlatform, accessory: PlatformAccessory) {
+    constructor(private device: Device, platform: PioneerAvrPlatform, accessory: PlatformAccessory) {
+        this.device = device;
         this.platform = platform;
         this.accessory = accessory;
         this.log = this.platform.log;
-        this.name = this.platform.config.name || 'Pioneer AVR';
+        this.name = device.name || this.platform.config.name || 'Pioneer AVR';
         this.manufacturer = this.platform.config.manufacturer || 'Pioneer';
         this.model = this.platform.config.model || 'Unknown Model';
-        this.host = this.platform.config.host || '';
+        this.host = device.ip || this.platform.config.host || '';
         this.maxVolumeSet = this.platform.config.maxVolumeSet || 100;
         this.prefsDir = this.platform.config.prefsDir || this.platform.api.user.storagePath() + "/pioneerAvr/";
         this.version = packageJson.version;
 
+        this.log.debug('create accessory for', this.device)
+
         this.inputVisibilityFile = `${this.prefsDir}/inputsVisibility_${this.host}`;
-        this.loadVisibilityConfig();
+
+        this.initializeVisibilityFile();
 
         try {
             this.avr = new PioneerAvr(
@@ -67,19 +77,38 @@ class PioneerAvrAccessory {
         }
     }
 
-    /**
-     * Loads visibility configuration from the saved file.
-     */
-    private loadVisibilityConfig() {
-        if (fs.existsSync(this.inputVisibilityFile)) {
-            try {
-                this.savedVisibility = JSON.parse(fs.readFileSync(this.inputVisibilityFile, 'utf-8'));
-            } catch (err) {
-                this.log.debug("Error parsing input visibility file: %s", err);
+    private initializeVisibilityFile() {
+        try {
+            if (!fs.existsSync(this.prefsDir)) {
+                fs.mkdirSync(this.prefsDir, { recursive: true });
             }
-        } else {
-            fs.writeFileSync(this.inputVisibilityFile, JSON.stringify({}), 'utf-8');
-            this.log.debug("Created new input visibility file.");
+
+            fs.access(this.inputVisibilityFile, fs.constants.F_OK, (err) => {
+                if (err) {
+                    fs.writeFile(this.inputVisibilityFile, "{}", (err) => {
+                        if (err) {
+                            this.log.error("Error creating the Input visibility file:", err);
+                        } else {
+                            this.log.debug("Input visibility file successfully created.");
+                            this.loadSavedVisibility();
+                        }
+                    });
+                } else {
+                    this.log.debug("The Input visibility file already exists:", this.inputVisibilityFile);
+                    this.loadSavedVisibility();
+                }
+            });
+        } catch (err) {
+            this.log.debug("Input visibility file could not be created (%s)", err);
+        }
+    }
+
+    private loadSavedVisibility() {
+        try {
+            const fileData = fs.readFileSync(this.inputVisibilityFile, 'utf-8');
+            this.savedVisibility = JSON.parse(fileData);
+        } catch (err) {
+            this.log.debug("Input visibility file does not exist or JSON parsing failed (%s)", err);
         }
     }
 
@@ -372,7 +401,7 @@ class PioneerAvrAccessory {
     }
 
     public async untilBooted(): Promise<void> {
-        while (!this.avr.isReady) {
+        while (!this.avr || !this.avr.isReady) {
             await new Promise(resolve => setTimeout(resolve, 100));
         }
         this.log.debug('Reporting as booted.');

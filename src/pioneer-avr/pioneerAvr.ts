@@ -6,6 +6,13 @@ import { initializeInputs } from './inputs';
 import { initializePower } from './power';
 import { initializeVolume } from './volume';
 
+type Device = {
+    name: string;
+    ip: string;
+    port: number;
+};
+
+
 export interface AVState {
     volume: number;
     on: boolean;
@@ -29,14 +36,16 @@ class PioneerAvr {
     public service: Service;
     public isReady: boolean = false;
     protected accessory: any;
+    public readonly device: Device;
 
 
 
     constructor(accessory: any, pioneerAvrClassCallback?: () => Promise<void>) {
         this.api = accessory.platform.api;
         this.log = accessory.platform.log;
-        this.host = accessory.host;
-        this.port = accessory.port;
+        this.host = accessory.device.ip;
+        this.port = accessory.device.port;
+        this.device = accessory.device;
 
         this.maxVolumeSet = isNaN(accessory.platform.config.maxVolumeSet) ? 60 : accessory.platform.config.maxVolumeSet;
         this.minVolumeSet = isNaN(accessory.platform.config.minVolumeSet) ? 0 : accessory.platform.config.minVolumeSet;

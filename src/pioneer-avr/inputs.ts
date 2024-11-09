@@ -1,15 +1,11 @@
 // src/pioneer-avr/inputs.ts
 
-import * as fs from 'fs';
-import * as path from 'path';
 import PioneerAvr from './pioneerAvr';
 import { TelnetAvr } from '../telnet-avr/telnetAvr';
 import {Service } from 'homebridge';
 
 class InputManagementMethods extends PioneerAvr {
     public prefsDir: string = '';
-    public inputVisibilityFile: string = '';
-    public savedVisibility: { [key: string]: number } = {};
     public inputBeingAdded: string | boolean = false;
     public inputBeingAddedWaitCount: number = 0;
     public inputMissing: string[][] = [];
@@ -24,10 +20,7 @@ class InputManagementMethods extends PioneerAvr {
         super(accessory, pioneerAvrClassCallback);
 
         this.prefsDir = accessory.prefsDir
-        this.inputVisibilityFile = path.join(this.prefsDir, `inputsVisibility_${this.host}`);
         this.inputs = [];
-
-        this.initializeVisibilityFile();
 
         this.telnetAvr.addOnConnectCallback(async () => {
             await this.loadInputs(() => {
@@ -62,40 +55,7 @@ class InputManagementMethods extends PioneerAvr {
         this.telnetAvr.sendMessage(`${id}FN`);
     }
 
-    private initializeVisibilityFile() {
-        try {
-            if (!fs.existsSync(this.prefsDir)) {
-                fs.mkdirSync(this.prefsDir, { recursive: true });
-            }
 
-            fs.access(this.inputVisibilityFile, fs.constants.F_OK, (err) => {
-                if (err) {
-                    fs.writeFile(this.inputVisibilityFile, "{}", (err) => {
-                        if (err) {
-                            this.log.error("Error creating the Input visibility file:", err);
-                        } else {
-                            this.log.debug("Input visibility file successfully created.");
-                            this.loadSavedVisibility();
-                        }
-                    });
-                } else {
-                    this.log.debug("The Input visibility file already exists:", this.inputVisibilityFile);
-                    this.loadSavedVisibility();
-                }
-            });
-        } catch (err) {
-            this.log.debug("Input visibility file could not be created (%s)", err);
-        }
-    }
-
-    private loadSavedVisibility() {
-        try {
-            const fileData = fs.readFileSync(this.inputVisibilityFile, 'utf-8');
-            this.savedVisibility = JSON.parse(fileData);
-        } catch (err) {
-            this.log.debug("Input visibility file does not exist or JSON parsing failed (%s)", err);
-        }
-    }
 
     public async loadInputs(callback?: () => void) {
         for (let i = 1; i <= 60; i++) {

@@ -1,7 +1,7 @@
 // src/pioneer-avr/initialize.ts
 
 import { onDataHandler } from './onDataHandler';
-import PioneerAvr from './pioneerAvr';
+const PioneerAvr = require('./pioneerAvr').default;
 import { TelnetAvr } from '../telnet-avr/telnetAvr';
 // import typeof { API, Logging, Service, Characteristic } from 'homebridge';
 
@@ -20,10 +20,10 @@ class InitializePioneerAvrClass extends PioneerAvr {
     public functionSetPowerState!: any;
     public functionSetLightbulbMuted!: any;
 
-    constructor(accessory: any, pioneerAvrClassCallback?: () => Promise<void>) {
+    constructor(pioneerThis: typeof PioneerAvr, accessory: any, pioneerAvrClassCallback?: () => Promise<void>) {
         super(accessory, pioneerAvrClassCallback);
 
-        this.onData = onDataHandler(this); // Ensure type consistency
+        this.onData = onDataHandler(pioneerThis); // Ensure type consistency
         this.initialize(); // Call the async initialize method after instantiation
     }
 
@@ -106,10 +106,11 @@ class InitializePioneerAvrClass extends PioneerAvr {
 }
 
 // Function to initialize the Pioneer AVR with additional methods
-export const initializePioneerAvr = function (this: PioneerAvr) {
+export const initializePioneerAvr = function (this: typeof PioneerAvr) {
     const extendedInstance = new InitializePioneerAvrClass(
+        this,
         this.accessory,
         this.pioneerAvrClassCallback
     );
-    Object.assign(this, extendedInstance as Omit<typeof extendedInstance, keyof PioneerAvr>);
+    Object.assign(this, extendedInstance as Omit<typeof extendedInstance, typeof PioneerAvr>);
 };

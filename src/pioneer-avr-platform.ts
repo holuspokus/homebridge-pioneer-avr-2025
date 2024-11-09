@@ -33,7 +33,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     // in order to ensure they weren't added to homebridge already. This event can also be used
     // to start discovery of new accessories.
     this.api.on('didFinishLaunching', () => {
-      log.debug('Executed didFinishLaunching callback');
+      this.log.debug('Executed didFinishLaunching callback');
       // run the method to discover / register your devices as accessories
       this.discoverDevices();
     });
@@ -60,23 +60,28 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     const TELNET_PORTS = [23, 24, 8102];
     const TARGET_NAME = "VSX";
 
-    let devisesFound: any[] = [];
+    let devicesFound: any[] = [];
 
     if (this.name && this.config.ip && this.config.port) {
       // Use manually configured device and skip discovery
-      devisesFound.push({
+      devicesFound.push({
           name: this.name,
           ip: this.config.ip,
           port: this.config.port,
       });
-      console.log('Using manually configured device:', devisesFound);
-      this.loopDevices(devisesFound)
+      console.log('Using manually configured device:', devicesFound);
+      this.loopDevices(devicesFound)
     } else {
       // Perform discovery as no manual config was provided
-      findDevices(TARGET_NAME, TELNET_PORTS).then(devices => {
-          devisesFound.push(...devices);
-          console.log('Discovered devices:', devisesFound);
-          this.loopDevices(devisesFound)
+      findDevices(TARGET_NAME, TELNET_PORTS, this.log).then(devices => {
+          devicesFound.push(...devices);
+          if (devicesFound.length == 0) {
+              this.log.warn('No devices found. Please configure manually.')
+          }else{
+            this.log.debug('Discovered devices:', devicesFound);
+            this.loopDevices(devicesFound)
+          }
+
       });
     }
   }
@@ -84,56 +89,69 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
   loopDevices(foundDevices) {
     // loop over the discovered devices and register each one if it has not already been registered
-    for (const device of foundDevices) {
-      // generate a unique id for the accessory this should be generated from
-      // something globally unique, but constant, for example, the device serial
-      // number or MAC address
-      const uuid = this.api.hap.uuid.generate(String(device.name) + String(device.ip) + String(device.port));
+    for (const founddevice of foundDevices) {
+      this.log.debug('on device:', founddevice)
 
-      // see if an accessory with the same uuid has already been registered and restored from
-      // the cached devices we stored in the `configureAccessory` method above
-      const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
+      try {
 
-      if (existingAccessory) {
-        // the accessory already exists
-        this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+          // generate a unique id for the accessory this should be generated from
+          // something globally unique, but constant, for example, the device serial
+          // number or MAC address
+          const uuid = this.api.hap.uuid.generate(String(founddevice.name) + String(founddevice.ip) + String(founddevice.port));
 
-        // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. e.g.:
-        // existingAccessory.context.device = device;
-        // this.api.updatePlatformAccessories([existingAccessory]);
+          // see if an accessory with the same uuid has already been registered and restored from
+          // the cached devices we stored in the `configureAccessory` method above
+          const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
 
-        // create the accessory handler for the restored accessory
-        // this is imported from `platformAccessory.ts`
-        new PioneerAvrAccessory(this, existingAccessory);
+          if (existingAccessory) {
+            // the accessory already exists
+            this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
 
-        // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, e.g.:
-        // remove platform accessories when no longer present
-        // this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
-        // this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
-      } else {
-        // the accessory does not yet exist, so we need to create it
-        this.log.info('Adding new accessory:', this.config.name || 'PioneerVSX Accessory');
+            // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. e.g.:
+            // existingAccessory.context.device = device;
+            // this.api.updatePlatformAccessories([existingAccessory]);
 
-        // create a new accessory
-        const accessory = new this.api.platformAccessory(this.config.name || 'PioneerVSX Accessory', uuid);
+            // create the accessory handler for the restored accessory
+            // this is imported from `platformAccessory.ts`
 
-        // store a copy of the device object in the `accessory.context`
-        // the `context` property can be used to store any data about the accessory you may need
-        accessory.context.device = device;
+            (async (): Promise<void> => {
+                await new PioneerAvrAccessory(founddevice, this, existingAccessory).untilBooted();
 
-        // create the accessory handler for the newly create accessory
-        // this is imported from `platformAccessory.ts`
-        // new PioneerAvrAccessory(this, accessory);
+                // link the accessory to your platform
+                this.api.registerPlatformAccessories(this.name, this.config.name || 'PioneerVSX Accessory', [existingAccessory]);
+            })();
 
-        void (async (): Promise<void> => {
-            await new PioneerAvrAccessory(this, accessory).untilBooted();
+            // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, e.g.:
+            // remove platform accessories when no longer present
+            // this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
+            // this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
+          } else {
+            // the accessory does not yet exist, so we need to create it
+            this.log.info('Adding new accessory:', founddevice.name || 'PioneerVSX Accessory');
 
-            // link the accessory to your platform
-            this.api.registerPlatformAccessories(this.name, this.config.name || 'PioneerVSX Accessory', [accessory]);
-        })();
+            // create a new accessory
+            const accessory = new this.api.platformAccessory(founddevice.name || 'PioneerVSX Accessory', uuid);
 
+            // store a copy of the device object in the `accessory.context`
+            // the `context` property can be used to store any data about the accessory you may need
+            accessory.context.device = founddevice;
 
-      }
+            // create the accessory handler for the newly create accessory
+            // this is imported from `platformAccessory.ts`
+            // new PioneerAvrAccessory(this, accessory);
+
+            (async (): Promise<void> => {
+                await new PioneerAvrAccessory(founddevice, this, accessory).untilBooted();
+
+                // link the accessory to your platform
+                this.api.registerPlatformAccessories(this.name, this.config.name || 'PioneerVSX Accessory', [accessory]);
+            })();
+
+          }
+
+        } catch (e) {
+            this.log.debug('loopDevices', e)
+        }
     }
   }
 }
