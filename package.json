@@ -53,7 +53,6 @@
     "typescript": "^5.5.4"
   },
   "dependencies": {
-    "bonjour": "^3.5.0",
-    "dgram": "^1.0.1"
+    "bonjour": "^3.5.0"
   }
 }

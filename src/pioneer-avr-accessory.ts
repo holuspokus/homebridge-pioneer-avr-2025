@@ -28,8 +28,8 @@ class PioneerAvrAccessory {
     private inputVisibilityFile: string;
     private savedVisibility: Record<string, any> = {};
     private log: Logging;
-    public readonly platform: PioneerAvrPlatform;
-    public readonly accessory: PlatformAccessory;
+    public platform: PioneerAvrPlatform;
+    public accessory: PlatformAccessory;
     private version: string;
     private functionSetLightbulbVolumeTimeout: NodeJS.Timeout | null = null;
 
@@ -40,7 +40,7 @@ class PioneerAvrAccessory {
         this.log = this.platform.log;
         this.name = device.name || this.platform.config.name || 'Pioneer AVR';
         this.manufacturer = this.platform.config.manufacturer || 'Pioneer';
-        this.model = this.platform.config.model || 'Unknown Model';
+        this.model = this.platform.config.model || device.name || 'Unknown Model';
         this.host = device.ip || this.platform.config.host || '';
         this.maxVolumeSet = this.platform.config.maxVolumeSet || 100;
         this.prefsDir = this.platform.config.prefsDir || this.platform.api.user.storagePath() + "/pioneerAvr/";
@@ -53,9 +53,10 @@ class PioneerAvrAccessory {
         this.initializeVisibilityFile();
 
         try {
-            this.avr = new PioneerAvr(
-                this,
-                async () => {
+            // console.error('übergebe this an PioneerAvr:')
+            // console.log(platform)
+
+            this.avr = new PioneerAvr(platform, this, async (): Promise<void> => {
                     try {
                         (this.avr as any).addInputSourceService = this.addInputSourceService;
 
@@ -70,8 +71,8 @@ class PioneerAvrAccessory {
                     } catch (err) {
                         this.log.debug("Error during AVR setup callback: %s", err);
                     }
-                }
-            );
+                });
+
         } catch (err) {
             this.log.debug("Error initializing AVR: %s", err);
         }
@@ -244,29 +245,36 @@ class PioneerAvrAccessory {
      * Prepares the input source service to allow selection of various AVR inputs.
      */
     private addInputSourceService(key: number) {
-        const input = (this.avr as any).inputs[key];
-        const tmpInput = new this.platform.service.InputSource(input.name, "tvInputService" + key);
-        tmpInput
-            .setCharacteristic(this.platform.characteristic.Identifier, key)
-            .setCharacteristic(this.platform.characteristic.ConfiguredName, input.name)
-            .setCharacteristic(this.platform.characteristic.IsConfigured, this.platform.characteristic.IsConfigured.CONFIGURED)
-            .setCharacteristic(this.platform.characteristic.InputSourceType, input.type)
-            .setCharacteristic(this.platform.characteristic.CurrentVisibilityState, this.savedVisibility[input.id] || this.platform.characteristic.CurrentVisibilityState.SHOWN);
+        console.log('in addInputSourceService')
+        try {
 
-        tmpInput.getCharacteristic(this.platform.characteristic.TargetVisibilityState)
-            .onSet((state) => {
-                this.savedVisibility[input.id] = state;
-                fs.writeFileSync(this.inputVisibilityFile, JSON.stringify(this.savedVisibility));
-                tmpInput.setCharacteristic(this.platform.characteristic.CurrentVisibilityState, state);
-            });
+            const input = (this.avr as any).inputs[key];
+            const tmpInput = new this.platform.service.InputSource(input.name, "tvInputService" + key);
+            tmpInput
+                .setCharacteristic(this.platform.characteristic.Identifier, key)
+                .setCharacteristic(this.platform.characteristic.ConfiguredName, input.name)
+                .setCharacteristic(this.platform.characteristic.IsConfigured, this.platform.characteristic.IsConfigured.CONFIGURED)
+                .setCharacteristic(this.platform.characteristic.InputSourceType, input.type)
+                .setCharacteristic(this.platform.characteristic.CurrentVisibilityState, this.savedVisibility[input.id] || this.platform.characteristic.CurrentVisibilityState.SHOWN);
 
-        tmpInput.getCharacteristic(this.platform.characteristic.ConfiguredName)
-            .onSet((name) => {
-                (this.avr as any).renameInput(input.id, name);
-            });
+            tmpInput.getCharacteristic(this.platform.characteristic.TargetVisibilityState)
+                .onSet((state) => {
+                    this.savedVisibility[input.id] = state;
+                    fs.writeFileSync(this.inputVisibilityFile, JSON.stringify(this.savedVisibility));
+                    tmpInput.setCharacteristic(this.platform.characteristic.CurrentVisibilityState, state);
+                });
 
-        this.tvService.addLinkedService(tmpInput);
-        this.enabledServices.push(tmpInput);
+            tmpInput.getCharacteristic(this.platform.characteristic.ConfiguredName)
+                .onSet((name) => {
+                    (this.avr as any).renameInput(input.id, name);
+                });
+
+            this.tvService.addLinkedService(tmpInput);
+            this.enabledServices.push(tmpInput);
+
+        } catch (e) {
+            console.log('addInputSourceService', e);
+        }
     }
 
     /**

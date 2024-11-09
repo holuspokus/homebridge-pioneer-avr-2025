@@ -5,16 +5,16 @@ import { findDevices } from './discovery';
 import PioneerAvrAccessory from './pioneer-avr-accessory.js';
 
 /**
- * HomebridgePlatform
- * This class is the main constructor for your plugin, this is where you should
- * parse the user config and discover/register accessories with Homebridge.
+ * PioneerAvrPlatform
+ * This class serves as the main entry point for the plugin, where user configuration is parsed,
+ * accessories are registered, and discovered devices are managed.
  */
 export class PioneerAvrPlatform implements DynamicPlatformPlugin {
   public readonly service: typeof Service;
   public readonly characteristic: typeof Characteristic;
   private name: string;
 
-  // this is used to track restored cached accessories
+  // Used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
 
   constructor(
@@ -24,134 +24,132 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
   ) {
     this.service = this.api.hap.Service;
     this.characteristic = this.api.hap.Characteristic;
-    this.name = this.config.name || 'PioneerVSX Platform'
+    this.name = this.config.name || 'PioneerVSX Platform';
 
     this.log.debug('Finished initializing platform:', this.name);
 
-    // When this event is fired it means Homebridge has restored all cached accessories from disk.
-    // Dynamic Platform plugins should only register new accessories after this event was fired,
-    // in order to ensure they weren't added to homebridge already. This event can also be used
-    // to start discovery of new accessories.
+    // Register for the 'didFinishLaunching' event to start device discovery after Homebridge startup
     this.api.on('didFinishLaunching', () => {
       this.log.debug('Executed didFinishLaunching callback');
-      // run the method to discover / register your devices as accessories
       this.discoverDevices();
     });
   }
 
   /**
-   * This function is invoked when homebridge restores cached accessories from disk at startup.
-   * It should be used to set up event handlers for characteristics and update respective values.
+   * Invoked when Homebridge restores cached accessories from disk at startup.
+   * Sets up event handlers for each cached accessory.
    */
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
-
-    // add the restored accessory to the accessories cache, so we can track if it has already been registered
     this.accessories.push(accessory);
   }
 
   /**
-   * This is an example method showing how to register discovered accessories.
-   * Accessories must only be registered once, previously created accessories
-   * must not be registered again to prevent "duplicate UUID" errors.
+   * Initiates the device discovery process or uses a manually configured device.
+   * Attempts up to MAX_ATTEMPTS times if no devices are found, with a delay of RETRY_DELAY between attempts.
    */
-  discoverDevices() {
-
+  async discoverDevices() {
     const TELNET_PORTS = [23, 24, 8102];
     const TARGET_NAME = "VSX";
+    const MAX_ATTEMPTS = 5; // Maximum number of discovery attempts
+    const RETRY_DELAY = 10000; // 10 seconds in milliseconds
+    const devicesFound: any[] = [];
 
-    let devicesFound: any[] = [];
-
+    // Check if the device is manually configured, bypassing discovery
     if (this.name && this.config.ip && this.config.port) {
-      // Use manually configured device and skip discovery
       devicesFound.push({
-          name: this.name,
-          ip: this.config.ip,
-          port: this.config.port,
+        name: this.name,
+        ip: this.config.ip,
+        port: this.config.port,
       });
-      console.log('Using manually configured device:', devicesFound);
-      this.loopDevices(devicesFound)
+      this.log.info('Using manually configured device:', devicesFound);
     } else {
-      // Perform discovery as no manual config was provided
-      findDevices(TARGET_NAME, TELNET_PORTS, this.log).then(devices => {
-          devicesFound.push(...devices);
-          if (devicesFound.length == 0) {
-              this.log.warn('No devices found. Please configure manually.')
-          }else{
-            this.log.debug('Discovered devices:', devicesFound);
-            this.loopDevices(devicesFound)
-          }
+      let attempts = 0;
 
-      });
+      // Retry discovery up to MAX_ATTEMPTS times if no devices are found
+      while (attempts < MAX_ATTEMPTS) {
+        attempts++;
+        const discoveredDevices = await findDevices(TARGET_NAME, TELNET_PORTS, this.log);
+
+        // If devices are found, add them to devicesFound and exit loop
+        if (discoveredDevices.length > 0) {
+          devicesFound.push(...discoveredDevices);
+          this.log.debug('Discovered devices:', devicesFound);
+          break;
+        }
+
+        // Log warning and wait before next attempt if no devices were found
+        this.log.warn(`Attempt ${attempts} of ${MAX_ATTEMPTS}: No devices found. Retrying in 10 seconds...`);
+        if (attempts < MAX_ATTEMPTS) {
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        }
+      }
+
+      // Log error if all attempts failed and no devices were found
+      if (devicesFound.length === 0) {
+        this.log.error('No devices found after maximum retry attempts. Please configure manually.');
+        return;
+      }
+    }
+
+    // Process each device found or manually configured
+    await this.loopDevices(devicesFound);
+  }
+
+  /**
+   * Processes each discovered or manually configured device asynchronously.
+   * Registers or restores devices in Homebridge as necessary.
+   *
+   * @param foundDevices - List of devices found during discovery or configured manually
+   */
+  async loopDevices(foundDevices: any[]) {
+    for (const foundDevice of foundDevices) {
+      this.log.debug('Processing device:', foundDevice);
+
+      try {
+        // Generate a unique identifier (UUID) for the accessory based on device information
+        const uuid = this.api.hap.uuid.generate(String(foundDevice.name) + String(foundDevice.ip) + String(foundDevice.port));
+
+        // Check if an accessory with this UUID is already registered in Homebridge
+        const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
+
+        if (existingAccessory) {
+          // Restore the existing accessory from cache
+          this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+
+          // Register accessory handler for the restored accessory
+          await this.registerAccessory(foundDevice, existingAccessory);
+
+        } else {
+          // Create and register a new accessory if it does not exist in the cache
+          this.log.info('Adding new accessory:', foundDevice.name || 'PioneerVSX Accessory', foundDevice.ip, foundDevice.port);
+
+          // Initialize a new accessory instance and set device context
+          const accessory = new this.api.platformAccessory(foundDevice.name || 'PioneerVSX Accessory', uuid);
+          accessory.context.device = foundDevice;
+
+          // Register accessory handler for the newly created accessory
+          await this.registerAccessory(foundDevice, accessory);
+        }
+
+      } catch (e) {
+        this.log.debug('Error processing device in loopDevices:', e);
+      }
     }
   }
 
+  /**
+   * Registers or links an accessory to the platform.
+   * Waits until the accessory is fully initialized before registering it with Homebridge.
+   *
+   * @param device - The device information used to create or register the accessory
+   * @param accessory - The accessory instance to be registered
+   */
+  async registerAccessory(device: any, accessory: PlatformAccessory) {
+    // Initialize the accessory and wait for it to be ready
+    await new PioneerAvrAccessory(device, this, accessory).untilBooted();
 
-  loopDevices(foundDevices) {
-    // loop over the discovered devices and register each one if it has not already been registered
-    for (const founddevice of foundDevices) {
-      this.log.debug('on device:', founddevice)
-
-      try {
-
-          // generate a unique id for the accessory this should be generated from
-          // something globally unique, but constant, for example, the device serial
-          // number or MAC address
-          const uuid = this.api.hap.uuid.generate(String(founddevice.name) + String(founddevice.ip) + String(founddevice.port));
-
-          // see if an accessory with the same uuid has already been registered and restored from
-          // the cached devices we stored in the `configureAccessory` method above
-          const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
-
-          if (existingAccessory) {
-            // the accessory already exists
-            this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
-
-            // if you need to update the accessory.context then you should run `api.updatePlatformAccessories`. e.g.:
-            // existingAccessory.context.device = device;
-            // this.api.updatePlatformAccessories([existingAccessory]);
-
-            // create the accessory handler for the restored accessory
-            // this is imported from `platformAccessory.ts`
-
-            (async (): Promise<void> => {
-                await new PioneerAvrAccessory(founddevice, this, existingAccessory).untilBooted();
-
-                // link the accessory to your platform
-                this.api.registerPlatformAccessories(this.name, this.config.name || 'PioneerVSX Accessory', [existingAccessory]);
-            })();
-
-            // it is possible to remove platform accessories at any time using `api.unregisterPlatformAccessories`, e.g.:
-            // remove platform accessories when no longer present
-            // this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [existingAccessory]);
-            // this.log.info('Removing existing accessory from cache:', existingAccessory.displayName);
-          } else {
-            // the accessory does not yet exist, so we need to create it
-            this.log.info('Adding new accessory:', founddevice.name || 'PioneerVSX Accessory');
-
-            // create a new accessory
-            const accessory = new this.api.platformAccessory(founddevice.name || 'PioneerVSX Accessory', uuid);
-
-            // store a copy of the device object in the `accessory.context`
-            // the `context` property can be used to store any data about the accessory you may need
-            accessory.context.device = founddevice;
-
-            // create the accessory handler for the newly create accessory
-            // this is imported from `platformAccessory.ts`
-            // new PioneerAvrAccessory(this, accessory);
-
-            (async (): Promise<void> => {
-                await new PioneerAvrAccessory(founddevice, this, accessory).untilBooted();
-
-                // link the accessory to your platform
-                this.api.registerPlatformAccessories(this.name, this.config.name || 'PioneerVSX Accessory', [accessory]);
-            })();
-
-          }
-
-        } catch (e) {
-            this.log.debug('loopDevices', e)
-        }
-    }
+    // Register the accessory with Homebridge once it is fully initialized
+    this.api.registerPlatformAccessories(this.name, this.config.name || 'PioneerVSX Accessory', [accessory]);
   }
 }

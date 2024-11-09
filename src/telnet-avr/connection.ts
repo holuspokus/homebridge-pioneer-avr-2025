@@ -18,6 +18,7 @@ export class Connection {
     private dataHandler: DataHandler; // DataHandler instance
     private host: string;
     private port: number;
+    private isConnecting: number | null = null;
 
     constructor(telnetAvr: TelnetAvr) {
         this.port = telnetAvr.port;
@@ -30,11 +31,15 @@ export class Connection {
 
     private disconnectOnExit() {
         if (this.connectionReady) {
+            this.connectionReady = false;
             this.disconnect();
         }
     }
 
     connect(callback: () => void = () => {}) {
+        if (!this.connectionReady && this.isConnecting !== null && Date.now() - this.isConnecting < 30000){
+            return;
+        }
         if (this.connectionReady && this.socket) {
             if (Date.now() - (this.lastConnect ?? 0) > 15 * 1000) {
                 this.reconnect(callback);
@@ -51,6 +56,7 @@ export class Connection {
     }
 
     private initializeSocket(callback: () => void) {
+        this.isConnecting = Date.now()
         this.socket = new net.Socket();
         this.socket.setTimeout(2 * 60 * 60 * 1000);
 
