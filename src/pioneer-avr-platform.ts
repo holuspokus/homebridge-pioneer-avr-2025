@@ -3,6 +3,8 @@
 import type { API, Characteristic, DynamicPlatformPlugin, Logging, PlatformAccessory, PlatformConfig, Service } from 'homebridge';
 import { findDevices } from './discovery';
 import PioneerAvrAccessory from './pioneer-avr-accessory.js';
+import * as fs from 'fs';
+import * as path from 'path';
 
 /**
  * PioneerAvrPlatform
@@ -64,10 +66,32 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
       });
       this.log.info('Using manually configured device:', devicesFound);
     } else {
+      // Attempt to load the full Homebridge config.json file
+      const homebridgeConfigPath = path.join(this.api.user.storagePath(), 'config.json');
+      try {
+        const homebridgeConfig = JSON.parse(fs.readFileSync(homebridgeConfigPath, 'utf8'));
+
+        // Check if "pioneerAvrAccessory" exists in accessories
+        const pioneerAccessory = homebridgeConfig.accessories?.find(
+          (accessory: any) => accessory.accessory === 'pioneerAvrAccessory'
+        );
+
+        if (pioneerAccessory && pioneerAccessory.name && pioneerAccessory.host && pioneerAccessory.port) {
+          devicesFound.push({
+            name: pioneerAccessory.name,
+            ip: pioneerAccessory.host,
+            port: pioneerAccessory.port,
+          });
+          this.log.info('Using pioneerAvrAccessory from config.json:', devicesFound);
+        }
+      } catch (error) {
+        this.log.error('Error reading config.json for pioneerAvrAccessory:', error);
+      }
+
       let attempts = 0;
 
       // Retry discovery up to MAX_ATTEMPTS times if no devices are found
-      while (attempts < MAX_ATTEMPTS) {
+      while (attempts < MAX_ATTEMPTS && devicesFound.length === 0) {
         attempts++;
         const discoveredDevices = await findDevices(TARGET_NAME, TELNET_PORTS, this.log);
 
@@ -107,33 +131,30 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
       this.log.debug('Processing device:', foundDevice);
 
       try {
-
         // Generate a unique name to avoid duplicate accessory names in Homebridge
         let uniqueName = foundDevice.name.replace(/[^a-zA-Z0-9]/g, "");
         let counter = 1;
 
-        if (foundDevices.length > 1){
-            // Check if another accessory with the same name already exists
-            while (foundDevices.some(fd => fd.name === uniqueName)) {
-              if (counter === 1){
-                let tryThis = foundDevice.ip.slice(-1)
-                uniqueName = `${foundDevice.name}_${tryThis}`;
-              }else
-              if (counter === 2){
-                let tryThis = foundDevice.ip.slice(-3)
-                uniqueName = `${foundDevice.name}_${tryThis}`;
-              }else
-              if (counter > 1) {
-                  // Append counter to name to make it unique
-                  uniqueName = `${foundDevice.name}_${counter}`;
-              }
-              counter++;
+        if (foundDevices.length > 1) {
+          // Check if another accessory with the same name already exists
+          while (foundDevices.some(fd => fd.name === uniqueName)) {
+            if (counter === 1) {
+              let tryThis = foundDevice.ip.slice(-1);
+              uniqueName = `${foundDevice.name}_${tryThis}`;
+            } else if (counter === 2) {
+              let tryThis = foundDevice.ip.slice(-3);
+              uniqueName = `${foundDevice.name}_${tryThis}`;
+            } else if (counter > 1) {
+              // Append counter to name to make it unique
+              uniqueName = `${foundDevice.name}_${counter}`;
             }
+            counter++;
+          }
         }
 
         // Log the renaming if necessary
-        if (uniqueName !== foundDevice.name.replace(/[^a-zA-Z0-9]/g, "") ) {
-            this.log.warn(`Device with name "${foundDevice.name.replace(/[^a-zA-Z0-9]/g, "")}" already exists. Renaming to "${uniqueName}".`);
+        if (uniqueName !== foundDevice.name.replace(/[^a-zA-Z0-9]/g, "")) {
+          this.log.warn(`Device with name "${foundDevice.name.replace(/[^a-zA-Z0-9]/g, "")}" already exists. Renaming to "${uniqueName}".`);
         }
 
         // Generate a unique identifier (UUID) for the accessory based on device information
@@ -147,11 +168,9 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
           this.log.debug('Restoring existing accessory from cache:', existingAccessory.displayName);
 
           // Initialize the accessory and wait for it to be ready
-          // await new PioneerAvrAccessory(device, this, accessory).untilBooted();
-          new PioneerAvrAccessory(foundDevice, this, existingAccessory)
+          new PioneerAvrAccessory(foundDevice, this, existingAccessory);
 
         } else {
-
           this.log.debug('Adding new accessory:', uniqueName, foundDevice.ip, foundDevice.port);
 
           // Initialize a new accessory instance with the unique name and set device context
@@ -159,8 +178,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
           accessory.context.device = { ...foundDevice, name: uniqueName };
 
           // Initialize the accessory and wait for it to be ready
-          // await new PioneerAvrAccessory(device, this, accessory).untilBooted();
-          new PioneerAvrAccessory(foundDevice, this, accessory)
+          new PioneerAvrAccessory(foundDevice, this, accessory);
 
           // Register the accessory with Homebridge once it is fully initialized
           this.api.registerPlatformAccessories(this.name, uniqueName || 'PioneerVSX Accessory', [accessory]);
