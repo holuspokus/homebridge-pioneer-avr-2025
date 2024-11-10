@@ -206,8 +206,9 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
         /**
          * Placeholder for adding an input source service; should be overridden externally.
          */
-        public addInputSourceService(): void {
+        public addInputSourceService(_error: any, _key: any): void {
             // Placeholder method, should be externally overwritten
+            console.log('uh oh bin im addInputSourceService von inputs.ts ;(')
         }
 
         /**

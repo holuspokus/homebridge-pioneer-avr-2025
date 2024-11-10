@@ -5,6 +5,8 @@ import { MessageQueue } from "./messageQueue";
 import DataHandler from "./dataHandler";
 import { addExitHandler } from "../exitHandler";
 
+let onExitCalled = false;
+
 export class Connection {
     private socket: net.Socket | null = null;
     private lastConnect: number | null = null;
@@ -30,6 +32,7 @@ export class Connection {
     }
 
     private disconnectOnExit() {
+        onExitCalled = true;
         if (this.connectionReady) {
             this.connectionReady = false;
             this.disconnect();
@@ -92,6 +95,8 @@ export class Connection {
 
     private handleClose() {
         this.setConnectionReady(false);
+
+        if (onExitCalled) return;
         this.log.debug("Socket closed, attempting reconnect.");
         this.tryReconnect();
     }
@@ -110,6 +115,8 @@ export class Connection {
     }
 
     private tryReconnect() {
+        if (onExitCalled) return;
+
         this.reconnectCounter++;
         const delay = this.reconnectCounter > 30 ? 60 : 15;
 
@@ -182,6 +189,8 @@ export class Connection {
     }
 
     private reconnect(callback: () => void) {
+        if (onExitCalled) return;
+
         if (!this.socket) {
             this.initializeSocket(callback);
         } else if (Date.now() - (this.lastConnect ?? 0) > 15 * 1000) {
