@@ -199,7 +199,7 @@ export class Connection {
     }
 
     public setConnectionReady(ready: boolean) {
-        this.log.debug('set setConnectionReady', ready)
+        // this.log.debug('set setConnectionReady', ready)
         this.connectionReady = ready;
     }
 

@@ -1,0 +1,64 @@
+{
+  "pluginAlias": "homebridge-pioneer-avr-2025",
+  "pluginType": "platform",
+  "singular": true,
+  "schema": {
+    "title": "Pioneer AVR Plugin",
+    "type": "object",
+    "properties": {
+      "device": {
+        "type": "object",
+        "title": "Device Configuration (Optional)",
+        "expandable": true,
+        "expanded": false,
+        "properties": {
+          "name": {
+            "title": "Device Name",
+            "type": "string",
+            "placeholder": "VSX923",
+            "description": "Enter the name of the device.",
+            "condition": {
+              "functionBody": "return !model.device.ip || model.device.ip !== '';"
+            }
+          },
+          "ip": {
+            "title": "Device IP Address",
+            "type": "string",
+            "placeholder": "192.168.1.99",
+            "description": "Enter the IP address of the device.",
+            "condition": {
+              "functionBody": "return !model.device.name || model.device.name !== '';"
+            }
+          },
+          "port": {
+            "title": "Device Port",
+            "type": "integer",
+            "default": 23,
+            "description": "Enter the port number for the device connection (23 or 8102?)."
+          }
+        },
+        "required": false,
+        "description": "Configure the device parameters manually if needed."
+      },
+      "maxVolumeSet": {
+        "title": "Maximum Volume Setting",
+        "type": "integer",
+        "default": 80,
+        "minimum": 0,
+        "maximum": 100,
+        "description": "Set the maximum volume level (0-100)."
+      },
+      "minVolumeSet": {
+        "title": "Minimum Volume Setting",
+        "type": "integer",
+        "default": 30,
+        "minimum": 0,
+        "maximum": 100,
+        "description": "Set the minimum volume level (0-100)."
+      }
+    }
+  },
+  "defaults": {
+    "name": "PioneerAVR"
+  }
+}

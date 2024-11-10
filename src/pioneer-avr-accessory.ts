@@ -69,6 +69,9 @@ class PioneerAvrAccessory {
                         if (this.maxVolumeSet !== 0) {
                             await this.prepareVolumeService();
                         }
+
+                        this.log.debug('> finished initializing. Device ready!')
+
                     } catch (err) {
                         this.log.debug("Error during AVR setup callback: %s", err);
                     }
@@ -122,7 +125,7 @@ class PioneerAvrAccessory {
                                   this.accessory.addService(this.platform.service.AccessoryInformation);
 
         this.informationService
-            .setCharacteristic(this.platform.characteristic.Name, this.name)
+            .setCharacteristic(this.platform.characteristic.Name, this.name.replace(/[^a-zA-Z0-9]/g, ""))
             .setCharacteristic(this.platform.characteristic.Manufacturer, this.manufacturer)
             .setCharacteristic(this.platform.characteristic.Model, this.model)
             .setCharacteristic(this.platform.characteristic.SerialNumber, this.host)
@@ -135,10 +138,10 @@ class PioneerAvrAccessory {
      * Sets up the Television service to control the AVR's power and input selection.
      */
     private async prepareTvService() {
-        this.tvService = new this.platform.service.Television(this.name, "tvService");
+        this.tvService = new this.platform.service.Television(this.name.replace(/[^a-zA-Z0-9]/g, ""), "tvService");
 
         this.tvService
-            .setCharacteristic(this.platform.characteristic.ConfiguredName, this.name)
+            .setCharacteristic(this.platform.characteristic.ConfiguredName, this.name.replace(/[^a-zA-Z0-9]/g, ""))
             .setCharacteristic(this.platform.characteristic.SleepDiscoveryMode, this.platform.characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE);
 
         this.tvService.getCharacteristic(this.platform.characteristic.Active)
@@ -171,7 +174,7 @@ class PioneerAvrAccessory {
      * Prepares the Television Speaker service for volume control.
      */
     private async prepareTvSpeakerService() {
-        this.tvSpeakerService = new this.platform.service.TelevisionSpeaker(this.name + " Volume", "tvSpeakerService");
+        this.tvSpeakerService = new this.platform.service.TelevisionSpeaker(this.name.replace(/[^a-zA-Z0-9]/g, "") + " Volume", "tvSpeakerService");
 
         this.tvSpeakerService
             .setCharacteristic(this.platform.characteristic.Active, this.platform.characteristic.Active.ACTIVE)
@@ -196,7 +199,7 @@ class PioneerAvrAccessory {
      * Prepares the Lightbulb service for volume control.
      */
     private async prepareVolumeService() {
-        this.volumeServiceLightbulb = new this.platform.service.Lightbulb(this.name + " VolumeBulb", 'volumeInput');
+        this.volumeServiceLightbulb = new this.platform.service.Lightbulb(this.name.replace(/[^a-zA-Z0-9]/g, "") + " VolumeBulb", 'volumeInput');
 
         this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On)
             .onGet(this.getMutedInverted.bind(this))
@@ -250,7 +253,7 @@ class PioneerAvrAccessory {
         try {
 
             const input = (this.avr as any).inputs[key];
-            const tmpInput = new this.platform.service.InputSource(input.name, "tvInputService" + key);
+            const tmpInput = new this.platform.service.InputSource(input.name.replace(/[^a-zA-Z0-9]/g, ""), "tvInputService" + key);
             tmpInput
                 .setCharacteristic(this.platform.characteristic.Identifier, key)
                 .setCharacteristic(this.platform.characteristic.ConfiguredName, input.name)

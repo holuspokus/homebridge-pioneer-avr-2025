@@ -56,11 +56,11 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     const devicesFound: any[] = [];
 
     // Check if the device is manually configured, bypassing discovery
-    if (this.name && this.config.ip && this.config.port) {
+    if (this.config && this.config.device && this.config.device.name && this.config.device.ip && this.config.device.port) {
       devicesFound.push({
-        name: this.name,
-        ip: this.config.ip,
-        port: this.config.port,
+        name: this.config.device.name,
+        ip: this.config.device.ip,
+        port: this.config.device.port,
       });
       this.log.info('Using manually configured device:', devicesFound);
     } else {
@@ -109,7 +109,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
       try {
 
         // Generate a unique name to avoid duplicate accessory names in Homebridge
-        let uniqueName = foundDevice.name;
+        let uniqueName = foundDevice.name.replace(/[^a-zA-Z0-9]/g, "");
         let counter = 1;
 
         if (foundDevices.length > 1){
@@ -132,8 +132,8 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         }
 
         // Log the renaming if necessary
-        if (uniqueName !== foundDevice.name) {
-          this.log.warn(`Device with name "${foundDevice.name}" already exists. Renaming to "${uniqueName}".`);
+        if (uniqueName !== foundDevice.name.replace(/[^a-zA-Z0-9]/g, "") ) {
+            this.log.warn(`Device with name "${foundDevice.name.replace(/[^a-zA-Z0-9]/g, "")}" already exists. Renaming to "${uniqueName}".`);
         }
 
         // Generate a unique identifier (UUID) for the accessory based on device information
