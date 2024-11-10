@@ -107,8 +107,29 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
       this.log.debug('Processing device:', foundDevice);
 
       try {
+
+        // Generate a unique name to avoid duplicate accessory names in Homebridge
+        let uniqueName = foundDevice.name;
+        let counter = 1;
+
+        if (foundDevices.length > 1){
+            // Check if another accessory with the same name already exists
+            while (foundDevices.some(fd => fd.name === uniqueName)) {
+              if (counter > 1) {
+                  // Append counter to name to make it unique
+                  uniqueName = `${foundDevice.name}_${counter}`;
+              }
+              counter++;
+            }
+        }
+
+        // Log the renaming if necessary
+        if (uniqueName !== foundDevice.name) {
+          this.log.warn(`Device with name "${foundDevice.name}" already exists. Renaming to "${uniqueName}".`);
+        }
+
         // Generate a unique identifier (UUID) for the accessory based on device information
-        const uuid = this.api.hap.uuid.generate(String(foundDevice.name) + String(foundDevice.ip) + String(foundDevice.port));
+        const uuid = this.api.hap.uuid.generate(String(uniqueName) + String(foundDevice.ip));
 
         // Check if an accessory with this UUID is already registered in Homebridge
         const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
@@ -121,12 +142,12 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
           await this.registerAccessory(foundDevice, existingAccessory);
 
         } else {
-          // Create and register a new accessory if it does not exist in the cache
-          this.log.info('Adding new accessory:', foundDevice.name || 'PioneerVSX Accessory', foundDevice.ip, foundDevice.port);
 
-          // Initialize a new accessory instance and set device context
-          const accessory = new this.api.platformAccessory(foundDevice.name || 'PioneerVSX Accessory', uuid);
-          accessory.context.device = foundDevice;
+          this.log.info('Adding new accessory:', uniqueName, foundDevice.ip, foundDevice.port);
+
+          // Initialize a new accessory instance with the unique name and set device context
+          const accessory = new this.api.platformAccessory(uniqueName, uuid);
+          accessory.context.device = { ...foundDevice, name: uniqueName };
 
           // Register accessory handler for the newly created accessory
           await this.registerAccessory(foundDevice, accessory);

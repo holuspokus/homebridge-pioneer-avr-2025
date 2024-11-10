@@ -16,7 +16,6 @@ export function InitializeMixin<TBase extends new (...args: any[]) => {
     host: string;
     port: number;
     state: AVState;
-    pioneerAvrClassCallback?: () => Promise<void>;
     isReady: boolean;
     lastUserInteraction: number;
 }>(Base: TBase) {
@@ -28,7 +27,6 @@ export function InitializeMixin<TBase extends new (...args: any[]) => {
         public __updatePower!: any;
         public functionSetPowerState!: any;
         public functionSetLightbulbMuted!: any;
-        public pioneerAvrClassCallbackCalled: boolean = false;
 
         constructor(...args: any[]) {
             super(...args);
@@ -46,6 +44,7 @@ export function InitializeMixin<TBase extends new (...args: any[]) => {
 
             this.telnetAvr = new TelnetAvr(this.host, this.port, this.log);
             this.onData = onDataHandler(this as any);
+            this.isReady = false;
 
             try {
                 this.telnetAvr.onData = this.onData;
@@ -60,39 +59,22 @@ export function InitializeMixin<TBase extends new (...args: any[]) => {
         /**
          * Sets up connection and disconnection callbacks for the Telnet connection.
          */
-        public setupConnectionCallbacks() {
+        public async setupConnectionCallbacks() {
+            this.log.info("in setupConnectionCallbacks(), adding addOnConnectCallback...");
             if (!this.telnetAvr) {
                 this.log.error("TelnetAvr instance is not initialized.");
                 return;
             }
+
+            this.log.info("Telnet connected, starting up");
 
             this.telnetAvr.addOnDisconnectCallback(() => {
                 this.log.info("Telnet Disconnected!");
             });
 
             this.telnetAvr.addOnConnectCallback(async () => {
-                this.telnetAvr.sendMessage("?P", "PWR", async () => {
-                    this.log.info("Telnet connected");
-
-                    if (!this.pioneerAvrClassCallbackCalled) {
-                        this.pioneerAvrClassCallbackCalled = true;
-                        await new Promise(resolve => setTimeout(resolve, 50));
-
-                        setTimeout(() => {
-                            try {
-                                const runThis = this.pioneerAvrClassCallback?.bind(this);
-                                if (runThis) {
-                                    runThis();
-                                }
-                            } catch (e) {
-                                this.log.debug("connectionReadyCallback() Error", e);
-                            }
-                        }, 1500);
-                    }
-                });
+                this.log.info("Telnet connected, waiting for PWR...");
             });
-
-            this.isReady = false;
 
             this.telnetAvr.displayChanged = (text: string) => {
                 if (text) {

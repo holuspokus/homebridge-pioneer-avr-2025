@@ -53,8 +53,9 @@ export class TelnetAvr {
         this.onDisconnectCallbacks.push(callback);
     }
 
-    async sendMessage(message: string, callbackChars?: string, onData?: (error: any, response: string) => void) {
-        return this.connection.sendMessage(message, callbackChars, onData);
+    async sendMessage(message: string, callbackChars?: string, callback?: (error: any, response: string) => void) {
+        // this.log.debug('telnet sendMessage>', message)
+        return this.connection.sendMessage(message, callbackChars, callback);
     }
 
     public displayChanged(message: string) {

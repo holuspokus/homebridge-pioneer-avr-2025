@@ -26,7 +26,7 @@ export class Connection {
         this.log = telnetAvr.log;
         this.messageQueue = new MessageQueue(this);
         this.dataHandler = new DataHandler(telnetAvr, this.messageQueue); // Initialize DataHandler
-        addExitHandler(this.disconnectOnExit.bind(telnetAvr), telnetAvr);
+        addExitHandler(this.disconnectOnExit.bind(this), this);
     }
 
     private disconnectOnExit() {
@@ -66,12 +66,21 @@ export class Connection {
             this.lastConnect = Date.now();
             this.log.debug("Socket connected.");
 
-            try {
-                this.onConnect();
-                callback();
-            } catch (e) {
-                this.log.error("Connect callback error:", e);
-            }
+            this.sendMessage("?P", "PWR", async () => {
+                try {
+                    callback();
+                } catch (e) {
+                    this.log.error("Connect callback error:", e);
+                }
+
+                try {
+                    this.onConnect();
+                } catch (e) {
+                    this.log.error("Connect onConnect error:", e);
+                }
+            });
+
+
         });
 
         this.socket.on("close", () => this.handleClose());
@@ -116,6 +125,7 @@ export class Connection {
             this.socket.destroy();
             this.socket = null;
         }
+        this.log.debug('telnet> disconnect...')
         this.setConnectionReady(false);
         this.onDisconnect();
     }
@@ -124,37 +134,37 @@ export class Connection {
         return this.connectionReady;
     }
 
-    async sendMessage(message: string, callbackChars?: string, onData?: (error: any, response: string) => void) {
+    async sendMessage(message: string, callbackChars?: string, callback?: (error: any, response: string) => void) {
         if (!this.connectionReady) {
             this.connect();
         }
 
-        if (callbackChars === undefined) {
-            this.directSend(message, onData);
-            return;
+        if (this.connectionReady && callbackChars === undefined && (Date.now() - (this.lastWrite ?? 0) > 38)) {
+            this.directSend(message, callback);
+        }else{
+            this.queueMessage(message, callbackChars, callback);
         }
 
-        this.queueMessage(message, callbackChars, onData);
     }
 
-    private directSend(message: string, onData?: (error: any, response: string) => void) {
+    public directSend(message: string, callback?: (error: any, response: string) => void) {
         if (!this.connectionReady) {
             this.log.warn("Connection not ready, skipping direct send.");
             return;
         }
 
-        if (Date.now() - (this.lastWrite ?? 0) < 38) {
-            setTimeout(() => this.directSend(message, onData), 10);
-            return;
-        }
-
+        // this.log.debug('telnet write>', message)
         this.socket?.write(message + "\r\n");
         this.setLastWrite(Date.now());
-        onData?.(null, `${message}:SENT`);
+        callback?.(null, `${message}:SENT`);
     }
 
-    private queueMessage(message: string, callbackChars: string, onData?: (error: any, response: string) => void) {
-        this.messageQueue.enqueue(message, callbackChars, onData!);
+    private queueMessage(message: string, callbackChars?: string, callback?: (error: any, response: string) => void) {
+        // if (onData && typeof(callbackChars) === undefined){
+        //     this.onData()
+        // }
+
+        this.messageQueue.enqueue(message, callbackChars, callback!);
 
         if (this.clearQueueTimeout) {
             clearTimeout(this.clearQueueTimeout);
@@ -181,14 +191,15 @@ export class Connection {
     }
 
     public onDisconnect() {
-        console.log("Disconnected!");
+        this.log.debug("Disconnected!");
     }
 
     public onConnect() {
-        console.log("Connected!");
+        this.log.debug("Connected!");
     }
 
     public setConnectionReady(ready: boolean) {
+        this.log.debug('set setConnectionReady', ready)
         this.connectionReady = ready;
     }
 

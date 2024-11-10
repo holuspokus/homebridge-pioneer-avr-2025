@@ -3,6 +3,12 @@
 import PioneerAvr from './pioneerAvr';
 
 export function onDataHandler(pioneerThis: PioneerAvr) {
+
+      // Ensure `initCount` is initialized
+    if (!(pioneerThis as any).initCount) {
+      (pioneerThis as any).initCount = 0;
+    }
+
     return function (error: any, data: string, callback: Function = () => {}) {
         (pioneerThis as any).log.debug("Receive data: %s", data);
 
@@ -44,7 +50,7 @@ export function onDataHandler(pioneerThis: PioneerAvr) {
         } else if (data.indexOf("FN") > -1) {
             handleInputStatus(data, pioneerThis, callback);
         } else if (data.startsWith("E06RGB") || data.startsWith("E04RGB")) {
-            handleInputErrors(data, pioneerThis);
+            handleInputErrors(data, pioneerThis, callback);
         } else if (data.indexOf("RGB") > -1) {
             handleInputDiscovery(data, pioneerThis, callback);
         }
@@ -182,25 +188,32 @@ function handleInputStatus(data: string, pioneerThis: PioneerAvr, callback: Func
     }
 }
 
-function handleInputErrors(data: string, pioneerThis: PioneerAvr) {
-    data = data.substring(data.indexOf("RGB"));
-    let thisId = data.substr(3, 2);
+function handleInputErrors(data: string, pioneerThis: PioneerAvr, callback: Function) {
+  try {
+        data = data.substring(data.indexOf("RGB"));
+        let thisId = data.substr(3, 2);
 
-    for (let key in (pioneerThis as any).inputToType) {
-        if (String(key) === String(thisId)) {
-            delete (pioneerThis as any).inputToType[key];
+        for (let key in (pioneerThis as any).inputToType) {
+            if (String(key) === String(thisId)) {
+                delete (pioneerThis as any).inputToType[key];
 
-            let indexMissing = (pioneerThis as any).inputMissing.findIndex(missingInput => missingInput.includes(thisId));
-            if (indexMissing !== -1) {
-                (pioneerThis as any).inputMissing.splice(indexMissing, 1);
+                let indexMissing = (pioneerThis as any).inputMissing.findIndex(missingInput => missingInput.includes(thisId));
+                if (indexMissing !== -1) {
+                    (pioneerThis as any).inputMissing.splice(indexMissing, 1);
+                }
+
+                if (String((pioneerThis as any).inputBeingAdded) === String(key)) {
+                    (pioneerThis as any).inputBeingAdded = false;
+                    (pioneerThis as any).inputBeingAddedWaitCount = 0;
+                }
+                break;
             }
-
-            if (String((pioneerThis as any).inputBeingAdded) === String(key)) {
-                (pioneerThis as any).inputBeingAdded = false;
-                (pioneerThis as any).inputBeingAddedWaitCount = 0;
-            }
-            break;
         }
+
+
+        callback(String(data), data);
+    } catch (e) {
+        (pioneerThis as any).log.debug("onData", e);
     }
 }
 

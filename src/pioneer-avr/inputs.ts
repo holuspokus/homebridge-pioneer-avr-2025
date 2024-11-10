@@ -13,6 +13,7 @@ import type { AVState } from './pioneerAvr'; // Imports AVState type from Pionee
 export function InputManagementMixin<TBase extends new (...args: any[]) => {
     log: Logging;
     state: AVState;
+    pioneerAvrClassCallback?: () => Promise<void>;
     lastUserInteraction: number;
     telnetAvr: TelnetAvr;
     isReady: boolean;
@@ -27,6 +28,8 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
         public tvService!: Service;
         public enabledServices: Service[] = [];
         public inputToType: { [key: string]: number } = {};
+        public pioneerAvrClassCallbackCalled: boolean = false;
+
 
         constructor(...args: any[]) {
             super(...args);
@@ -36,8 +39,30 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
 
             // Add a callback to manage inputs when the Telnet connection is established
             this.telnetAvr.addOnConnectCallback(async () => {
-                await this.loadInputs(() => {
-                    this.__updateInput(() => {});
+                await this.loadInputs(async () => {
+
+                  //callback von pioneerAvr class
+                    if (!this.pioneerAvrClassCallbackCalled) {
+                        this.pioneerAvrClassCallbackCalled = true;
+                        await new Promise(resolve => setTimeout(resolve, 50));
+
+                        setTimeout(() => {
+                            try {
+                                this.log.info("run pioneerAvrClassCallback");
+                                const runThis = this.pioneerAvrClassCallback?.bind(this);
+                                if (runThis) {
+                                    runThis();
+                                }
+                            } catch (e) {
+                                this.log.debug("connectionReadyCallback() Error", e);
+                            }
+
+                            this.__updateInput(() => {});
+                        }, 1500);
+                    }else{
+                        this.__updateInput(() => {});
+                    }
+
                 });
             });
         }
@@ -157,6 +182,7 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
             }
 
             if (this.inputMissing.length === 0 && Object.keys(this.inputToType).length > 0) {
+                this.log.info('set isReady to true');
                 this.isReady = true;
             }
 
@@ -182,6 +208,14 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
          */
         public addInputSourceService(): void {
             // Placeholder method, should be externally overwritten
+        }
+
+        /**
+         * Placeholder for setting the power state of the AVR.
+         * Intended to be overridden externally.
+         */
+        public functionSetActiveIdentifier(_set: number) {
+            // Placeholder logic for setting power state, should be overridden externally
         }
 
         /**
