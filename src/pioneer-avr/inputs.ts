@@ -48,13 +48,13 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
 
                         setTimeout(() => {
                             try {
-                                this.log.info("run pioneerAvrClassCallback");
+                                // this.log.debug("run pioneerAvrClassCallback");
                                 const runThis = this.pioneerAvrClassCallback?.bind(this);
                                 if (runThis) {
                                     runThis();
                                 }
                             } catch (e) {
-                                this.log.debug("connectionReadyCallback() Error", e);
+                                this.log.debug("pioneerAvrClassCallback() inputs.ts Error", e);
                             }
 
                             this.__updateInput(() => {});
@@ -182,7 +182,7 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
             }
 
             if (this.inputMissing.length === 0 && Object.keys(this.inputToType).length > 0) {
-                this.log.info('set isReady to true');
+                // this.log.debug('set isReady to true');
                 this.isReady = true;
             }
 

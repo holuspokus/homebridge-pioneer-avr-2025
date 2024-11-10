@@ -115,6 +115,14 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         if (foundDevices.length > 1){
             // Check if another accessory with the same name already exists
             while (foundDevices.some(fd => fd.name === uniqueName)) {
+              if (counter === 1){
+                let tryThis = foundDevice.ip.slice(-1)
+                uniqueName = `${foundDevice.name}_${tryThis}`;
+              }else
+              if (counter === 2){
+                let tryThis = foundDevice.ip.slice(-3)
+                uniqueName = `${foundDevice.name}_${tryThis}`;
+              }else
               if (counter > 1) {
                   // Append counter to name to make it unique
                   uniqueName = `${foundDevice.name}_${counter}`;
@@ -136,41 +144,31 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
         if (existingAccessory) {
           // Restore the existing accessory from cache
-          this.log.info('Restoring existing accessory from cache:', existingAccessory.displayName);
+          this.log.debug('Restoring existing accessory from cache:', existingAccessory.displayName);
 
-          // Register accessory handler for the restored accessory
-          await this.registerAccessory(foundDevice, existingAccessory);
+          // Initialize the accessory and wait for it to be ready
+          // await new PioneerAvrAccessory(device, this, accessory).untilBooted();
+          new PioneerAvrAccessory(foundDevice, this, existingAccessory)
 
         } else {
 
-          this.log.info('Adding new accessory:', uniqueName, foundDevice.ip, foundDevice.port);
+          this.log.debug('Adding new accessory:', uniqueName, foundDevice.ip, foundDevice.port);
 
           // Initialize a new accessory instance with the unique name and set device context
           const accessory = new this.api.platformAccessory(uniqueName, uuid);
           accessory.context.device = { ...foundDevice, name: uniqueName };
 
-          // Register accessory handler for the newly created accessory
-          await this.registerAccessory(foundDevice, accessory);
+          // Initialize the accessory and wait for it to be ready
+          // await new PioneerAvrAccessory(device, this, accessory).untilBooted();
+          new PioneerAvrAccessory(foundDevice, this, accessory)
+
+          // Register the accessory with Homebridge once it is fully initialized
+          this.api.registerPlatformAccessories(this.name, uniqueName || 'PioneerVSX Accessory', [accessory]);
         }
 
       } catch (e) {
         this.log.debug('Error processing device in loopDevices:', e);
       }
     }
-  }
-
-  /**
-   * Registers or links an accessory to the platform.
-   * Waits until the accessory is fully initialized before registering it with Homebridge.
-   *
-   * @param device - The device information used to create or register the accessory
-   * @param accessory - The accessory instance to be registered
-   */
-  async registerAccessory(device: any, accessory: PlatformAccessory) {
-    // Initialize the accessory and wait for it to be ready
-    await new PioneerAvrAccessory(device, this, accessory).untilBooted();
-
-    // Register the accessory with Homebridge once it is fully initialized
-    this.api.registerPlatformAccessories(this.name, this.config.name || 'PioneerVSX Accessory', [accessory]);
   }
 }

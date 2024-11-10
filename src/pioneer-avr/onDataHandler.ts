@@ -10,7 +10,7 @@ export function onDataHandler(pioneerThis: PioneerAvr) {
     }
 
     return function (error: any, data: string, callback: Function = () => {}) {
-        (pioneerThis as any).log.debug("Receive data: %s", data);
+        // (pioneerThis as any).log.debug("Receive data: %s", data);
 
         if (error) {
             (pioneerThis as any).log.error(error);
@@ -237,9 +237,11 @@ function handleInputDiscovery(data: string, pioneerThis: PioneerAvr, callback: F
         removeFromInputMissing(pioneerThis, tmpInput.id);
         (pioneerThis as any).initCount += 1;
         (pioneerThis as any).lastInputDiscovered = Date.now();
-        (pioneerThis as any).log.debug(
-            `Input [${tmpInput.name}] discovered (id: ${tmpInput.id}, type: ${tmpInput.type}). InitCount=${(pioneerThis as any).initCount}/${Object.keys((pioneerThis as any).inputToType).length}, inputMissing: ${(pioneerThis as any).inputMissing}`
+        (pioneerThis as any).log.info(
+            `Input [${tmpInput.name}] discovered (id: ${tmpInput.id}, type: ${tmpInput.type}). InitCount=${(pioneerThis as any).initCount}/${Object.keys((pioneerThis as any).inputToType).length}` +
+            ((pioneerThis as any).inputMissing.length > 0 ? `, inputMissing: ${(pioneerThis as any).inputMissing}` : '')
         );
+
     }
 
     let inputIndex = (pioneerThis as any).inputs.findIndex(input => input.id === tmpInput.id);

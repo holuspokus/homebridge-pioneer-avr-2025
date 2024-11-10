@@ -57,7 +57,7 @@ class PioneerAvrAccessory {
             // console.log(platform)
 
             this.avr = new PioneerAvr(platform, this, async (): Promise<void> => {
-                  this.log.info('in PioneerAvr() callback from pioneer-avr-accessory.ts')
+                  // this.log.debug('in PioneerAvr() callback from pioneer-avr-accessory.ts')
                     try {
                         (this.avr as any).addInputSourceService = this.addInputSourceService;
 

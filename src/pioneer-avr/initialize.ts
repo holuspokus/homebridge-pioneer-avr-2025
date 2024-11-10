@@ -60,7 +60,7 @@ export function InitializeMixin<TBase extends new (...args: any[]) => {
          * Sets up connection and disconnection callbacks for the Telnet connection.
          */
         public async setupConnectionCallbacks() {
-            this.log.info("in setupConnectionCallbacks(), adding addOnConnectCallback...");
+            // this.log.debug("in setupConnectionCallbacks(), adding addOnConnectCallback...");
             if (!this.telnetAvr) {
                 this.log.error("TelnetAvr instance is not initialized.");
                 return;
@@ -73,7 +73,7 @@ export function InitializeMixin<TBase extends new (...args: any[]) => {
             });
 
             this.telnetAvr.addOnConnectCallback(async () => {
-                this.log.info("Telnet connected, waiting for PWR...");
+                this.log.debug("Telnet connected, waited for PWR...");
             });
 
             this.telnetAvr.displayChanged = (text: string) => {

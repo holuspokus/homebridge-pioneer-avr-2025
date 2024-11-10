@@ -30,7 +30,7 @@ export class TelnetAvr {
 
         this.connection.onConnect = () => {
             this.connectionReady = true
-            this.log.info("Running onConnect callbacks...");
+            // this.log.debug("Running onConnect callbacks...");
             for (const callback of this.onConnectCallbacks) {
                 callback();
             }
@@ -39,7 +39,7 @@ export class TelnetAvr {
 
     connect(callback?: () => void) {
         this.connection.connect(() => {
-            this.log.info("Telnet> Connected!");
+            // this.log.debug("Telnet> Connected!");
             if (callback) {
                 callback();
             }
