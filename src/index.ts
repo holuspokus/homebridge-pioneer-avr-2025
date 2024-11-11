@@ -19,5 +19,5 @@ export = (api: API) => {
 
 
 
-// homebridge -D -I | tee >(sed 's/\x1b\[[0-9;]*m//g' > /Users/rafi/.homebridge/homebridge.log)
+// homebridge -D -I | tee >(sed 's/\x1b\[[0-9;]*m//g' > /Users/me/.homebridge/homebridge.log)
 // tsc --build --force
