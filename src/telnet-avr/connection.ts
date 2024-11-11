@@ -32,6 +32,7 @@ export class Connection {
     }
 
     private disconnectOnExit() {
+        console.log('> disconnectOnExit called.', this.connectionReady);
         onExitCalled = true;
         if (this.connectionReady) {
             this.connectionReady = false;
@@ -160,7 +161,7 @@ export class Connection {
             return;
         }
 
-        // this.log.debug('telnet write>', message)
+        this.log.debug('telnet write>', message)
         this.socket?.write(message + "\r\n");
         this.setLastWrite(Date.now());
         callback?.(null, `${message}:SENT`);

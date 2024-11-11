@@ -65,6 +65,9 @@ class PioneerAvrAccessory {
                         await this.prepareVolumeService();
                     }
 
+                    this.avr.functionSetPowerState(this.avr.state.on)
+                    this.avr.functionSetLightbulbVolume(this.avr.state.volume)
+
                     this.log.debug('> Finished initializing. Device ready!');
                 } catch (err) {
                     this.log.debug("Error during AVR setup callback:", err);
@@ -155,15 +158,21 @@ class PioneerAvrAccessory {
         this.enabledServices.push(this.tvService);
 
         this.avr.functionSetPowerState = (set: boolean) => {
-            // console.log('functionSetPowerState called')
-            if (this.tvService.getCharacteristic(this.platform.characteristic.Active).value !== set) {
-                this.tvService.setCharacteristic(this.platform.characteristic.SleepDiscoveryMode, !set);
-                this.tvService.setCharacteristic(this.platform.characteristic.Active, set);
-            }
+          try {
+              let boolToNum = set?1:0
+              // console.log('functionSetPowerState called', typeof(this.tvService.getCharacteristic(this.platform.characteristic.Active).value), this.tvService.getCharacteristic(this.platform.characteristic.Active).value, boolToNum)
+              if (this.tvService.getCharacteristic(this.platform.characteristic.Active).value !== boolToNum) {
+                  // console.log('functionSetPowerState SET', boolToNum)
+                  this.tvService.setCharacteristic(this.platform.characteristic.SleepDiscoveryMode, !boolToNum);
+                  this.tvService.setCharacteristic(this.platform.characteristic.Active, boolToNum);
+              }
+          } catch(e) {
+              this.log.debug('Error functionSetPowerState:', e);
+          }
         };
 
         this.avr.functionSetActiveIdentifier = (set: number) => {
-            // console.log('functionSetActiveIdentifier called')
+            console.log('functionSetActiveIdentifier called', this.tvService.getCharacteristic(this.platform.characteristic.ActiveIdentifier).value, set)
             if (this.tvService.getCharacteristic(this.platform.characteristic.ActiveIdentifier).value !== set) {
                 this.tvService.setCharacteristic(this.platform.characteristic.ActiveIdentifier, set);
             }
@@ -174,6 +183,11 @@ class PioneerAvrAccessory {
      * Prepares the Television Speaker service for volume control.
      */
     private async prepareTvSpeakerService() {
+
+        while(!this.tvService || !this.enabledServices.includes(this.tvService)){
+            await new Promise(resolve => setTimeout(resolve, 180));
+        }
+
         this.tvSpeakerService = this.accessory.getService(this.platform.service.TelevisionSpeaker) ||
                                 this.accessory.addService(this.platform.service.TelevisionSpeaker, this.name + " Speaker", "tvSpeakerService");
 
@@ -192,10 +206,6 @@ class PioneerAvrAccessory {
             .onGet(this.getVolume.bind(this))
             .onSet(this.setVolume.bind(this));
 
-        while(!this.tvService){
-            await new Promise(resolve => setTimeout(resolve, 180));
-        }
-
         this.tvService.addLinkedService(this.tvSpeakerService);
         this.enabledServices.push(this.tvSpeakerService);
     }
@@ -204,6 +214,11 @@ class PioneerAvrAccessory {
      * Prepares the Lightbulb service for volume control.
      */
     private async prepareVolumeService() {
+        while(!this.tvService || !this.enabledServices.includes(this.tvService) || !this.tvSpeakerService || !this.enabledServices.includes(this.tvSpeakerService)){
+            await new Promise(resolve => setTimeout(resolve, 180));
+        }
+
+
         this.volumeServiceLightbulb = this.accessory.getService(this.platform.service.Lightbulb) ||
                                       this.accessory.addService(this.platform.service.Lightbulb, this.name + " VolumeBulb", 'volumeInput');
 
@@ -215,14 +230,11 @@ class PioneerAvrAccessory {
             .onGet(this.getVolume.bind(this))
             .onSet(this.setVolume.bind(this));
 
-        while(!this.tvService){
-            await new Promise(resolve => setTimeout(resolve, 180));
-        }
-
         this.tvService.addLinkedService(this.volumeServiceLightbulb);
         this.enabledServices.push(this.volumeServiceLightbulb);
 
         (this.avr as any).functionSetLightbulbVolume = (set: number) => {
+            this.log.debug('functionSetLightbulbVolume', set)
             clearTimeout(this.functionSetLightbulbVolumeTimeout!);
             this.functionSetLightbulbVolumeTimeout = setTimeout(() => {
                 try {
@@ -236,7 +248,7 @@ class PioneerAvrAccessory {
                     if (this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On).value !== !((this.avr as any).state.muted || !(this.avr as any).state.on)) {
                         this.volumeServiceLightbulb.setCharacteristic(
                             this.platform.characteristic.On,
-                            ((this.avr as any).state.muted || !(this.avr as any).state.on) ? false : true
+                            !(this.avr.state.muted || !this.avr.state.on)
                         );
                     }
                 } catch (e) {
@@ -247,8 +259,14 @@ class PioneerAvrAccessory {
 
         (this.avr as any).functionSetLightbulbMuted = () => {
             try {
-                this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On)
-                    .updateValue(!((this.avr as any).state.muted || !(this.avr as any).state.on));
+                // this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On)
+                //     .updateValue(!(this.avr.state.muted || !this.avr.state.on));
+                if (this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On).value !== !((this.avr as any).state.muted || !(this.avr as any).state.on)) {
+                    this.volumeServiceLightbulb.setCharacteristic(
+                        this.platform.characteristic.On,
+                        !(this.avr.state.muted || !this.avr.state.on)
+                    );
+                }
             } catch (e) {
                 this.log.debug('Error updating Lightbulb mute state:', e);
             }
@@ -262,6 +280,10 @@ class PioneerAvrAccessory {
         if(error){
           // console.log('in addInputSourceService ERROR> ' + String(error),  String(key))
           return
+        }
+
+        while(!this.tvService || !this.enabledServices.includes(this.tvService)){
+            await new Promise(resolve => setTimeout(resolve, 180));
         }
 
         try {
@@ -289,10 +311,6 @@ class PioneerAvrAccessory {
                     (this.avr as any).renameInput(input.id, name);
                 });
 
-            while(!this.tvService){
-                await new Promise(resolve => setTimeout(resolve, 180));
-            }
-
             // console.log('add input to homebridge', key)
             this.tvService.addLinkedService(tmpInput);
             this.enabledServices.push(tmpInput);
@@ -311,7 +329,7 @@ class PioneerAvrAccessory {
 
     // Method to get the power status as a CharacteristicValue
     private async getPowerOn(): Promise<CharacteristicValue> {
-        if (!(this.avr as any).connectionReady) {
+        if (!this.avr.telnetAvr.connectionReady) {
             return false;
         }
         return new Promise((resolve) => {
@@ -328,7 +346,7 @@ class PioneerAvrAccessory {
 
     // Method to set the power status
     private async setPowerOn(on: CharacteristicValue): Promise<void> {
-        if (!(this.avr as any).connectionReady) {
+        if (!this.avr.telnetAvr.connectionReady) {
             return;
         }
         if (on) {
@@ -347,8 +365,10 @@ class PioneerAvrAccessory {
     }
 
     private async setActiveIdentifier(newValue: CharacteristicValue): Promise<void> {
-        if (typeof newValue === 'number' && (this.avr as any).connectionReady) {
-            (this.avr as any).setInput((this.avr as any).inputs[newValue].id);
+        // console.log('setActiveIdentifier called', newValue, typeof(newValue))
+        if (typeof newValue === 'number' && this.avr.telnetAvr.connectionReady) {
+            this.log.debug('set active identifier:', this.avr.inputs[newValue].name, this.avr.inputs[newValue].id)
+            this.avr.setInput(this.avr.inputs[newValue].id);
         }
     }
 
@@ -391,7 +411,7 @@ class PioneerAvrAccessory {
     }
 
     private async getMutedInverted(): Promise<CharacteristicValue> {
-        return !(this.avr as any).state.muted;
+        return !((this.avr as any).avr.state.muted || !(this.avr as any).avr.state.on)
     }
 
     private async setMutedInverted(mute: CharacteristicValue): Promise<void> {

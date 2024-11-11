@@ -225,6 +225,12 @@ function handleInputDiscovery(data: string, pioneerThis: PioneerAvr, callback: F
         type: (pioneerThis as any).inputToType[data.substr(3, 2)],
     };
 
+    if(tmpInput.name.length === 0){
+        // removeFromInputMissing(pioneerThis, tmpInput.id);
+        handleInputErrors(data, pioneerThis, callback);
+        return;
+    }
+
     if (typeof (pioneerThis as any).inputBeingAdded === 'string' && (pioneerThis as any).inputBeingAdded === tmpInput.id) {
         (pioneerThis as any).inputBeingAdded = false;
         (pioneerThis as any).inputBeingAddedWaitCount = 0;

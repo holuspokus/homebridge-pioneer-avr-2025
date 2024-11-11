@@ -156,7 +156,7 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
             }
 
             let inputMissingWhileMax = 0;
-            while (this.inputMissing.length > 0 && inputMissingWhileMax++ < 30) {
+            while (this.inputMissing.length > 0 && inputMissingWhileMax++ < 3) {
                 for (const thiskey in this.inputMissing) {
                     let key = this.inputMissing[thiskey][0];
 

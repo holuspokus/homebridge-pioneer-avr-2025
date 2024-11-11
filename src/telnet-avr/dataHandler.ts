@@ -37,7 +37,7 @@ class DataHandler {
         try {
             // Convert buffer to string and clean it by removing new lines and carriage returns
             let d = data.toString().replace("\n", "").replace("\r", "").trim();
-            // this.log.debug('telnet data>', d);
+            this.log.debug('telnet data>', d);
 
             let callbackCalled = false;
             this._lastMessageReceived = Date.now(); // Update the last message received timestamp
