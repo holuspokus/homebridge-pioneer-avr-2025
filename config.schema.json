@@ -1,5 +1,5 @@
 {
-  "pluginAlias": "homebridge-pioneer-avr-2025",
+  "pluginAlias": "pioneerAvr2025",
   "pluginType": "platform",
   "singular": true,
   "schema": {

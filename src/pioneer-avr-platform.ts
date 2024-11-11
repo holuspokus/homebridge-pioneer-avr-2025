@@ -26,7 +26,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
   ) {
     this.service = this.api.hap.Service;
     this.characteristic = this.api.hap.Characteristic;
-    this.name = this.config.name || 'PioneerVSX Platform';
+    this.name = this.config.name || 'pioneerAvr2025';
 
     this.name = this.name.replace(/[^a-zA-Z0-9 ']/g, '');
     this.name = this.name.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
