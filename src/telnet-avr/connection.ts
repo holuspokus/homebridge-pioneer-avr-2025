@@ -144,8 +144,14 @@ export class Connection {
 
     async sendMessage(message: string, callbackChars?: string, callback?: (error: any, response: string) => void) {
         if (!this.connectionReady) {
-            this.connect();
+            this.tryReconnect();
         }
+
+        if (this.disconnectTimeout) {
+            clearTimeout(this.disconnectTimeout);
+        }
+
+        this.disconnectTimeout = setTimeout(() => this.disconnect(), 2 * 60 * 60 * 1000);
 
         if (this.connectionReady && callbackChars === undefined && (Date.now() - (this.lastWrite ?? 0) > 38)) {
             this.directSend(message, callback);
@@ -181,12 +187,6 @@ export class Connection {
         this.clearQueueTimeout = setTimeout(() => {
             this.messageQueue.clearQueue();
         }, 5 * 60 * 1000);
-
-        if (this.disconnectTimeout) {
-            clearTimeout(this.disconnectTimeout);
-        }
-
-        this.disconnectTimeout = setTimeout(() => this.disconnect(), 2 * 60 * 60 * 1000);
     }
 
     private reconnect(callback: () => void) {
