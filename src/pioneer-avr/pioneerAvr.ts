@@ -74,7 +74,7 @@ class PioneerAvr extends InitializeMixin(
                         lastGetPowerStatus: null
                     };
 
-                    this.log.info('initialize PioneerAvr');
+                    this.log.info('initialize ' + platform.name);
 
                     // Set default callback if none is provided
                     if (typeof pioneerAvrClassCallback !== "function") {

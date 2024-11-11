@@ -110,11 +110,11 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
 
             targetVolume = parseInt(targetVolume.toString(), 10);
 
-            if (isNaN(targetVolume) || Math.floor(targetVolume) === this.state.volume) {
+            if (callback && (isNaN(targetVolume) || Math.floor(targetVolume) === this.state.volume)) {
                 try {
                   callback(null, '');
-                } catch (error) {
-                  this.log.debug(callback)
+                } catch (e) {
+                    this.log.debug('', e);
                 }
 
                 return;

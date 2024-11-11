@@ -57,8 +57,5 @@
         "description": "Set the minimum volume level (0-100)."
       }
     }
-  },
-  "defaults": {
-    "name": "pioneerAvr2025"
   }
 }
