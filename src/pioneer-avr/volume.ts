@@ -105,13 +105,18 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
          * @param targetVolume - The desired volume level.
          * @param callback - The function to call after setting the volume.
          */
-        public setVolume(targetVolume: number, callback: (error: any, response: string) => void) {
+        public setVolume(targetVolume: number, callback?: (error: any, response: string) => void) {
             if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) return;
 
             targetVolume = parseInt(targetVolume.toString(), 10);
 
             if (isNaN(targetVolume) || Math.floor(targetVolume) === this.state.volume) {
-                callback(null, '');
+                try {
+                  callback(null, '');
+                } catch (error) {
+                  this.log.debug(callback)
+                }
+
                 return;
             }
 
