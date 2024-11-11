@@ -22,22 +22,39 @@ This plugin enables various controls for your AVR, including:
 * Control AVR with Remote on iOS
 * Remote-Key "Play/Pause" (iOS) to toggle between EXTENDED STEREO and PRO LOGIC 2 MOVIE
 * Auto discover inputs
-* No code modifications are necessary for the plugin to function correctly. Give it a try!
 
 
+> No code changes are needed for the plugin to work properly. Just give it a try!
+
+
+
+> When switching from the homebridge-pioneer-avr plugin to homebridge-pioneer-avr-2025, it is recommended to remove the "homebridge-pioneer-avr" plugin and the existing accessories under "Accessories" in the Homebridge settings, or reset Homebridge entirely, as well as to reboot the iOS devices.
 
 ## Installation
 
-1. Install Homebridge: [Homebridge Installation Guide](https://github.com/homebridge/homebridge/wiki)  
-2. Install the **homebridge-pioneer-avr-2025** plugin using Homebridge UI.  
-3. Add the configuration as shown in the example below or in `sample-config.json`, adjusting the IP address and port as needed.
+1. **Install Homebridge:** See the [Homebridge Installation Guide](https://github.com/homebridge/homebridge/wiki).  
+2. **Add the configuration:** Use the example below or refer to `sample-config.json`, adjusting the IP address and port as needed.  
+3. **Install the plugin:** Use the Homebridge UI to install **homebridge-pioneer-avr-2025**.
 
 Alternatively:
-1. Install the Homebridge framework using `npm install -g homebridge`
-2. Install **homebridge-pioneer-avr-2025** using `npm i homebridge-pioneer-avr-2025`
-3. Update your configuration file. See `sample-config.json` in this repository for a sample.
 
-> When switching from the homebridge-pioneer-avr plugin to homebridge-pioneer-avr-2025, it is recommended to remove the "homebridge-pioneer-avr" plugin and the existing accessories under "Accessories" in the Homebridge settings, or reset Homebridge entirely, as well as to reboot the iOS devices.
+1. **Install the Homebridge framework:**
+   ```bash
+   npm install -g homebridge
+   ```
+
+2. **Update your configuration file:** Use the example below or check `sample-config.json` in this repository for a sample. Create or edit the `config.json` file in the Homebridge directory (typically `~/.homebridge/`) with the appropriate configuration for your Pioneer AVR.
+
+3. **Install **homebridge-pioneer-avr-2025**:**
+   ```bash
+   npm install -g homebridge-pioneer-avr-2025
+   ```
+
+4. **Start Homebridge:**
+   ```bash
+   homebridge
+   ```
+
 
 
 
@@ -112,7 +129,8 @@ Below is a sample configuration for your accessory:
 
 ## Alternatives
 
-- [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer)
+- [homebridge-onkyo-pioneer](https://www.npmjs.com/package/homebridge-onkyo-pioneer)
+- [homebridge-onkyo](https://www.npmjs.com/package/homebridge-onkyo)
 - [home-assistant](https://www.home-assistant.io/integrations/pioneer/)
 - [openhab.org](https://www.openhab.org/addons/bindings/pioneeravr/)
 
@@ -121,6 +139,7 @@ Below is a sample configuration for your accessory:
 
 ## Release Notes
 
+- **v0.1.4**: Little fixes
 - **v0.1.3**: Improved communication of device status with HomeKit and fixed a bug with volume control in the iOS Remote.
 - **v0.1.2**: Fixed an issue where "Web Interface enabled" unintentionally turned on the receiver.
 - **v0.1.1**: Reduced npm dependencies and updated `package.json`, less info-logging.
