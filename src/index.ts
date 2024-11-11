@@ -12,6 +12,8 @@ let platformName = packageJson.platformName || 'pioneerAvr2025'
 platformName = platformName.replace(/[^a-zA-Z0-9 ']/g, '');
 platformName = platformName.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
 
+console.log('platformName:::', platformName)
+
 // Exportiere die Hauptfunktion
 export = (api: API) => {
   api.registerPlatform(platformName, PioneerAvrPlatform);
