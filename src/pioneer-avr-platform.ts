@@ -28,6 +28,9 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     this.characteristic = this.api.hap.Characteristic;
     this.name = this.config.name || 'PioneerVSX Platform';
 
+    this.name = this.name.replace(/[^a-zA-Z0-9 ']/g, '');
+    this.name = this.name.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
+
     this.log.debug('Finished initializing platform:', this.name);
 
     // Register for the 'didFinishLaunching' event to start device discovery after Homebridge startup

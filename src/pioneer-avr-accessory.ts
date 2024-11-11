@@ -46,7 +46,8 @@ class PioneerAvrAccessory {
         this.prefsDir = this.platform.config.prefsDir || this.platform.api.user.storagePath() + "/pioneerAvr/";
         this.version = packageJson.version;
 
-        this.name = this.name.replace(/[^a-zA-Z0-9]/g, "")
+        this.name = this.name.replace(/[^a-zA-Z0-9 ']/g, '');
+        this.name = this.name.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
 
         this.log.debug('Creating accessory for', this.device);
 
