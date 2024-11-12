@@ -29,6 +29,8 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
         public enabledServices: Service[] = [];
         public inputToType: { [key: string]: number } = {};
         public pioneerAvrClassCallbackCalled: boolean = false;
+        public initCount: number = 0;
+        // public lastInputDiscovered: number;
 
 
         constructor(...args: any[]) {

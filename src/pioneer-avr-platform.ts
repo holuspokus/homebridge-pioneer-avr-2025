@@ -8,9 +8,7 @@ import * as path from 'path';
 import packageJson from "../package.json"; // Import package.json
 
 
-let platformName = packageJson.platformName || 'pioneerAvr2025'
-platformName = platformName.replace(/[^a-zA-Z0-9 ']/g, '');
-platformName = platformName.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
+
 
 /**
  * PioneerAvrPlatform
@@ -33,11 +31,13 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     this.service = this.api.hap.Service;
     this.characteristic = this.api.hap.Characteristic;
 
-    this.name = this.config.name || 'pioneerAvr2025';
-    this.name = this.name.replace(/[^a-zA-Z0-9 ']/g, '');
-    this.name = this.name.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
+    let platformName = packageJson.platformName || 'pioneerAvr2025'
+    platformName = platformName.replace(/[^a-zA-Z0-9 ']/g, '');
+    platformName = platformName.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '').trim();
 
-    this.log.debug('Finished initializing platform:', platformName);
+    this.name = platformName || 'pioneerAvr2025';
+
+    this.log.debug('Platform startet:', this.name);
 
     // Register for the 'didFinishLaunching' event to start device discovery after Homebridge startup
     this.api.on('didFinishLaunching', () => {
@@ -191,7 +191,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
           // Register the accessory with Homebridge once it is fully initialized
           // PLUGIN_NAME, PLATFORM_NAME
-          this.api.registerPlatformAccessories(platformName, uniqueName, [accessory]);
+          this.api.registerPlatformAccessories(this.name, uniqueName, [accessory]);
         }
 
       } catch (e) {

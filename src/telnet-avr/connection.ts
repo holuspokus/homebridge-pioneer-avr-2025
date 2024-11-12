@@ -32,7 +32,7 @@ export class Connection {
     }
 
     private disconnectOnExit() {
-        console.log('> disconnectOnExit called.', this.connectionReady);
+        // console.log('> disconnectOnExit called.', this.connectionReady);
         onExitCalled = true;
         if (this.connectionReady) {
             this.connectionReady = false;
@@ -109,8 +109,8 @@ export class Connection {
 
     private handleError(err: Error) {
         this.log.error("Connection error:", err);
-        this.setConnectionReady(false);
         if (err.message.includes("CONN")) {
+            this.setConnectionReady(false);
             this.onDisconnect();
         }
     }
@@ -128,14 +128,15 @@ export class Connection {
     }
 
     disconnect() {
+        this.setConnectionReady(false);
+        this.onDisconnect();
+
         if (this.socket) {
             this.socket.end();
             this.socket.destroy();
             this.socket = null;
         }
-        this.log.debug('telnet> disconnect...')
-        this.setConnectionReady(false);
-        this.onDisconnect();
+        this.log.debug('telnet> disconnected!')
     }
 
     isConnected() {

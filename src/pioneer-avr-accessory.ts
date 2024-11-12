@@ -31,7 +31,6 @@ class PioneerAvrAccessory {
     public platform: PioneerAvrPlatform;
     public accessory: PlatformAccessory;
     private version: string;
-    private functionSetLightbulbVolumeTimeout: NodeJS.Timeout | null = null;
 
     constructor(private device: Device, platform: PioneerAvrPlatform, accessory: PlatformAccessory) {
         this.device = device;
@@ -47,7 +46,7 @@ class PioneerAvrAccessory {
         this.version = packageJson.version;
 
         this.name = this.name.replace(/[^a-zA-Z0-9 ']/g, '');
-        this.name = this.name.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
+        this.name = this.name.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '').trim();
 
         this.log.debug('Creating accessory for', this.device);
 
@@ -71,7 +70,7 @@ class PioneerAvrAccessory {
                         await this.prepareVolumeService();
                     }
 
-                    this.log.debug('> Finished initializing. Device ready!');
+                    this.log.info('> Finished initializing. Device ready!');
                 } catch (err) {
                     this.log.debug("Error during AVR setup callback:", err);
                 }
@@ -167,7 +166,7 @@ class PioneerAvrAccessory {
               if (this.tvService.getCharacteristic(this.platform.characteristic.Active).value !== boolToNum) {
                   // console.log('functionSetPowerState SET', boolToNum)
                   this.tvService.setCharacteristic(this.platform.characteristic.SleepDiscoveryMode, !boolToNum);
-                  this.tvService.setCharacteristic(this.platform.characteristic.Active, boolToNum);
+                  this.tvService.updateCharacteristic(this.platform.characteristic.Active, boolToNum);
               }
           } catch(e) {
               this.log.debug('Error functionSetPowerState:', e);
@@ -179,7 +178,7 @@ class PioneerAvrAccessory {
         this.avr.functionSetActiveIdentifier = (set: number) => {
             // console.log('functionSetActiveIdentifier called', this.tvService.getCharacteristic(this.platform.characteristic.ActiveIdentifier).value, set)
             if (this.tvService.getCharacteristic(this.platform.characteristic.ActiveIdentifier).value !== set) {
-                this.tvService.setCharacteristic(this.platform.characteristic.ActiveIdentifier, set);
+                this.tvService.updateCharacteristic(this.platform.characteristic.ActiveIdentifier, set);
             }
         };
     }
@@ -198,7 +197,9 @@ class PioneerAvrAccessory {
 
         this.tvSpeakerService
             .setCharacteristic(this.platform.characteristic.Active, this.platform.characteristic.Active.ACTIVE)
-            .setCharacteristic(this.platform.characteristic.VolumeControlType, this.platform.characteristic.VolumeControlType.ABSOLUTE);
+            .setCharacteristic(this.platform.characteristic.VolumeControlType, this.platform.characteristic.VolumeControlType.RELATIVE);
+            // .setCharacteristic(this.platform.characteristic.VolumeControlType, this.platform.characteristic.VolumeControlType.ABSOLUTE);
+
 
         this.tvSpeakerService.getCharacteristic(this.platform.characteristic.VolumeSelector)
             .onSet(this.setVolumeSwitch.bind(this));
@@ -208,8 +209,11 @@ class PioneerAvrAccessory {
             .onSet(this.setMuted.bind(this));
 
         this.tvSpeakerService.getCharacteristic(this.platform.characteristic.Volume)
-            .onGet(this.getVolume.bind(this))
-            .onSet(this.setVolume.bind(this));
+            .onGet(this.getVolume.bind(this));
+
+        // this.tvSpeakerService.getCharacteristic(this.platform.characteristic.Volume)
+        //     .onGet(this.getVolume.bind(this))
+        //     .onSet(this.setVolume.bind(this));
 
         this.tvService.addLinkedService(this.tvSpeakerService);
         this.enabledServices.push(this.tvSpeakerService);
@@ -220,10 +224,9 @@ class PioneerAvrAccessory {
      * Prepares the Lightbulb service for volume control.
      */
     private async prepareVolumeService() {
-        while(!this.tvService || !this.enabledServices.includes(this.tvService) || !this.tvSpeakerService || !this.enabledServices.includes(this.tvSpeakerService)){
+        while(!this.tvService || !this.enabledServices.includes(this.tvService) || !this.tvSpeakerService || !this.enabledServices.includes(this.tvSpeakerService)){
             await new Promise(resolve => setTimeout(resolve, 180));
         }
-
 
         this.volumeServiceLightbulb = this.accessory.getService(this.platform.service.Lightbulb) ||
                                       this.accessory.addService(this.platform.service.Lightbulb, this.name + " VolumeBulb", 'volumeInput');
@@ -239,20 +242,24 @@ class PioneerAvrAccessory {
         this.tvService.addLinkedService(this.volumeServiceLightbulb);
         this.enabledServices.push(this.volumeServiceLightbulb);
 
-        this.avr.functionSetLightbulbVolume = (set: number) => {
-            // this.log.debug('functionSetLightbulbVolume', set)
-            clearTimeout(this.functionSetLightbulbVolumeTimeout!);
-            this.functionSetLightbulbVolumeTimeout = setTimeout(() => {
+        // Initial volume setup only if volume state is valid
+        if (typeof this.avr.state.volume === 'number') {
+            this.avr.functionSetLightbulbVolume = (set: number) => {
                 try {
-                    if (this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.Brightness).value !== set) {
-                        this.volumeServiceLightbulb.setCharacteristic(
+                    const currentBrightness = this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.Brightness).value;
+                    const currentOnState = this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On).value;
+
+                    // Update Brightness only if it is different from the new volume
+                    if (currentBrightness !== set) {
+                        this.volumeServiceLightbulb.updateCharacteristic(
                             this.platform.characteristic.Brightness,
                             (this.avr.state.muted || !this.avr.state.on) ? 0 : set
                         );
                     }
 
-                    if (this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On).value !== !(this.avr.state.muted || !this.avr.state.on)) {
-                        this.volumeServiceLightbulb.setCharacteristic(
+                    // Update On state based on mute and power status
+                    if (currentOnState !== !(this.avr.state.muted || !this.avr.state.on)) {
+                        this.volumeServiceLightbulb.updateCharacteristic(
                             this.platform.characteristic.On,
                             !(this.avr.state.muted || !this.avr.state.on)
                         );
@@ -260,16 +267,17 @@ class PioneerAvrAccessory {
                 } catch (e) {
                     this.log.debug('Error updating Lightbulb volume:', e);
                 }
-            }, 500);
-        };
-        this.avr.functionSetLightbulbVolume(this.avr.state.volume);
+            };
+
+            // Only set initial volume once setup is complete
+            this.avr.functionSetLightbulbVolume(this.avr.state.volume);
+        }
 
         this.avr.functionSetLightbulbMuted = () => {
             try {
-                // this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On)
-                //     .updateValue(!(this.avr.state.muted || !this.avr.state.on));
-                if (this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On).value !== !(this.avr.state.muted || !this.avr.state.on)) {
-                    this.volumeServiceLightbulb.setCharacteristic(
+                const currentOnState = this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On).value;
+                if (currentOnState !== !(this.avr.state.muted || !this.avr.state.on)) {
+                    this.volumeServiceLightbulb.updateCharacteristic(
                         this.platform.characteristic.On,
                         !(this.avr.state.muted || !this.avr.state.on)
                     );
@@ -280,10 +288,8 @@ class PioneerAvrAccessory {
         };
 
         this.avr.functionSetLightbulbMuted(this.avr.state.muted);
-
-
-
     }
+
 
     /**
      * Prepares the input source service to allow selection of various AVR inputs.
@@ -320,7 +326,7 @@ class PioneerAvrAccessory {
 
             tmpInput.getCharacteristic(this.platform.characteristic.ConfiguredName)
                 .onSet((name) => {
-                    (this.avr as any).renameInput(input.id, name);
+                    this.avr.renameInput(input.id, String(name));
                 });
 
             // console.log('add input to homebridge', key)
@@ -345,12 +351,12 @@ class PioneerAvrAccessory {
             return false;
         }
         return new Promise((resolve) => {
-            (this.avr as any).powerStatus((error, status) => {
+            this.avr.powerStatus((error, status) => {
                 if (error) {
                     this.log.error("Error getting power status:", error);
                     resolve(false);
                 } else {
-                    resolve(status);
+                    resolve(status!);
                 }
             });
         });
@@ -362,15 +368,15 @@ class PioneerAvrAccessory {
             return;
         }
         if (on) {
-            (this.avr as any).powerOn();
+            this.avr.powerOn();
         } else {
-            (this.avr as any).powerOff();
+            this.avr.powerOff();
         }
     }
 
     private async getActiveIdentifier(): Promise<CharacteristicValue> {
         return new Promise((resolve) => {
-            (this.avr as any).inputStatus((_error, status) => {
+            this.avr.inputStatus((_error, status) => {
                 resolve(status || 0);
             });
         });
@@ -384,38 +390,41 @@ class PioneerAvrAccessory {
         }
     }
 
-    // private async setVolumeSwitch(state: CharacteristicValue): Promise<void> {
-    //     this.log.debug('setVolumeSwitch called:', state)
-    //     if (state !== 1) {
-    //         (this.avr as any).volumeUp();
-    //     } else {
-    //         (this.avr as any).volumeDown();
-    //     }
-    // }
-
-    private async setVolumeSwitch(direction: CharacteristicValue): Promise<void> {
-        // Check if direction is actually a number
-        if (typeof direction === 'number') {
-            // direction = 0 (volume down), direction = 1 (volume up)
-            const adjustment = direction === 1 ? 1 : -3;
-            const currentVolume = await this.getVolume();
-
-            // Ensure currentVolume is a number
-            const newVolume = typeof currentVolume === 'number'
-                ? Math.min(Math.max(currentVolume + adjustment, 0), 100)
-                : 0;  // Set to 0 if currentVolume is not a valid value
-
-            await this.setVolume(newVolume);
-            this.log.debug('setVolumeSwitch called, adjusting volume to:', newVolume);
+    private async setVolumeSwitch(state: CharacteristicValue): Promise<void> {
+        this.log.debug('setVolumeSwitch called:', state)
+        if (state !== 1) {
+            this.avr.volumeUp();
         } else {
-            this.log.debug('setVolumeSwitch called with invalid direction:', direction);
+            this.avr.volumeDown();
         }
     }
+
+    // private async setVolumeSwitch(direction: CharacteristicValue): Promise<void> {
+    //     // Check if direction is actually a number
+    //     if (typeof direction === 'number') {
+    //         // direction = 1 (volume down), direction = 0 (volume up)
+    //         const adjustment = direction === 0 ? 1 : -3;
+    //         const currentVolume = await this.getVolume();
+    //
+    //         this.log.debug('setVolumeSwitch()currentVolume:', currentVolume)
+    //
+    //         // Ensure currentVolume is a number
+    //         const newVolume = typeof currentVolume === 'number'
+    //             ? Math.min(Math.max(currentVolume + adjustment, 0), 100)
+    //             : 0;  // Set to 0 if currentVolume is not a valid value
+    //
+    //         await this.setVolume(newVolume);
+    //         this.log.debug('setVolumeSwitch called, adjusting volume from %s%% to: %s%%', currentVolume, newVolume);
+    //     } else {
+    //         this.log.debug('setVolumeSwitch called with invalid direction:', direction);
+    //     }
+    // }
 
     private async getVolume(): Promise<number> {
         // Extract the return value from volume as a number or default to 0 if undefined
         return new Promise<number>((resolve) => {
-            (this.avr as any).volumeStatus((_error, volume) => {
+            this.avr.volumeStatus((_error, volume) => {
+                this.log.debug('in volumeStatus callback::: volume:::', typeof volume, volume)
                 resolve(typeof volume === 'number' ? volume : 0);
             });
         });
@@ -424,7 +433,7 @@ class PioneerAvrAccessory {
     private async setVolume(volume: CharacteristicValue): Promise<void> {
         // Check if volume is a number before sending it to the device
         if (typeof volume === 'number') {
-            (this.avr as any).setVolume(volume);
+            this.avr.setVolume(volume);
         } else {
             this.log.debug('setVolume called with invalid volume:', volume);
         }
@@ -433,7 +442,7 @@ class PioneerAvrAccessory {
 
     private async getMuted(): Promise<CharacteristicValue> {
         return new Promise((resolve) => {
-            (this.avr as any).muteStatus((_error, isMuted) => {
+            this.avr.muteStatus((_error, isMuted) => {
                 resolve(isMuted || false);
             });
         });
@@ -441,9 +450,9 @@ class PioneerAvrAccessory {
 
     private async setMuted(mute: CharacteristicValue): Promise<void> {
         if (mute) {
-            (this.avr as any).muteOn();
+            this.avr.muteOn();
         } else {
-            (this.avr as any).muteOff();
+            this.avr.muteOff();
         }
     }
 
@@ -453,37 +462,37 @@ class PioneerAvrAccessory {
 
     private async setMutedInverted(mute: CharacteristicValue): Promise<void> {
         if (!mute) {
-            (this.avr as any).muteOn();
+            this.avr.muteOn();
         } else {
-            (this.avr as any).muteOff();
+            this.avr.muteOff();
         }
     }
 
     private async remoteKeyPress(remoteKey: CharacteristicValue): Promise<void> {
         switch (remoteKey) {
             case this.platform.characteristic.RemoteKey.ARROW_UP:
-                (this.avr as any).remoteKey("UP");
+                this.avr.remoteKey("UP");
                 break;
             case this.platform.characteristic.RemoteKey.ARROW_DOWN:
-                (this.avr as any).remoteKey("DOWN");
+                this.avr.remoteKey("DOWN");
                 break;
             case this.platform.characteristic.RemoteKey.ARROW_LEFT:
-                (this.avr as any).remoteKey("LEFT");
+                this.avr.remoteKey("LEFT");
                 break;
             case this.platform.characteristic.RemoteKey.ARROW_RIGHT:
-                (this.avr as any).remoteKey("RIGHT");
+                this.avr.remoteKey("RIGHT");
                 break;
             case this.platform.characteristic.RemoteKey.SELECT:
-                (this.avr as any).remoteKey("ENTER");
+                this.avr.remoteKey("ENTER");
                 break;
             case this.platform.characteristic.RemoteKey.BACK:
-                (this.avr as any).remoteKey("RETURN");
+                this.avr.remoteKey("RETURN");
                 break;
             case this.platform.characteristic.RemoteKey.PLAY_PAUSE:
-                (this.avr as any).toggleListeningMode();
+                this.avr.toggleListeningMode();
                 break;
             case this.platform.characteristic.RemoteKey.INFORMATION:
-                (this.avr as any).remoteKey("HOME_MENU");
+                this.avr.remoteKey("HOME_MENU");
                 break;
             default:
                 break;

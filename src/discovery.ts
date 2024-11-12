@@ -21,11 +21,36 @@ function discoverBonjourDevices(targetName: string, devices: { name: string; ip:
 
     // Browse for HTTP services or specify a specific type if known
     bonjourService.find({ type: 'http' }, (service) => {
-        if (service.name && service.name.toLowerCase().includes(targetName.toLowerCase())) {
-            log.debug("Found Pioneer Receiver via Bonjour:", service.name);
 
-            const ip = service.referer.address;
-            const name = service.name;
+        // Function to find the first available IP address in the service object
+        function findIp(service: any): string | null {
+            for (const key in service) {
+                if (typeof service[key] === 'string' && service[key].match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/)) {
+                    return service[key]; // Return if an IP-like string is found
+                }
+                if (Array.isArray(service[key])) {
+                    const ip = service[key].find((item: string) => item.match(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/));
+                    if (ip) return ip;
+                }
+            }
+            return null; // Return null if no IP found
+        }
+
+        // Function to find a name field in the service object
+        function findName(service: any): string | null {
+            for (const key in service) {
+                if (key.toLowerCase() === 'name' && typeof service[key] === 'string') {
+                    return service[key];
+                }
+            }
+            return null;
+        }
+
+        // Attempt to retrieve IP and name with direct assignment and fallbacks
+        const ip = service.referer?.address || (Array.isArray(service.addresses) ? service.addresses[0] : findIp(service));
+        const name = service.name || findName(service) || service.host || service.fqdn || ip;
+        if (name.toLowerCase().includes(targetName.toLowerCase())) {
+            // log.debug("Found Pioneer Receiver via Bonjour:", name, ip);
 
             // Check if one of the defined Telnet ports is open on this device
             checkPorts(ip, name, telnetPorts, log).then((device) => {
@@ -45,6 +70,7 @@ function discoverBonjourDevices(targetName: string, devices: { name: string; ip:
     // Stop Bonjour search after a set duration
     setTimeout(() => bonjourService.destroy(), 1000);
 }
+
 
 // Check specific ports for open connections on each device
 async function checkPorts(ip: string, name: string, ports: number[], log: any): Promise<{ name: string; ip: string; port: number } | null> {

@@ -28,6 +28,7 @@ export function InitializeMixin<TBase extends new (...args: any[]) => {
         public functionSetPowerState!: any;
         public functionSetLightbulbMuted!: any;
 
+
         constructor(...args: any[]) {
             super(...args);
             // this.setupTelnetConnection();
@@ -68,7 +69,7 @@ export function InitializeMixin<TBase extends new (...args: any[]) => {
             this.log.info("Telnet connected, starting up");
 
             this.telnetAvr.addOnDisconnectCallback(() => {
-                this.log.info("Telnet Disconnected!");
+                // this.log.info("Telnet Disconnected!");
             });
 
             this.telnetAvr.addOnConnectCallback(async () => {

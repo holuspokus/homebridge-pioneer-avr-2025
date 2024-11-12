@@ -91,6 +91,7 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
          */
         public volumeStatus(callback: (err: any, volume?: number) => void) {
             if (this.state.volume !== null) {
+                this.log.debug('volumeStatus from cache:', this.state.volume)
                 callback(null, this.state.volume);
                 return;
             }
@@ -176,7 +177,7 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
 
             // Function to execute each step with a delay
             const executeStep = (step) => {
-                if (step > 0) {
+                if (step >= 0) {
                     this.telnetAvr.sendMessage("VD", undefined, () => {
                         this.log.debug(`Volume down step ${steps - step + 1}`);
 
@@ -255,13 +256,16 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
 
         /**
          * Toggles the listening mode between presets.
-         * @param callback - The function to handle the toggle result.
+         * @param callback - Optional function to handle the toggle result.
          */
-        public toggleListeningMode(callback: (error: any, response: string) => void) {
+        public toggleListeningMode(callback?: (error: any, response: string) => void) {
             this.lastUserInteraction = Date.now();
 
+            // Check if the AVR is ready and if a listening mode is set
             if (!this.isReady || !this.state.listeningMode) {
-                callback(null, this.state.listeningMode ?? '');
+                if (callback) {
+                    callback(null, this.state.listeningMode ?? '');
+                }
                 return;
             }
 
@@ -270,17 +274,26 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
             if (["0013", "0101"].includes(this.state.listeningMode)) {
                 this.telnetAvr.sendMessage("0112SR");
                 this.state.listeningMode = "0112";
-                setTimeout(callback, 100);
+
+                // Execute the callback with a delay if provided
+                if (callback) {
+                    setTimeout(() => callback(null, this.state.listeningMode!), 100);
+                }
             } else {
                 this.state.listeningMode = "0013";
-                this.telnetAvr.sendMessage("0013SR", "SR", (error, _data) => {
+                this.telnetAvr.sendMessage("!0013SR", "SR", (error, _data) => {
                     if (error) {
                         this.state.listeningMode = "0101";
                         this.telnetAvr.sendMessage("0101SR");
                     }
-                    setTimeout(callback, 100);
+
+                    // Execute the callback with a delay if provided
+                    if (callback) {
+                        setTimeout(() => callback(null, this.state.listeningMode!), 100);
+                    }
                 });
             }
         }
+
     };
 }
