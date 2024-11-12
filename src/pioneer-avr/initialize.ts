@@ -60,7 +60,6 @@ export function InitializeMixin<TBase extends new (...args: any[]) => {
          * Sets up connection and disconnection callbacks for the Telnet connection.
          */
         public async setupConnectionCallbacks() {
-            // this.log.debug("in setupConnectionCallbacks(), adding addOnConnectCallback...");
             if (!this.telnetAvr) {
                 this.log.error("TelnetAvr instance is not initialized.");
                 return;
@@ -99,5 +98,44 @@ export function InitializeMixin<TBase extends new (...args: any[]) => {
                 }
             }, 29000);
         }
+
+        /**
+         * Sends a remote key command based on the provided key.
+         * @param rk - The remote key to be processed.
+         */
+        public remoteKey(rk: string) {
+            this.lastUserInteraction = Date.now();
+            if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) {
+                return;
+            }
+
+            // Implemented key from CURSOR OPERATION
+            switch (rk) {
+                case "UP":
+                    this.telnetAvr.sendMessage("CUP");
+                    break;
+                case "DOWN":
+                    this.telnetAvr.sendMessage("CDN");
+                    break;
+                case "LEFT":
+                    this.telnetAvr.sendMessage("CLE");
+                    break;
+                case "RIGHT":
+                    this.telnetAvr.sendMessage("CRI");
+                    break;
+                case "ENTER":
+                    this.telnetAvr.sendMessage("CEN");
+                    break;
+                case "RETURN":
+                    this.telnetAvr.sendMessage("CRT");
+                    break;
+                case "HOME_MENU":
+                    this.telnetAvr.sendMessage("HM");
+                    break;
+                default:
+                    this.log.info("Unhandled remote key: %s", rk);
+            }
+        }
+
     };
 }

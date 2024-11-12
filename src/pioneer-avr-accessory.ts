@@ -198,7 +198,7 @@ class PioneerAvrAccessory {
 
         this.tvSpeakerService
             .setCharacteristic(this.platform.characteristic.Active, this.platform.characteristic.Active.ACTIVE)
-            .setCharacteristic(this.platform.characteristic.VolumeControlType, this.platform.characteristic.VolumeControlType.RELATIVE);
+            .setCharacteristic(this.platform.characteristic.VolumeControlType, this.platform.characteristic.VolumeControlType.RELATIVE_WITH_CURRENT);
 
         this.tvSpeakerService.getCharacteristic(this.platform.characteristic.VolumeSelector)
             .onSet(this.setVolumeSwitch.bind(this));
@@ -385,7 +385,7 @@ class PioneerAvrAccessory {
     }
 
     private async setVolumeSwitch(state: CharacteristicValue): Promise<void> {
-
+        this.log.debug('setVolumeSwitch called:', state)
         if (state !== 1) {
             (this.avr as any).volumeUp();
         } else {

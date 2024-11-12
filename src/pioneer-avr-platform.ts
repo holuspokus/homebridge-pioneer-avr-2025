@@ -191,7 +191,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
           // Register the accessory with Homebridge once it is fully initialized
           // PLUGIN_NAME, PLATFORM_NAME
-          this.api.registerPlatformAccessories(uniqueName, platformName, [accessory]);
+          this.api.registerPlatformAccessories(platformName, uniqueName, [accessory]);
         }
 
       } catch (e) {
