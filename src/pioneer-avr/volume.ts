@@ -171,7 +171,7 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
                 clearTimeout(this.updateVolumeTimeout);
             }
 
-            const steps = 3;
+            const steps = 1;
             const delay = 25;
 
             // Function to execute each step with a delay

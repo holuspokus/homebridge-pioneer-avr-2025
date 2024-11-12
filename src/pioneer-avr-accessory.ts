@@ -38,7 +38,7 @@ class PioneerAvrAccessory {
         this.platform = platform;
         this.accessory = accessory;
         this.log = this.platform.log;
-        this.name = device.name || this.platform.config.name || 'Pioneer AVR';
+        this.name = device.name || 'Pioneer AVR';
         this.manufacturer = this.platform.config.manufacturer || 'Pioneer';
         this.model = this.platform.config.model || device.name || 'Unknown Model';
         this.host = device.ip || this.platform.config.host || '';
@@ -198,7 +198,7 @@ class PioneerAvrAccessory {
 
         this.tvSpeakerService
             .setCharacteristic(this.platform.characteristic.Active, this.platform.characteristic.Active.ACTIVE)
-            .setCharacteristic(this.platform.characteristic.VolumeControlType, this.platform.characteristic.VolumeControlType.ABSOLUTE);
+            .setCharacteristic(this.platform.characteristic.VolumeControlType, this.platform.characteristic.VolumeControlType.RELATIVE);
 
         this.tvSpeakerService.getCharacteristic(this.platform.characteristic.VolumeSelector)
             .onSet(this.setVolumeSwitch.bind(this));
