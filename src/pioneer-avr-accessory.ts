@@ -385,7 +385,8 @@ class PioneerAvrAccessory {
     }
 
     private async setVolumeSwitch(state: CharacteristicValue): Promise<void> {
-        if (state === 1) {
+
+        if (state !== 1) {
             (this.avr as any).volumeUp();
         } else {
             (this.avr as any).volumeDown();

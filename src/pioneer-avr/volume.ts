@@ -172,7 +172,7 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
             }
 
             const steps = 3;
-            const delay = 100;
+            const delay = 25;
 
             // Function to execute each step with a delay
             const executeStep = (step) => {
