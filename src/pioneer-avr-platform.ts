@@ -43,7 +43,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     this.platformName = platformName || 'pioneerAvr2025';
     this.pluginName = pluginName || 'homebridge-pioneer-avr-2025'
 
-    this.log.debug('Platform startet:', this.name);
+    this.log.debug('Platform startet:', this.platformName, this.pluginName);
 
     // Register for the 'didFinishLaunching' event to start device discovery after Homebridge startup
     this.api.on('didFinishLaunching', () => {
