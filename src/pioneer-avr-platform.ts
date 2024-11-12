@@ -18,7 +18,8 @@ import packageJson from "../package.json"; // Import package.json
 export class PioneerAvrPlatform implements DynamicPlatformPlugin {
   public readonly service: typeof Service;
   public readonly characteristic: typeof Characteristic;
-  private name: string;
+  private platformName: string;
+  private pluginName: string;
 
   // Used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
@@ -35,7 +36,12 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     platformName = platformName.replace(/[^a-zA-Z0-9 ']/g, '');
     platformName = platformName.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '').trim();
 
-    this.name = platformName || 'pioneerAvr2025';
+    let pluginName = packageJson.name || 'homebridge-pioneer-avr-2025'
+    pluginName = pluginName.replace(/[^a-zA-Z0-9 ']/g, '');
+    pluginName = pluginName.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '').trim();
+
+    this.platformName = platformName || 'pioneerAvr2025';
+    this.pluginName = pluginName || 'homebridge-pioneer-avr-2025'
 
     this.log.debug('Platform startet:', this.name);
 
@@ -191,7 +197,8 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
           // Register the accessory with Homebridge once it is fully initialized
           // PLUGIN_NAME, PLATFORM_NAME
-          this.api.registerPlatformAccessories(this.name, uniqueName, [accessory]);
+          // this.api.registerPlatformAccessories('homebridge-plugin-name', 'ExampleHomebridgePlugin', [accessory]);
+          this.api.registerPlatformAccessories(this.pluginName, this.platformName, [accessory]);
         }
 
       } catch (e) {
