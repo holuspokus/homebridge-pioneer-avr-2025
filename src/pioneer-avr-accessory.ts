@@ -393,28 +393,43 @@ class PioneerAvrAccessory {
     //     }
     // }
 
-    private async setVolumeSwitch(direction: number): Promise<void> {
-        // direction = 0 (volume down), direction = 1 (volume up)
-        const adjustment = direction === 1 ? 1 : -3;
-        const currentVolume = await this.getVolume();
-        const newVolume = Math.min(Math.max(currentVolume + adjustment, 0), 100);
-        await this.setVolume(newVolume);
-        this.log.debug('setVolumeSwitch called, adjusting volume to:', newVolume);
+    private async setVolumeSwitch(direction: CharacteristicValue): Promise<void> {
+        // Check if direction is actually a number
+        if (typeof direction === 'number') {
+            // direction = 0 (volume down), direction = 1 (volume up)
+            const adjustment = direction === 1 ? 1 : -3;
+            const currentVolume = await this.getVolume();
+
+            // Ensure currentVolume is a number
+            const newVolume = typeof currentVolume === 'number'
+                ? Math.min(Math.max(currentVolume + adjustment, 0), 100)
+                : 0;  // Set to 0 if currentVolume is not a valid value
+
+            await this.setVolume(newVolume);
+            this.log.debug('setVolumeSwitch called, adjusting volume to:', newVolume);
+        } else {
+            this.log.debug('setVolumeSwitch called with invalid direction:', direction);
+        }
     }
 
-    private async getVolume(): Promise<CharacteristicValue> {
-        return new Promise((resolve) => {
+    private async getVolume(): Promise<number> {
+        // Extract the return value from volume as a number or default to 0 if undefined
+        return new Promise<number>((resolve) => {
             (this.avr as any).volumeStatus((_error, volume) => {
-                resolve(volume || 0);
+                resolve(typeof volume === 'number' ? volume : 0);
             });
         });
     }
 
     private async setVolume(volume: CharacteristicValue): Promise<void> {
+        // Check if volume is a number before sending it to the device
         if (typeof volume === 'number') {
             (this.avr as any).setVolume(volume);
+        } else {
+            this.log.debug('setVolume called with invalid volume:', volume);
         }
     }
+
 
     private async getMuted(): Promise<CharacteristicValue> {
         return new Promise((resolve) => {
