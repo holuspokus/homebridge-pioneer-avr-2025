@@ -198,7 +198,7 @@ class PioneerAvrAccessory {
 
         this.tvSpeakerService
             .setCharacteristic(this.platform.characteristic.Active, this.platform.characteristic.Active.ACTIVE)
-            .setCharacteristic(this.platform.characteristic.VolumeControlType, this.platform.characteristic.VolumeControlType.RELATIVE_WITH_CURRENT);
+            .setCharacteristic(this.platform.characteristic.VolumeControlType, this.platform.characteristic.VolumeControlType.ABSOLUTE);
 
         this.tvSpeakerService.getCharacteristic(this.platform.characteristic.VolumeSelector)
             .onSet(this.setVolumeSwitch.bind(this));
@@ -384,13 +384,22 @@ class PioneerAvrAccessory {
         }
     }
 
-    private async setVolumeSwitch(state: CharacteristicValue): Promise<void> {
-        this.log.debug('setVolumeSwitch called:', state)
-        if (state !== 1) {
-            (this.avr as any).volumeUp();
-        } else {
-            (this.avr as any).volumeDown();
-        }
+    // private async setVolumeSwitch(state: CharacteristicValue): Promise<void> {
+    //     this.log.debug('setVolumeSwitch called:', state)
+    //     if (state !== 1) {
+    //         (this.avr as any).volumeUp();
+    //     } else {
+    //         (this.avr as any).volumeDown();
+    //     }
+    // }
+
+    private async setVolumeSwitch(direction: number): Promise<void> {
+        // direction = 0 (volume down), direction = 1 (volume up)
+        const adjustment = direction === 1 ? 1 : -3;
+        const currentVolume = await this.getVolume();
+        const newVolume = Math.min(Math.max(currentVolume + adjustment, 0), 100);
+        await this.setVolume(newVolume);
+        this.log.debug('setVolumeSwitch called, adjusting volume to:', newVolume);
     }
 
     private async getVolume(): Promise<CharacteristicValue> {
