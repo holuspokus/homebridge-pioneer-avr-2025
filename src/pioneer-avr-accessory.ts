@@ -8,6 +8,7 @@ import { PioneerAvrPlatform } from './pioneer-avr-platform';
 
 type Device = {
     name: string;
+    origName: string;
     ip: string;
     port: number;
 };
@@ -48,7 +49,7 @@ class PioneerAvrAccessory {
         this.name = this.name.replace(/[^a-zA-Z0-9 ']/g, '');
         this.name = this.name.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '').trim();
 
-        this.log.debug('Creating accessory for', this.device);
+        this.log.info(`Creating accessory ${this.name} for: ${this.device.origName} at ${this.device.ip}:${this.device.port}`);
 
         this.inputVisibilityFile = `${this.prefsDir}/inputsVisibility_${this.host}`;
         this.initializeVisibilityFile();
@@ -217,7 +218,7 @@ class PioneerAvrAccessory {
 
         this.tvService.addLinkedService(this.tvSpeakerService);
         this.enabledServices.push(this.tvSpeakerService);
-        this.log.debug('prepareTvSpeakerService endabled')
+        // this.log.debug('prepareTvSpeakerService enabled')
     }
 
     /**
@@ -424,7 +425,6 @@ class PioneerAvrAccessory {
         // Extract the return value from volume as a number or default to 0 if undefined
         return new Promise<number>((resolve) => {
             this.avr.volumeStatus((_error, volume) => {
-                this.log.debug('in volumeStatus callback::: volume:::', typeof volume, volume)
                 resolve(typeof volume === 'number' ? volume : 0);
             });
         });
@@ -489,7 +489,7 @@ class PioneerAvrAccessory {
                 this.avr.remoteKey("RETURN");
                 break;
             case this.platform.characteristic.RemoteKey.PLAY_PAUSE:
-                this.avr.toggleListeningMode();
+                this.avr.remoteKey("TOGGLE_PLAY_PAUSE");
                 break;
             case this.platform.characteristic.RemoteKey.INFORMATION:
                 this.avr.remoteKey("HOME_MENU");

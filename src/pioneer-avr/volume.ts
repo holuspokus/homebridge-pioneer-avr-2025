@@ -91,7 +91,6 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
          */
         public volumeStatus(callback: (err: any, volume?: number) => void) {
             if (this.state.volume !== null) {
-                this.log.debug('volumeStatus from cache:', this.state.volume)
                 callback(null, this.state.volume);
                 return;
             }

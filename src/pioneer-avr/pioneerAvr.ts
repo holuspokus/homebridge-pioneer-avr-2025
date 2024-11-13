@@ -36,8 +36,8 @@ class PioneerAvr extends InitializeMixin(
                 public host!: string;
                 public port!: number;
                 public platform!: any;
-                public maxVolumeSet: number = 60; // Default max volume
-                public minVolumeSet: number = 0;  // Default min volume
+                public maxVolumeSet: number = 80; // Default max volume
+                public minVolumeSet: number = 20;  // Default min volume
                 public state!: AVState;
                 public pioneerAvrClassCallback: any;
                 public characteristic!: Characteristic;
@@ -74,7 +74,7 @@ class PioneerAvr extends InitializeMixin(
                         lastGetPowerStatus: null
                     };
 
-                    this.log.info('initialize ' + accessory.name);
+                    // this.log.debug('initialize ' + accessory.name);
 
                     // Set default callback if none is provided
                     if (typeof pioneerAvrClassCallback !== "function") {

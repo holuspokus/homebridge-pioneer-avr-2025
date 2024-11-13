@@ -1,3 +1,4 @@
+
 # homebridge-pioneer-avr-2025
 
 A [Homebridge](https://github.com/nfarina/homebridge) plugin that integrates your Pioneer AVR as a TV accessory in HomeKit. This project is compatible with Node 22 and below, as well as Homebridge 2 or earlier versions. It is written in TypeScript and leverages the latest Homebridge methods and practices, ensuring a streamlined setup with optional manual configuration. The plugin automatically detects your receiver, even in environments with dynamic IP addresses, for a more reliable user experience.
@@ -25,15 +26,32 @@ With this plugin, you gain the ability to control multiple aspects of your Pione
 
 > **Migration Note**: If upgrading from the homebridge-pioneer-avr plugin to homebridge-pioneer-avr-2025, it is recommended to remove the old plugin and delete any existing accessories within the Homebridge settings or reset Homebridge entirely. Additionally, rebooting iOS devices is advisable for a smooth transition.
 > Cleaning up the Homebridge configuration file ([config.json](https://github.com/homebridge/homebridge/wiki/Homebridge-Config-JSON-Explained)) is recommended but not required.
+<br>
 
 ## Installation
 1. **Install Homebridge**: Follow the [Homebridge Installation Guide](https://github.com/homebridge/homebridge/wiki).
 2. **Install the Plugin**: Use the Homebridge Web Interface (Config-UI) to install **homebridge-pioneer-avr-2025**.
+<br>
 
 ## Accessory Configuration
 The receiver is detected automatically over the network.
 
 Manual configuration is also available, and previous configurations from the [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr) plugin will be imported automatically if present. You may also configure settings via the Config-UI interface.
+  <br>
+
+
+### Preparing the Receiver and Network
+
+To ensure proper connectivity for the plugin, connect the receiver to the network. The simplest way to verify that the receiver is accessible is to check if an iPhone can establish an AirPlay connection to the receiver. If this works, the receiver is ready. Otherwise, ensure the following:
+
+1.  The receiver and Homebridge server must be connected to the same network and subnet to enable compatibility with Bonjour/mDNS discovery. This configuration is typically standard for home networks.
+
+2.  If possible, connect the LAN port on the receiver directly to the LAN port on a router with an active DHCP server function. This allows the receiver to receive network settings automatically. If the router lacks a built-in DHCP server, a manual network setup on the receiver will be necessary.
+
+3.  Enable “Network Standby” in the receiver’s network settings to ensure it remains accessible on the network (see the receiver’s manual for details).
+
+After confirming the network connection, restart the plugin to enable communication with the receiver.
+<br><br><br><br>
 
 ## Links
 - [homebridge](https://github.com/nfarina/homebridge)
@@ -41,12 +59,14 @@ Manual configuration is also available, and previous configurations from the [ho
 - [pioneer-receiver-notes](https://github.com/rwifall/pioneer-receiver-notes)
 - [homebridge-webos-tv](https://github.com/merdok/homebridge-webos-tv)
 - [homebridge-vsx](https://github.com/TG908/homebridge-vsx)
+<br>
 
 ## Alternatives
 - [homebridge-onkyo-pioneer](https://www.npmjs.com/package/homebridge-onkyo-pioneer)
 - [homebridge-onkyo](https://www.npmjs.com/package/homebridge-onkyo)
 - [home-assistant](https://www.home-assistant.io/integrations/pioneer/)
 - [openhab.org](https://www.openhab.org/addons/bindings/pioneeravr/)
+<br>
 
 ## Release Notes
 - **v0.2.0**: Rewritten as a platform plugin in TypeScript for enhanced future-proofing and extensibility.
@@ -65,3 +85,4 @@ Manual configuration is also available, and previous configurations from the [ho
 - **v0.0.2**: Minor fixes.
 - **v0.0.1**: Enhanced performance and responsiveness for Pioneer AVR receivers.
 - **v0.0.0**: Forked from homebridge-pioneer-avr.
+<br>

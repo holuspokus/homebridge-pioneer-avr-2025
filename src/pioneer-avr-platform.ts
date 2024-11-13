@@ -7,9 +7,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import packageJson from "../package.json"; // Import package.json
 
-
-
-
 /**
  * PioneerAvrPlatform
  * This class serves as the main entry point for the plugin, where user configuration is parsed,
@@ -24,6 +21,12 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
   // Used to track restored cached accessories
   public readonly accessories: PlatformAccessory[] = [];
 
+  // Configuration constants as instance variables
+  private readonly TELNET_PORTS = [23, 24, 8102];
+  private readonly TARGET_NAME = "VSX";
+  private readonly MAX_ATTEMPTS = 5;
+  private readonly RETRY_DELAY = 10000; // 10 seconds in milliseconds
+
   constructor(
     public readonly log: Logging,
     public readonly config: PlatformConfig,
@@ -32,22 +35,21 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     this.service = this.api.hap.Service;
     this.characteristic = this.api.hap.Characteristic;
 
-    let platformName = packageJson.platformName || 'pioneerAvr2025'
+    let platformName = packageJson.platformName || 'pioneerAvr2025';
     platformName = platformName.replace(/[^a-zA-Z0-9 ']/g, '');
     platformName = platformName.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '').trim();
 
-    let pluginName = packageJson.name || 'homebridge-pioneer-avr-2025'
-    pluginName = pluginName.replace(/[^a-zA-Z0-9 ']/g, '');
+    let pluginName = packageJson.name || 'homebridge-pioneer-avr-2025';
+    pluginName = pluginName.replace(/[^a-zA-Z0-9 \-']/g, '');
     pluginName = pluginName.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '').trim();
 
     this.platformName = platformName || 'pioneerAvr2025';
-    this.pluginName = pluginName || 'homebridge-pioneer-avr-2025'
+    this.pluginName = pluginName || 'homebridge-pioneer-avr-2025';
 
-    this.log.debug('Platform startet:', this.platformName, this.pluginName);
+    this.log.debug('Platform started:', this.platformName, this.pluginName);
 
     // Register for the 'didFinishLaunching' event to start device discovery after Homebridge startup
     this.api.on('didFinishLaunching', () => {
-      this.log.debug('Executed didFinishLaunching callback');
       this.discoverDevices();
     });
   }
@@ -66,16 +68,13 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
    * Attempts up to MAX_ATTEMPTS times if no devices are found, with a delay of RETRY_DELAY between attempts.
    */
   async discoverDevices() {
-    const TELNET_PORTS = [23, 24, 8102];
-    const TARGET_NAME = "VSX";
-    const MAX_ATTEMPTS = 5; // Maximum number of discovery attempts
-    const RETRY_DELAY = 10000; // 10 seconds in milliseconds
     const devicesFound: any[] = [];
 
     // Check if the device is manually configured, bypassing discovery
-    if (this.config && this.config.device && this.config.device.name && this.config.device.ip && this.config.device.port) {
+    if (this.config?.device?.name && this.config.device.ip && this.config.device.port) {
       devicesFound.push({
         name: this.config.device.name,
+        origName: this.config.device.name,
         ip: this.config.device.ip,
         port: this.config.device.port,
       });
@@ -91,9 +90,10 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
           (accessory: any) => accessory.accessory === 'pioneerAvrAccessory'
         );
 
-        if (pioneerAccessory && pioneerAccessory.name && pioneerAccessory.host && pioneerAccessory.port) {
+        if (pioneerAccessory?.name && pioneerAccessory.host && pioneerAccessory.port) {
           devicesFound.push({
             name: pioneerAccessory.name,
+            origName: pioneerAccessory.name,
             ip: pioneerAccessory.host,
             port: pioneerAccessory.port,
           });
@@ -106,21 +106,29 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
       let attempts = 0;
 
       // Retry discovery up to MAX_ATTEMPTS times if no devices are found
-      while (attempts < MAX_ATTEMPTS && devicesFound.length === 0) {
+      while (attempts < this.MAX_ATTEMPTS && devicesFound.length === 0) {
         attempts++;
-        const discoveredDevices = await findDevices(TARGET_NAME, TELNET_PORTS, this.log);
+        const maxDevices = 5;
+        const discoveredDevices = await findDevices(this.TARGET_NAME, this.TELNET_PORTS, this.log, maxDevices);
 
         // If devices are found, add them to devicesFound and exit loop
         if (discoveredDevices.length > 0) {
-          devicesFound.push(...discoveredDevices);
+          for (const dDevive of discoveredDevices) {
+              devicesFound.push({
+                name: dDevive.name,
+                origName: dDevive.origName,
+                ip: dDevive.ip,
+                port: dDevive.port,
+              });
+          }
           this.log.debug('Discovered devices:', devicesFound);
           break;
         }
 
         // Log warning and wait before next attempt if no devices were found
-        this.log.warn(`Attempt ${attempts} of ${MAX_ATTEMPTS}: No devices found. Retrying in 10 seconds...`);
-        if (attempts < MAX_ATTEMPTS) {
-          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        this.log.warn(`Attempt ${attempts} of ${this.MAX_ATTEMPTS}: No devices found. Retrying in ${this.RETRY_DELAY / 1000} seconds...`);
+        if (attempts < this.MAX_ATTEMPTS) {
+          await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY));
         }
       }
 
@@ -143,7 +151,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
    */
   async loopDevices(foundDevices: any[]) {
     for (const foundDevice of foundDevices) {
-      this.log.debug('Processing device:', foundDevice);
+      // this.log.debug('Processing device:', foundDevice);
 
       try {
         // Generate a unique name to avoid duplicate accessory names in Homebridge
@@ -153,16 +161,9 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         if (foundDevices.length > 1) {
           // Check if another accessory with the same name already exists
           while (foundDevices.some(fd => fd.name === uniqueName)) {
-            if (counter === 1) {
-              let tryThis = foundDevice.ip.slice(-1);
-              uniqueName = `${foundDevice.name}_${tryThis}`;
-            } else if (counter === 2) {
-              let tryThis = foundDevice.ip.slice(-3);
-              uniqueName = `${foundDevice.name}_${tryThis}`;
-            } else if (counter > 1) {
-              // Append counter to name to make it unique
-              uniqueName = `${foundDevice.name}_${counter}`;
-            }
+            uniqueName = counter === 1 ? `${foundDevice.name}_${foundDevice.ip.slice(-1)}` :
+                        counter === 2 ? `${foundDevice.name}_${foundDevice.ip.slice(-3)}` :
+                        `${foundDevice.name}_${counter}`;
             counter++;
           }
         }
@@ -181,10 +182,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         if (existingAccessory) {
           // Restore the existing accessory from cache
           this.log.debug('Restoring existing accessory from cache:', existingAccessory.displayName);
-
-          // Initialize the accessory and wait for it to be ready
           new PioneerAvrAccessory(foundDevice, this, existingAccessory);
-
         } else {
           this.log.debug('Adding new accessory:', uniqueName, foundDevice.ip, foundDevice.port);
 
@@ -196,8 +194,6 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
           new PioneerAvrAccessory(foundDevice, this, accessory);
 
           // Register the accessory with Homebridge once it is fully initialized
-          // PLUGIN_NAME, PLATFORM_NAME
-          // this.api.registerPlatformAccessories('homebridge-plugin-name', 'ExampleHomebridgePlugin', [accessory]);
           this.api.registerPlatformAccessories(this.pluginName, this.platformName, [accessory]);
         }
 

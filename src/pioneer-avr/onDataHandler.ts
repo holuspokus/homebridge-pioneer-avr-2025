@@ -137,7 +137,7 @@ function handleVolumeStatus(data: string, pioneerThis: PioneerAvr, callback: Fun
         pioneerThis.functionSetLightbulbVolume(pioneerThis.state.volume);
     }
 
-    pioneerThis.log.debug("Volume is %s (%s%% -> %s%%)", vol, volPctF, pioneerThis.state.volume);
+    pioneerThis.log.debug("Volume is %s (%s%%)", vol, volPctF);
 
     try {
         callback(null, pioneerThis.state.volume);
@@ -263,9 +263,12 @@ function handleInputDiscovery(data: string, pioneerThis: PioneerAvr, callback: F
         pioneerThis.inputs.push(tmpInput);
         removeFromInputMissing(pioneerThis, tmpInput.id);
         pioneerThis.initCount += 1;
+        // pioneerThis.log.info(
+        //     `Input [${tmpInput.name}] discovered (id: ${tmpInput.id}, type: ${tmpInput.type}). InitCount=${pioneerThis.initCount}/${Object.keys(pioneerThis.inputToType).length}` +
+        //     (pioneerThis.inputMissing.length > 0 ? `, inputMissing: ${pioneerThis.inputMissing}` : '')
+        // );
         pioneerThis.log.info(
-            `Input [${tmpInput.name}] discovered (id: ${tmpInput.id}, type: ${tmpInput.type}). InitCount=${pioneerThis.initCount}/${Object.keys(pioneerThis.inputToType).length}` +
-            (pioneerThis.inputMissing.length > 0 ? `, inputMissing: ${pioneerThis.inputMissing}` : '')
+            `Input [${tmpInput.name}] discovered`
         );
     }
 

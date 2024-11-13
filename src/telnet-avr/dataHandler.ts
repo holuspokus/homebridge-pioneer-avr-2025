@@ -6,7 +6,7 @@ import { MessageQueue } from './messageQueue';
 
 class DataHandler {
     private telnetAvr: TelnetAvr; // Reference to TelnetAvr instance for handling telnet operations
-    private log: any; // Logger instance for logging debug/error messages
+    public log: any; // Logger instance for logging debug/error messages
     private _lastMessageReceived: number | null = null; // Timestamp of the last message received
 
     constructor(telnetAvr: TelnetAvr, private messageQueue: MessageQueue) {

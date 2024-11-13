@@ -43,7 +43,7 @@ export function InitializeMixin<TBase extends new (...args: any[]) => {
                 return;
             }
 
-            this.telnetAvr = new TelnetAvr(this.host, this.port, this.log);
+            this.telnetAvr = new TelnetAvr(this);
             this.onData = onDataHandler(this as any);
             this.isReady = false;
 
@@ -88,9 +88,9 @@ export function InitializeMixin<TBase extends new (...args: any[]) => {
                     if (this.lastUserInteraction && Date.now() - this.lastUserInteraction > 48 * 60 * 60 * 1000) {
                         return;
                     }
-                    if (this.telnetAvr.connectionReady && this.isReady && this.state.on && this.state.lastGetPowerStatus !== null) {
-                        this.__updateVolume?.(() => {});
-                    }
+                    // if (this.telnetAvr.connectionReady && this.isReady && this.state.on && this.state.lastGetPowerStatus !== null) {
+                    //     this.__updateVolume?.(() => {});
+                    // }
                     if (this.isReady && this.telnetAvr.connectionReady) {
                         this.__updatePower?.(() => {});
                     }
@@ -132,6 +132,10 @@ export function InitializeMixin<TBase extends new (...args: any[]) => {
                     break;
                 case "HOME_MENU":
                     this.telnetAvr.sendMessage("HM");
+                    break;
+                case "TOGGLE_PLAY_PAUSE":
+                    (this as any).toggleListeningMode();
+                    // this.telnetAvr.sendMessage("CTP"); ?
                     break;
                 default:
                     this.log.info("Unhandled remote key: %s", rk);
