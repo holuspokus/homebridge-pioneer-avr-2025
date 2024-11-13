@@ -71,7 +71,7 @@ class PioneerAvrAccessory {
                         await this.prepareVolumeService();
                     }
 
-                    this.log.info('> Finished initializing. Device ready!');
+                    this.log.info(`> Finished initializing. Device ${this.name} ready!`);
                 } catch (err) {
                     this.log.debug("Error during AVR setup callback:", err);
                 }
