@@ -51,7 +51,7 @@ class PioneerAvrAccessory {
 
         this.log.info(`Creating accessory ${this.name} for: ${this.device.origName} at ${this.device.ip}:${this.device.port}`);
 
-        this.inputVisibilityFile = `${this.prefsDir}/inputsVisibility_${this.host}`;
+        this.inputVisibilityFile = `${this.prefsDir}/inputsVisibility_${this.host}`.replace(/\/{2,}/g, '/');
         this.initializeVisibilityFile();
 
         try {
@@ -127,7 +127,7 @@ class PioneerAvrAccessory {
                                   this.accessory.addService(this.platform.service.AccessoryInformation);
 
         this.informationService
-            .setCharacteristic(this.platform.characteristic.Name, this.name.replace(/[^a-zA-Z0-9]/g, ""))
+            .setCharacteristic(this.platform.characteristic.Name, this.name.replace(/[^a-zA-Z0-9 ]/g, ""))
             .setCharacteristic(this.platform.characteristic.Manufacturer, this.manufacturer)
             .setCharacteristic(this.platform.characteristic.Model, this.model)
             .setCharacteristic(this.platform.characteristic.SerialNumber, this.host)
@@ -320,9 +320,18 @@ class PioneerAvrAccessory {
 
             tmpInput.getCharacteristic(this.platform.characteristic.TargetVisibilityState)
                 .onSet((state) => {
-                    tmpInput.setCharacteristic(this.platform.characteristic.CurrentVisibilityState, state);
-                    this.savedVisibility[input.id] = state;
-                    fs.writeFileSync(this.inputVisibilityFile, JSON.stringify(this.savedVisibility));
+                    setTimeout(() => {
+                        try {
+                            tmpInput.updateCharacteristic(this.platform.characteristic.CurrentVisibilityState, state);
+                            this.savedVisibility[input.id] = state;
+                            // this.log.debug('set visibility:', input.name, state)
+                            fs.writeFile(this.inputVisibilityFile, JSON.stringify(this.savedVisibility), ()=>{
+                                this.log.debug('saved visibility:', input.name, state)
+                            });
+                        } catch (error) {
+                            this.log.error('set visibility Error', error)
+                        }
+                    }, 10);
                 });
 
             tmpInput.getCharacteristic(this.platform.characteristic.ConfiguredName)
