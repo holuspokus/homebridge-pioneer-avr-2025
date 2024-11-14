@@ -176,7 +176,7 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
 
             // Function to execute each step with a delay
             const executeStep = (step) => {
-                if (step >= 0) {
+                if (step > 0) {
                     this.telnetAvr.sendMessage("VD", undefined, () => {
                         this.log.debug(`Volume down step ${steps - step + 1}`);
 

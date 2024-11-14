@@ -176,7 +176,10 @@ export class Connection {
 
         this.disconnectTimeout = setTimeout(() => this.disconnect(), 2 * 60 * 60 * 1000);
 
-        if (this.connectionReady && callbackChars === undefined && (Date.now() - (this.lastWrite ?? 0) > 38)) {
+        if (this.connectionReady && callbackChars === undefined) {
+            if (Date.now() - (this.lastWrite ?? 0) < 38) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
             this.directSend(message, callback);
         } else {
             this.queueMessage(message, callbackChars, callback);
@@ -187,6 +190,10 @@ export class Connection {
         if (!this.connectionReady) {
             this.log.warn("Connection not ready, skipping direct send.");
             return;
+        }
+
+        if (message.startsWith("!")) {
+            message = message.substring(1);
         }
 
         this.log.debug('telnet write>', message);
