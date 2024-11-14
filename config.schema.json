@@ -7,6 +7,14 @@
     "title": "Pioneer AVR Plugin",
     "type": "object",
     "properties": {
+      "name": {
+          "title": "Platform Name",
+          "type": "const",
+          "default": "pioneerAvr2025",
+          "placeholder": "pioneerAvr2025",
+          "required": true,
+          "description": "The name of the plugin, e.g. shown in the logs."
+      },
       "device": {
         "type": "object",
         "title": "Device Configuration (Optional)",
@@ -44,7 +52,7 @@
       "maxVolumeSet": {
         "title": "Maximum Volume Setting",
         "type": "integer",
-        "default": 80,
+        "default": 65,
         "minimum": 0,
         "maximum": 100,
         "description": "Set the maximum volume level (0-100)."
