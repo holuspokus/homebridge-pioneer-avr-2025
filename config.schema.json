@@ -9,7 +9,7 @@
     "properties": {
       "name": {
           "title": "Platform Name",
-          "type": "const",
+          "type": "string",
           "default": "pioneerAvr2025",
           "placeholder": "pioneerAvr2025",
           "required": true,
