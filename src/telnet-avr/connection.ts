@@ -12,7 +12,7 @@ export class Connection {
     private socket: net.Socket | null = null;
     private lastConnect: number | null = null;
     private messageQueue: MessageQueue;
-    private connectionReady = false;
+    private connectionReady: boolean = false;
     public lastWrite: number | null = null;
     private clearQueueTimeout: NodeJS.Timeout | null = null;
     private disconnectTimeout: NodeJS.Timeout | null = null;
@@ -23,7 +23,9 @@ export class Connection {
     private host: string;
     private port: number;
     private avr: any;
-    private maxReconnectAttempts: number = 5;
+    private maxReconnectAttempts: number = 2; // 10
+
+    private isReconnect: boolean = false
 
     constructor(telnetThis: TelnetAvr) {
         this.avr = telnetThis.avr;
@@ -47,17 +49,22 @@ export class Connection {
         if (!this.connectionReady && this.isConnecting !== null && Date.now() - this.isConnecting < 30000) {
             return;
         }
-        if (this.connectionReady && this.socket) {
-            if (Date.now() - (this.lastConnect ?? 0) > 15 * 1000) {
+
+        if (this.socket) {
+            if (!this.connectionReady && Date.now() - (this.lastConnect ?? 0) > 15 * 1000) {
                 this.reconnect(callback);
-            } else {
+            } else if (this.connectionReady) {
                 this.log.debug("Already connected, delaying callback.");
                 setTimeout(callback, 1500);
+            }else{
+                try {
+                    callback();
+                } catch (e) {
+                    this.log.error("Connect callback error:", e);
+                }
             }
-            return;
-        }
-
-        if (!this.socket) {
+        } else {
+        // if (!this.socket) {
             this.initializeSocket(callback);
         }
     }
@@ -69,21 +76,28 @@ export class Connection {
 
         this.socket.on("connect", () => {
             this.reconnectCounter = 0;
+            this.lastMessageReceived = null;
             this.setConnectionReady(true);
             this.lastConnect = Date.now();
             this.log.debug("Socket connected.");
 
             this.sendMessage("?P", "PWR", async () => {
-                try {
-                    callback();
-                } catch (e) {
-                    this.log.error("Connect callback error:", e);
+                if (!this.isReconnect) {
+                    try {
+                        callback();
+                    } catch (e) {
+                        this.log.error("Connect initializeSocket callback error:", e);
+                    }
+
+                    this.isReconnect = true;
+                }else{
+                   this.log.info('>> successfuly reconnected ' + this.avr.device.name)
                 }
 
                 try {
                     this.onConnect();
                 } catch (e) {
-                    this.log.error("Connect onConnect error:", e);
+                    this.log.error("Connect initializeSocket onConnect error:", e);
                 }
             });
         });
@@ -104,7 +118,7 @@ export class Connection {
     }
 
     private handleData(data: Buffer) {
-        this.dataHandler.handleData(data);
+        this.dataHandler?.handleData(data);
     }
 
     private handleError(err: Error) {
@@ -116,7 +130,7 @@ export class Connection {
     }
 
     private tryReconnect() {
-        if (onExitCalled || this.reconnectCounter >= this.maxReconnectAttempts) return;
+        if (onExitCalled) return;
 
         this.reconnectCounter++;
         const delay = this.reconnectCounter > 30 ? 60 : 15;
@@ -128,15 +142,17 @@ export class Connection {
     }
 
     async reconnect(callback: () => void) {
+        if (onExitCalled || this.connectionReady) return;
+
         if (this.reconnectCounter >= this.maxReconnectAttempts) {
             const TELNET_PORTS = this.avr.platform.TELNET_PORTS || [23, 24, 8102];
-            const devices = await findDevices(this.avr.device.origName || this.avr.device.name, TELNET_PORTS, this.log, 1);
+            const devices = await findDevices(this.avr.device.origName, TELNET_PORTS, this.log, 1);
 
             if (devices.length > 0) {
                 const updatedDevice = devices[0];
                 this.host = updatedDevice.ip;
                 this.port = updatedDevice.port;
-                this.log.info(`Updated device connection info: ${this.host}:${this.port}`);
+                this.log.info(`Updated device ${this.avr.device.name} connection info: ${this.host}:${this.port}`);
                 this.reconnectCounter = 0; // Reset counter after successful discovery
             }
         }
@@ -232,6 +248,13 @@ export class Connection {
 
     // Accessor for lastMessageReceived from DataHandler
     get lastMessageReceived(): number | null {
-        return this.dataHandler.lastMessageReceived;
+        return this.dataHandler?.lastMessageReceived || null;
+    }
+
+    // Setter for the last message received timestamp
+    set lastMessageReceived(value: number | null) {
+        if (this.dataHandler) {
+            this.dataHandler.lastMessageReceived = value;
+        }
     }
 }

@@ -88,10 +88,11 @@ export class MessageQueue {
         // Retrieve the message and callback characters from the first queue item
         let [message, _callbackChars] = this.queue[0];
 
-        // If the message does not start with "?" or "!", remove it from the queue immediately
-        if (!message.startsWith("?") && !message.startsWith("!")) {
-            this.queue.shift();
-        } else {
+        // // If the message does not start with "?" or "!", remove it from the queue immediately
+        // if (!message.startsWith("?") && !message.startsWith("!")) {
+        //     this.queue.shift();
+        // } else {
+        if (message.startsWith("?") || message.startsWith("!")) {
             // For "!" or "?" messages, apply queue lock and remove the "!" prefix if present
             this.queueLock = true;
             if (message.startsWith("!")) {
@@ -113,8 +114,10 @@ export class MessageQueue {
         // console.log('Enqueuing message:', message);
 
         // Ensure the message is not already in the queue, then add it with callback characters if provided
-        if (callbackChars && callbackChars !== '!none' && callback && !this.queue.some(q => q[0] === message)) {
-            this.queue.push([message, callbackChars]);
+        if (callbackChars && callbackChars !== '!none' && callback) {
+            if (!this.queue.some(q => q[0] === message)) {
+                this.queue.push([message, callbackChars]);
+            }
 
             // If this is the first callback for these characters, create an entry
             if (!this.queueCallbackChars[callbackChars]) {

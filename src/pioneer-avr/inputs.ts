@@ -79,7 +79,7 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
                 return;
             }
 
-            this.log.debug("inputStatus updated %s", this.state.input);
+            // this.log.debug("inputStatus updated %s", this.state.input);
             try {
                 callback(null, this.state.input);
             } catch (e) {
@@ -106,6 +106,18 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
          * @param callback - Optional callback function to run after loading inputs.
          */
         public async loadInputs(callback?: () => void) {
+            if(this.isReady){
+                if (callback) {
+                    try {
+                        callback();
+                    } catch (e) {
+                        this.log.debug("loadInputs already isReady callback", e);
+                    }
+                }
+                return;
+            }
+
+
             for (let i = 1; i <= 60; i++) {
                 const key = i.toString().padStart(2, '0');
                 let value = 0;

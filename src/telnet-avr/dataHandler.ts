@@ -29,6 +29,11 @@ class DataHandler {
         return this._lastMessageReceived;
     }
 
+    // Setter for the last message received timestamp
+    set lastMessageReceived(value: number | null) {
+        this._lastMessageReceived = value;
+    }
+
     /**
      * Handles incoming data buffer, processes display characters, and manages callback handling.
      * @param data - The incoming data buffer to process
@@ -40,7 +45,9 @@ class DataHandler {
             this.log.debug('telnet data>', d);
 
             let callbackCalled = false;
+            
             this._lastMessageReceived = Date.now(); // Update the last message received timestamp
+            this.telnetAvr.connection.setConnectionReady(true);
 
             // Process display messages (starting with "FL")
             if (d.startsWith("FL")) {

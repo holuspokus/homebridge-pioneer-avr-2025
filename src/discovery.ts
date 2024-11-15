@@ -1,4 +1,4 @@
-// homebridge-pioneer-avr-2025/src/discovery.ts
+// src/discovery.ts
 
 import * as net from 'net';
 import bonjour from 'bonjour'; // Bonjour for mDNS discovery

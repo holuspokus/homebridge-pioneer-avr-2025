@@ -196,8 +196,12 @@ class PioneerAvrAccessory {
         this.tvSpeakerService = this.accessory.getService(this.platform.service.TelevisionSpeaker) ||
                                 this.accessory.addService(this.platform.service.TelevisionSpeaker, this.name + " Speaker", "tvSpeakerService");
 
+        this.tvSpeakerService.getCharacteristic(this.platform.characteristic.Active)
+            .onGet(this.getMutedInverted.bind(this))
+            .onSet(this.setMutedInverted.bind(this));
+
         this.tvSpeakerService
-            .setCharacteristic(this.platform.characteristic.Active, this.platform.characteristic.Active.ACTIVE)
+            // .setCharacteristic(this.platform.characteristic.Active, this.platform.characteristic.Active.ACTIVE)
             .setCharacteristic(this.platform.characteristic.VolumeControlType, this.platform.characteristic.VolumeControlType.RELATIVE);
             // .setCharacteristic(this.platform.characteristic.VolumeControlType, this.platform.characteristic.VolumeControlType.ABSOLUTE);
 
@@ -230,7 +234,7 @@ class PioneerAvrAccessory {
         }
 
         this.volumeServiceLightbulb = this.accessory.getService(this.platform.service.Lightbulb) ||
-                                      this.accessory.addService(this.platform.service.Lightbulb, this.name + " VolumeBulb", 'volumeInput');
+                                      this.accessory.addService(this.platform.service.Lightbulb, this.name + " Volume", 'volumeInput');
 
         this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On)
             .onGet(this.getMutedInverted.bind(this))
@@ -243,34 +247,34 @@ class PioneerAvrAccessory {
         this.tvService.addLinkedService(this.volumeServiceLightbulb);
         this.enabledServices.push(this.volumeServiceLightbulb);
 
+
+        this.avr.functionSetLightbulbVolume = (set: number) => {
+            try {
+                const currentBrightness = this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.Brightness).value;
+                const currentOnState = this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On).value;
+
+                // Update Brightness only if it is different from the new volume
+                if (currentBrightness !== set) {
+                    this.volumeServiceLightbulb.updateCharacteristic(
+                        this.platform.characteristic.Brightness,
+                        (this.avr.state.muted || !this.avr.state.on) ? 0 : set
+                    );
+                }
+
+                // Update On state based on mute and power status
+                if (currentOnState !== !(this.avr.state.muted || !this.avr.state.on)) {
+                    this.volumeServiceLightbulb.updateCharacteristic(
+                        this.platform.characteristic.On,
+                        !(this.avr.state.muted || !this.avr.state.on)
+                    );
+                }
+            } catch (e) {
+                this.log.debug('Error updating Lightbulb volume:', e);
+            }
+        };
+
         // Initial volume setup only if volume state is valid
         if (typeof this.avr.state.volume === 'number') {
-            this.avr.functionSetLightbulbVolume = (set: number) => {
-                try {
-                    const currentBrightness = this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.Brightness).value;
-                    const currentOnState = this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On).value;
-
-                    // Update Brightness only if it is different from the new volume
-                    if (currentBrightness !== set) {
-                        this.volumeServiceLightbulb.updateCharacteristic(
-                            this.platform.characteristic.Brightness,
-                            (this.avr.state.muted || !this.avr.state.on) ? 0 : set
-                        );
-                    }
-
-                    // Update On state based on mute and power status
-                    if (currentOnState !== !(this.avr.state.muted || !this.avr.state.on)) {
-                        this.volumeServiceLightbulb.updateCharacteristic(
-                            this.platform.characteristic.On,
-                            !(this.avr.state.muted || !this.avr.state.on)
-                        );
-                    }
-                } catch (e) {
-                    this.log.debug('Error updating Lightbulb volume:', e);
-                }
-            };
-
-            // Only set initial volume once setup is complete
             this.avr.functionSetLightbulbVolume(this.avr.state.volume);
         }
 
@@ -450,6 +454,8 @@ class PioneerAvrAccessory {
 
 
     private async getMuted(): Promise<CharacteristicValue> {
+        if (!this.avr || this.avr.state.muted || !this.avr.state.on) return true;
+
         return new Promise((resolve) => {
             this.avr.muteStatus((_error, isMuted) => {
                 resolve(isMuted || false);

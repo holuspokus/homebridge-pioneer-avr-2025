@@ -24,7 +24,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
   // Configuration constants as instance variables
   private readonly TELNET_PORTS = [23, 24, 8102];
   private readonly TARGET_NAME = "VSX";
-  private readonly MAX_ATTEMPTS = 5;
+  private readonly MAX_ATTEMPTS = 1000;
   private readonly RETRY_DELAY = 10000; // 10 seconds in milliseconds
 
   constructor(
