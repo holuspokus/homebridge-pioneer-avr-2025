@@ -67,8 +67,10 @@ After confirming the network connection, restart the plugin to enable communicat
 - [openhab.org](https://www.openhab.org/addons/bindings/pioneeravr/)
 <br>
 
-## Release Notes
+## Release Notes Platform Version
 - **v0.2.0**: Rewritten as a platform plugin in TypeScript for enhanced future-proofing and extensibility.
+
+## Release Notes Accessory Version
 - **v0.1.4**: Small fixes.
 - **v0.1.3**: Improved device status communication with HomeKit and fixed volume control bug on iOS Remote.
 - **v0.1.2**: Resolved an issue where enabling "Web Interface" inadvertently turned on the receiver.
