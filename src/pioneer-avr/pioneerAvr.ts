@@ -203,12 +203,12 @@ class PioneerAvr extends InitializeMixin(
 
                          // Add or update the headerDisplay dynamically
                          const dynamicHost = this.platform?.config?.ip || this.device.ip || 'vsx-923.local';
-                         const dynamicHeaderLink = `To open a telnet port on the receiver, click here: [http://${dynamicHost}/1000/port_number.asp](http://${dynamicHost}/1000/port_number.asp).`;
+                         const dynamicHeaderLink = `To open a telnet port on the receiver or set Network Standby, click here: [http://${dynamicHost}/1000/port_number.asp](http://${dynamicHost}/1000/port_number.asp).`;
 
                          if (!schema.headerDisplay) {
                              schema.headerDisplay = `# Configuration\n\n${dynamicHeaderLink}`;
                          } else {
-                             const regex = /To open a telnet port on the receiver, click here: \[http:\/\/.*?\/1000\/port_number\.asp\]\(http:\/\/.*?\/1000\/port_number\.asp\)\./;
+                             const regex = /To open a telnet port on the receiver or set Network Standby, click here: \[http:\/\/.*?\/1000\/port_number\.asp\]\(http:\/\/.*?\/1000\/port_number\.asp\)\./;
                              schema.headerDisplay = schema.headerDisplay.replace(regex, '').trim();
                              schema.headerDisplay += `\n\n${dynamicHeaderLink}`;
                          }
