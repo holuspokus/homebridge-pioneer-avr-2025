@@ -128,10 +128,10 @@ class PioneerAvrAccessory {
                                   this.accessory.addService(this.platform.service.AccessoryInformation);
 
         this.informationService
-            .setCharacteristic(this.platform.characteristic.Name, this.device.origName.replace(/[^a-zA-Z0-9 ]/g, ""))
+            .setCharacteristic(this.platform.characteristic.Name, this.device.name.replace(/[^a-zA-Z0-9 ]/g, ""))
             .setCharacteristic(this.platform.characteristic.Manufacturer, this.manufacturer)
             .setCharacteristic(this.platform.characteristic.Model, this.model)
-            .setCharacteristic(this.platform.characteristic.SerialNumber, this.host)
+            .setCharacteristic(this.platform.characteristic.SerialNumber, this.device.origName.replace(/[^a-zA-Z0-9 ]/g, ""))
             .setCharacteristic(this.platform.characteristic.FirmwareRevision, this.version);
 
         this.enabledServices.push(this.informationService);

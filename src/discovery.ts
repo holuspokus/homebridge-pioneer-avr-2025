@@ -122,7 +122,7 @@ async function discoverBonjourDevices(
 
 
                 // Attempt to retrieve IP and name with direct assignment and fallbacks
-                const ip = service.referer?.address || (Array.isArray(service.addresses) ? service.addresses[0] : findIp(service));
+                const ip = service.host || service.referer?.address || (Array.isArray(service.addresses) ? service.addresses[0] : findIp(service));
                 const name = service.name || findName(service) || service.host || service.fqdn || ip;
 
                 if (hostsFound.indexOf(ip) === -1) {

@@ -38,94 +38,103 @@ class DataHandler {
      * Handles incoming data buffer, processes display characters, and manages callback handling.
      * @param data - The incoming data buffer to process
      */
-    handleData(data: Buffer) {
-        try {
-            // Convert buffer to string and clean it by removing new lines and carriage returns
-            let d = data.toString().replace("\n", "").replace("\r", "").trim();
-            this.log.debug('telnet data>', d);
+     handleData(data: Buffer) {
+         try {
+             // Convert buffer to string and split it into lines by newline characters.
+             // This ensures that each line in the received data can be processed individually.
+             const lines = data.toString().split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
 
-            let callbackCalled = false;
-            
-            this._lastMessageReceived = Date.now(); // Update the last message received timestamp
-            this.telnetAvr.connection.setConnectionReady(true);
+             // Debug log for the entire received data
+             this.log.debug('telnet data>', data.toString().trim());
 
-            // Process display messages (starting with "FL")
-            if (d.startsWith("FL")) {
-                const displayedMessage = d.substr(2).trim().match(/(..?)/g);
-                let outMessage = "";
+             let callbackCalled = false;
 
-                // Translate each character code to readable display characters
-                for (let pair of displayedMessage ?? []) {
-                    pair = String(pair).toLowerCase();
-                    outMessage += displayChars[pair] || "";
-                }
-                outMessage = outMessage.trim();
-                d = "FL" + outMessage;
+             // Update the timestamp for the last received message
+             this._lastMessageReceived = Date.now();
+             this.telnetAvr.connection.setConnectionReady(true);
 
-                // Display the translated message
-                this.displayChanged(outMessage);
-            }
+             // Process each line individually
+             for (const d of lines) {
+                 // this.log.debug('telnet data (line)>', d);
 
-            // Check if queueLock is active and handle callbacks or error responses
-            if (this.queueLock) {
-                // Handle error messages starting with "E" and clear the queue entry if an error occurs
-                if (d.startsWith("E") ) {
-                      // Process callback messages by checking if they contain expected callback keys
-                      const callbackKey = this.messageQueue.queue[0][1]
+                 // Process display messages (starting with "FL")
+                 if (d.startsWith("FL")) {
+                     const displayedMessage = d.substr(2).trim().match(/(..?)/g);
+                     let outMessage = "";
 
-                      if(Object.keys(this.messageQueue.queueCallbackChars).indexOf(callbackKey) > -1){
-                        // Run each callback function for the matched callback key
-                        for (let runThis of this.messageQueue.getCallbacksForKey(callbackKey)) {
-                            if (typeof runThis === "function") {
-                                try {
-                                    this.fallbackOnData(null, d + callbackKey, runThis);
-                                    callbackCalled = true;
-                                } catch (e) {
-                                    this.log.error(e);
-                                }
-                            }
-                            // Remove the executed callback and clear the queue entry
-                            this.messageQueue.removeCallbackForKey(callbackKey, runThis);
-                            this.clearQueueEntry(callbackKey);
-                        }
-                    }
-                } else {
-                    // Process callback messages by checking if they contain expected callback keys
-                    const callbackKeys = this.messageQueue.getCallbackKeys();
-                    for (let callbackKey of callbackKeys) {
-                        if (d.includes(callbackKey)) {
-                            // Run each callback function for the matched callback key
-                            for (let runThis of this.messageQueue.getCallbacksForKey(callbackKey)) {
-                                if (typeof runThis === "function") {
-                                    try {
-                                        this.fallbackOnData(null, d, runThis);
-                                        callbackCalled = true;
-                                    } catch (e) {
-                                        this.log.error(e);
-                                    }
-                                }
-                                // Remove the executed callback and clear the queue entry
-                                this.messageQueue.removeCallbackForKey(callbackKey, runThis);
-                                this.clearQueueEntry(callbackKey);
-                            }
-                        }
-                    }
-                }
-            }
+                     // Translate each character code to readable display characters
+                     for (let pair of displayedMessage ?? []) {
+                         pair = String(pair).toLowerCase();
+                         outMessage += displayChars[pair] || "";
+                     }
+                     outMessage = outMessage.trim();
+                     const formattedMessage = "FL" + outMessage;
 
-            // Handle unrecognized messages by passing them to the fallback handler
-            if (!callbackCalled && !d.startsWith("FL") && !d.startsWith("R") &&
-                !d.startsWith("ST") && !["RGC", "RGD", "GBH", "GHH", "VTA", "AUA", "AUB", "GEH"].includes(d.substr(0, 3))) {
-                this.fallbackOnData(null, d);
+                     // Log and handle the translated display message
+                     this.log.debug('Translated display message>', formattedMessage);
+                     this.displayChanged(outMessage);
+                     continue; // Skip further processing for display messages
+                 }
 
-                if (this.queueLock) {
-                    this.clearQueueEntry();
-                }
-            }
-        } catch (e) {
-            this.log.error(e);
-        }
-    }
+                 // Handle queue-locked messages
+                 if (this.queueLock) {
+                     // Handle error messages starting with "E"
+                     if (d.startsWith("E")) {
+                         const callbackKey = this.messageQueue.queue[0]?.[1];
+                         if (Object.keys(this.messageQueue.queueCallbackChars).includes(callbackKey)) {
+                             for (const runThis of this.messageQueue.getCallbacksForKey(callbackKey)) {
+                                 if (typeof runThis === "function") {
+                                     try {
+                                         this.fallbackOnData(null, d + callbackKey, runThis);
+                                         callbackCalled = true;
+                                     } catch (e) {
+                                         this.log.error(e);
+                                     }
+                                 }
+                                 // Remove callback and clear queue entry
+                                 this.messageQueue.removeCallbackForKey(callbackKey, runThis);
+                                 this.clearQueueEntry(callbackKey);
+                             }
+                         }
+                     } else {
+                         // Check for other callbacks based on keys
+                         const callbackKeys = this.messageQueue.getCallbackKeys();
+                         for (const callbackKey of callbackKeys) {
+                             if (d.includes(callbackKey)) {
+                                 for (const runThis of this.messageQueue.getCallbacksForKey(callbackKey)) {
+                                     if (typeof runThis === "function") {
+                                         try {
+                                             this.fallbackOnData(null, d, runThis);
+                                             callbackCalled = true;
+                                         } catch (e) {
+                                             this.log.error(e);
+                                         }
+                                     }
+                                     // Remove executed callback and clear queue entry
+                                     this.messageQueue.removeCallbackForKey(callbackKey, runThis);
+                                     this.clearQueueEntry(callbackKey);
+                                 }
+                             }
+                         }
+                     }
+                 }
+
+                 // Handle unrecognized messages by passing them to the fallback handler
+                 if (!callbackCalled && !d.startsWith("FL") && !d.startsWith("R") &&
+                     !d.startsWith("ST") && !["RGC", "RGD", "GBH", "GHH", "VTA", "AUA", "AUB", "GEH"].includes(d.substr(0, 3))) {
+                     this.fallbackOnData(null, d);
+
+                     if (this.queueLock) {
+                         this.clearQueueEntry();
+                     }
+                 }
+             }
+         } catch (e) {
+             // Log any errors encountered during processing
+             this.log.error(e);
+         }
+     }
+
 
     /**
      * Removes the first entry from the queue and resets queueLock.

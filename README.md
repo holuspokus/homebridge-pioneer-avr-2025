@@ -69,7 +69,7 @@ After confirming the network connection, restart the plugin to enable communicat
 
 ## Release Notes
 - **v0.2.0**: Rewritten as a platform plugin in TypeScript for enhanced future-proofing and extensibility.
-- **v0.1.4**: Minor fixes.
+- **v0.1.4**: Small fixes.
 - **v0.1.3**: Improved device status communication with HomeKit and fixed volume control bug on iOS Remote.
 - **v0.1.2**: Resolved an issue where enabling "Web Interface" inadvertently turned on the receiver.
 - **v0.1.1**: Reduced npm dependencies, updated `package.json`, and minimized info logging.

@@ -164,9 +164,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         if (foundDevices.length > 1) {
           // Check if another accessory with the same name already exists
           while (foundDevices.some(fd => fd.name === uniqueName)) {
-            uniqueName = counter === 1 ? `${foundDevice.name}_${foundDevice.ip.slice(-1)}` :
-                        counter === 2 ? `${foundDevice.name}_${foundDevice.ip.slice(-3)}` :
-                        `${foundDevice.name}_${counter}`;
+            uniqueName = `${foundDevice.name}_${counter}`;
             counter++;
           }
         }
