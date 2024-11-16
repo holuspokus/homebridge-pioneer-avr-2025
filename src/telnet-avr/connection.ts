@@ -41,15 +41,15 @@ export class Connection {
             this.checkConnInterval = setInterval(()=>{
 
               // true 0 1731693363571 1731693368529 1731693368562
+              // this.log.debug('telnet setInterval', this.connectionReady, this.reconnectCounter, this.isConnecting, this.lastWrite, this.lastMessageReceived);
 
-              this.log.debug('telnet setInterval', this.connectionReady, this.reconnectCounter, this.isConnecting, this.lastWrite, this.lastMessageReceived);
                   if (this.connectionReady && this.reconnectCounter === 0 && this.isConnecting === null && this.lastWrite !== null && this.lastMessageReceived !== null && this.lastWrite - this.lastMessageReceived > 10000 && Date.now() - this.lastMessageReceived > 60000 ) {
                       this.log.warn(` > Device ${this.avr.device.name} not responding.`);
                       this.connectionReady = false;
                       this.disconnect();
                       this.connect();
                   }
-            }, 30000);
+            }, 11000);
         }, 5000);
 
     }
@@ -93,9 +93,15 @@ export class Connection {
         this.log.debug('initializeSocket() called');
         this.isConnecting = Date.now();
         this.socket = new net.Socket();
-        this.socket.setTimeout(5 * 60 * 1000);
+        this.socket.setTimeout(30 * 1000);
+
+        this.socket.removeAllListeners("connect");
 
         this.socket.on("connect", () => {
+            if (onExitCalled  || !this.socket) return;
+            if(this.socket.destroyed) return;
+            if (this.socket.connecting || this.socket.readyState !== 'open') return;
+
             this.reconnectCounter = 0;
             this.lastMessageReceived = null;
             this.setConnectionReady(true);
@@ -165,7 +171,14 @@ export class Connection {
     }
 
     async reconnect(callback: () => void) {
-        if (onExitCalled || this.connectionReady) return;
+        if (onExitCalled || this.connectionReady || !this.socket) return;
+        if (this.socket.connecting || this.socket.readyState === 'open') {
+            try {
+                callback();
+            } catch (error) {
+                this.log.debug('reconnect callback error', error)
+            }
+        };
 
         this.log.debug('reconnect() called')
 
@@ -194,7 +207,7 @@ export class Connection {
                 try {
                     callback();
                 } catch (error) {
-                   this.log.debug('reconnect callback error', error)
+                    this.log.debug('reconnect callback error', error)
                 }
             }, 30000);
         }
@@ -263,7 +276,7 @@ export class Connection {
 
         this.clearQueueTimeout = setTimeout(() => {
             this.messageQueue.clearQueue();
-        }, 5 * 60 * 1000);
+        }, 15 * 1000);
     }
 
     public onDisconnect() {
