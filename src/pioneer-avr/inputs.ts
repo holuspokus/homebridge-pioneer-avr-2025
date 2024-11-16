@@ -213,7 +213,7 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
         public async renameInput(id: string, newName: string) {
             if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) return;
 
-            const shrinkName = newName.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 14);
+            const shrinkName = newName.replace(/[^\p{L}\p{N} /:._-]/gu, "").substring(0, 14);
             this.telnetAvr.sendMessage(`${shrinkName}1RGB${id}`);
         }
 
@@ -222,7 +222,6 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
          */
         public addInputSourceService(_error: any, _key: any): void {
             // Placeholder method, should be externally overwritten
-            console.log('uh oh bin im addInputSourceService von inputs.ts ;(')
         }
 
         /**

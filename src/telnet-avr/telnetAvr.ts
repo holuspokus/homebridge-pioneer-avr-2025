@@ -44,6 +44,8 @@ export class TelnetAvr {
 
     connect(callback?: () => void) {
         this.connection.connect(() => {
+            this.connectionReady = true;
+
             if (callback) {
                 callback();
             }

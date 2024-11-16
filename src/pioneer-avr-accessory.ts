@@ -11,6 +11,7 @@ type Device = {
     origName: string;
     ip: string;
     port: number;
+    source: string;
 };
 
 class PioneerAvrAccessory {

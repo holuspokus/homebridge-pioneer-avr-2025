@@ -77,6 +77,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         origName: this.config.device.name,
         ip: this.config.device.ip,
         port: this.config.device.port,
+        source: 'pluginConfig'
       });
       this.log.info('Using manually configured device:', devicesFound);
     } else {
@@ -96,6 +97,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             origName: pioneerAccessory.name,
             ip: pioneerAccessory.host,
             port: pioneerAccessory.port,
+            source: 'pioneerAccessory'
           });
           this.log.info('Using pioneerAvrAccessory from config.json:', devicesFound);
         }
@@ -119,6 +121,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 origName: dDevive.origName,
                 ip: dDevive.ip,
                 port: dDevive.port,
+                source: dDevive.source
               });
           }
           this.log.debug('Discovered devices:', devicesFound);

@@ -4,8 +4,8 @@ import * as net from 'net';
 import bonjour from 'bonjour'; // Bonjour for mDNS discovery
 
 // Main function to discover devices using mDNS (Bonjour) only
-async function findDevices(targetName: string, telnetPorts: number[], log: any, maxDevices: number = Infinity): Promise<{ name: string; origName: string; ip: string; port: number }[]> {
-    const devices: { name: string; origName: string; ip: string; port: number }[] = [];
+async function findDevices(targetName: string, telnetPorts: number[], log: any, maxDevices: number = Infinity): Promise<{ name: string; origName: string; ip: string; port: number; source: string; }[]> {
+    const devices: { name: string; origName: string; ip: string; port: number; source: string; }[] = [];
     const bonjourService = bonjour();
     log.debug("Searching for Pioneer Receivers via Bonjour...");
 
@@ -19,12 +19,13 @@ async function findDevices(targetName: string, telnetPorts: number[], log: any, 
 // mDNS (Bonjour) Discovery with port check
 async function discoverBonjourDevices(
     targetName: string,
-    devices: { name: string; origName: string; ip: string; port: number }[],
+    devices: { name: string; origName: string; ip: string; port: number; source: string; }[],
     telnetPorts: number[],
     log: any,
     bonjourService: any,
     maxDevices: number
 ) {
+    let hostsFound: string[] = [];
     return new Promise<void>((resolve) => {
         bonjourService.find({ type: 'raop' }, (service) => {
           // {
@@ -124,18 +125,21 @@ async function discoverBonjourDevices(
                 const ip = service.referer?.address || (Array.isArray(service.addresses) ? service.addresses[0] : findIp(service));
                 const name = service.name || findName(service) || service.host || service.fqdn || ip;
 
-                checkPorts(ip, name, origName, telnetPorts, log).then((device) => {
-                    if (device && !devices.some(d => d.ip === device.ip && d.port === device.port)) {
-                        devices.push(device);
-                        log.debug(`Device with open port found: ${device.name} at ${device.ip}:${device.port}`);
-                    }
+                if (hostsFound.indexOf(ip) === -1) {
+                    hostsFound.push(ip);
+                    checkPorts(ip, name, origName, telnetPorts, 'bonjour', log).then((device) => {
+                        if (device && !devices.some(d => d.ip === device.ip && d.port === device.port)) {
+                            devices.push(device);
+                            log.debug(`Device with open port found: ${device.name} at ${device.ip}:${device.port}`);
+                        }
 
-                    // Stop search if the max number of devices has been found
-                    if (devices.length >= maxDevices) {
-                        bonjourService.destroy();
-                        resolve();
-                    }
-                });
+                        // Stop search if the max number of devices has been found
+                        if (devices.length >= maxDevices) {
+                            bonjourService.destroy();
+                            resolve();
+                        }
+                    });
+                }
             }
         });
 
@@ -163,10 +167,10 @@ async function discoverBonjourDevices(
 }
 
 // Check specific ports for open connections on each device
-async function checkPorts(ip: string, name: string, origName: string, ports: number[], log: any): Promise<{ name: string; origName: string; ip: string; port: number } | null> {
+async function checkPorts(ip: string, name: string, origName: string, ports: number[], source: string, log: any): Promise<{ name: string; origName: string; ip: string; port: number; source: string; } | null> {
     for (const port of ports) {
         if (await isPortOpen(ip, port, log)) {
-            return { name, origName, ip, port }; // Return device info if port is open
+            return { name, origName, ip, port, source }; // Return device info if port is open
         }
     }
     return null;

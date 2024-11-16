@@ -11,6 +11,7 @@ type Device = {
     name: string;
     ip: string;
     port: number;
+    source: string;
 };
 
 export interface AVState {
