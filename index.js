@@ -6,6 +6,8 @@ const ppath = require("persist-path");
 const fs = require("fs");
 const { addExitHandler } = require('./exitHandler');
 
+const path = require('path');
+
 let initP = function() {},
     initPTimeout = null,
     thisThis = null,
@@ -21,7 +23,7 @@ module.exports = function(homebridge) {
         "homebridge-pioneer-avr-2025",
         "pioneerAvrAccessory",
         pioneerAvrAccessory,
-    );
+    );querySelector('query')
 };
 
 let functionSetLightbulbVolumeTimeout = null
@@ -174,6 +176,57 @@ function pioneerAvrAccessory(log, config) {
 
     } catch (err) {
         thisThis.log.debug("new PioneerAvr() Error (%s)", err);
+    }
+
+
+
+
+
+
+    // Path to the Homebridge configuration file
+    const configPath = path.join(process.cwd(), 'config.json');
+
+    // Entry to be added for next update of this plugin
+    const newPlatformEntry = {
+        name: "pioneerAvr2025",
+        platform: "pioneerAvr2025"
+    };
+
+    // Read the existing configuration
+    if (fs.existsSync(configPath)) {
+        let config;
+        try {
+            config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        } catch (error) {
+            console.error('Failed to parse config.json:', error);
+            return;
+        }
+
+        // Check if "platforms" exists, otherwise create it
+        if (!Array.isArray(config.platforms)) {
+            config.platforms = [];
+        }
+
+        // Check if the entry already exists
+        const platformExists = config.platforms.some(
+            (platform) => platform.name === newPlatformEntry.name && platform.platform === newPlatformEntry.platform
+        );
+
+        if (platformExists) {
+            console.log('Platform entry already exists in config.json.');
+        } else {
+            // Add new entry
+            config.platforms.push(newPlatformEntry);
+            console.log('Adding new platform entry to config.json...');
+        }
+
+        // Write the updated configuration back
+        try {
+            fs.writeFileSync(configPath, JSON.stringify(config, null, 4), 'utf-8');
+            console.log('Config updated successfully. Please restart Homebridge.');
+        } catch (error) {
+            console.error('Failed to write to config.json:', error);
+        }
     }
 
 }
