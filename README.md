@@ -21,10 +21,10 @@ With this plugin, you gain the ability to control multiple aspects of your Pione
 * Automatic input discovery
 
 > The plugin is designed to function seamlessly out of the box—just install and start using it!
-
+<br>
 
 > **Migration Note**: If upgrading from the homebridge-pioneer-avr plugin to homebridge-pioneer-avr-2025, it is recommended to remove the old plugin and delete any existing accessories within the Homebridge settings or reset Homebridge entirely. Additionally, rebooting iOS devices is advisable for a smooth transition.
-> Cleaning up the Homebridge configuration file ([config.json](https://github.com/homebridge/homebridge/wiki/Homebridge-Config-JSON-Explained)) is recommended but not required.
+
 <br>
 
 ## Installation
@@ -36,16 +36,15 @@ With this plugin, you gain the ability to control multiple aspects of your Pione
 The receiver is detected automatically over the network.
 
 Manual configuration is also available, and previous configurations from the [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr) plugin will be imported automatically if present. You may also configure settings via the Config-UI interface.
-  <br>
+<br>
 
 
 ### Preparing the Receiver and Network
-
 To ensure proper connectivity for the plugin, connect the receiver to the network. The simplest way to verify that the receiver is accessible is to check if an iPhone can establish an AirPlay connection to the receiver. If this works, the receiver is ready. Otherwise, ensure the following:
 
-1.  The receiver and Homebridge server must be connected to the same network and subnet to enable compatibility with Bonjour/mDNS discovery. This configuration is typically standard for home networks.
+1.  The receiver and Homebridge server must be connected to the same network and subnet to enable compatibility with Bonjour/Multicast discovery. This configuration is typically standard for home networks.
 
-2.  If possible, connect the LAN port on the receiver directly to the LAN port on a router with an active DHCP server function. This allows the receiver to receive network settings automatically. If the router lacks a built-in DHCP server, a manual network setup on the receiver will be necessary.
+2.  If the router lacks a built-in DHCP server, a manual network setup on the receiver will be necessary.
 
 3.  Enable “Network Standby” in the receiver’s network settings to ensure it remains accessible on the network (see the receiver’s manual for details).
 
