@@ -222,14 +222,14 @@ function pioneerAvrAccessory(log, config) {
             // Add new entry
             config.platforms.push(newPlatformEntry);
             console.log('Adding new platform entry to config.json...');
-        }
 
-        // Write the updated configuration back
-        try {
-            fs.writeFileSync(configjsonpath, JSON.stringify(config, null, 4), 'utf-8');
-            console.log('Config updated successfully. Please restart Homebridge.');
-        } catch (error) {
-            console.error('Failed to write to config.json:', error);
+            // Write the updated configuration back
+            try {
+                fs.writeFileSync(configjsonpath, JSON.stringify(config, null, 4), 'utf-8');
+                console.log('Config updated successfully. Please restart Homebridge.');
+            } catch (error) {
+                console.error('Failed to write to config.json:', error);
+            }
         }
     }
 
