@@ -16,14 +16,20 @@ let initP = function() {},
 let Service;
 let Characteristic;
 
+let configjsonpath;
+
 module.exports = function(homebridge) {
     Service = homebridge.hap.Service;
     Characteristic = homebridge.hap.Characteristic;
+
+    // Path to the Homebridge configuration file
+    configjsonpath = homebridge.user.configPath();
+
     homebridge.registerAccessory(
         "homebridge-pioneer-avr-2025",
         "pioneerAvrAccessory",
         pioneerAvrAccessory,
-    );querySelector('query')
+    );
 };
 
 let functionSetLightbulbVolumeTimeout = null
@@ -183,8 +189,6 @@ function pioneerAvrAccessory(log, config) {
 
 
 
-    // Path to the Homebridge configuration file
-    const configPath = path.join(process.cwd(), 'config.json');
 
     // Entry to be added for next update of this plugin
     const newPlatformEntry = {
@@ -193,10 +197,10 @@ function pioneerAvrAccessory(log, config) {
     };
 
     // Read the existing configuration
-    if (fs.existsSync(configPath)) {
+    if (fs.existsSync(configjsonpath)) {
         let config;
         try {
-            config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+            config = JSON.parse(fs.readFileSync(configjsonpath, 'utf-8'));
         } catch (error) {
             console.error('Failed to parse config.json:', error);
             return;
@@ -222,7 +226,7 @@ function pioneerAvrAccessory(log, config) {
 
         // Write the updated configuration back
         try {
-            fs.writeFileSync(configPath, JSON.stringify(config, null, 4), 'utf-8');
+            fs.writeFileSync(configjsonpath, JSON.stringify(config, null, 4), 'utf-8');
             console.log('Config updated successfully. Please restart Homebridge.');
         } catch (error) {
             console.error('Failed to write to config.json:', error);
