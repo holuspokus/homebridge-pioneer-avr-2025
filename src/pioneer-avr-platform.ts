@@ -69,6 +69,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
    */
   async discoverDevices() {
     const devicesFound: any[] = [];
+    let needsRestart: boolean = false;
 
     // Check if the device is manually configured, bypassing discovery
     if (this.config?.device?.name && this.config.device.ip && this.config.device.port) {
@@ -92,7 +93,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
           (accessory: any) => accessory.accessory === 'pioneerAvrAccessory'
         );
 
-        if (pioneerAccessory?.name && pioneerAccessory.host && pioneerAccessory.port) {
+        if (pioneerAccessory.name && pioneerAccessory.host && pioneerAccessory.port) {
           devicesFound.push({
             name: pioneerAccessory.name,
             origName: pioneerAccessory.name,
@@ -100,7 +101,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             port: pioneerAccessory.port,
             source: 'pioneerAccessory'
           });
-          this.log.debug('Using pioneerAvrAccessory from config.json.', devicesFound);
+          this.log.debug('Found pioneerAvrAccessory in config.json.', devicesFound);
 
           // Ensure the platforms array exists
           homebridgeConfig.platforms = homebridgeConfig.platforms || [];
@@ -123,9 +124,16 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
               port: pioneerAccessory.port,
               name: pioneerAccessory.name
             };
+            needsRestart = true;
           }
 
           this.log.info('Updated "' + this.platformName + '" platform in config.json with device info from "pioneerAvrAccessory".');
+        }
+
+        // Move _bridge settings from old config
+        if (pioneerAccessory._bridge) { // && !this.config._bridge
+          this.config._bridge = pioneerAccessory._bridge;
+          needsRestart = true;
         }
 
         // Remove all "pioneerAvrAccessory" entries from accessories
@@ -137,6 +145,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
           if (homebridgeConfig.accessories.length !== originalLength) {
             this.log.debug('Removed "pioneerAvrAccessory" entries from config.json.');
+            needsRestart = true;
           }
         }
 
@@ -145,6 +154,14 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         this.log.debug('Saved updated config.json.');
       } catch (error) {
         this.log.error('Error updating config.json for pioneerAvrAccessory:', error);
+      }
+
+      if (needsRestart) {
+        console.error('PLEASE RESTART HOMEBRIDGE');
+        console.error('PLEASE RESTART HOMEBRIDGE');
+        console.error('PLEASE RESTART HOMEBRIDGE');
+        process.exit();
+        return;
       }
 
       let attempts = 0;

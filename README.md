@@ -33,13 +33,14 @@ With this plugin, you gain the ability to control multiple aspects of your Pione
 
 
 ### Migration from 0.1.4 to 0.2.0
-To complete the migration from version 0.1.4 to 0.2.0 of the plugin, you need to open the plugin configuration in the Homebridge Config UI and save it, even if you make no changes. This ensures that the new configuration format is applied and the plugin can start without issues.
+To complete the migration from version 0.1.4 to 0.2.0 of the plugin, you need to open the plugin configuration in the Homebridge Config UI and save it, make no changes. This ensures that the new configuration format is applied and the plugin can start without issues. Restart Homebridge. The plugin analyzes the config.json file and adjusts it automatically; in this case, another restart of Homebridge is necessary.  
+Now the plugin can be configured as desired.    
 <br>
 
 ## Accessory Configuration
 The receiver is detected automatically over the network.
 
-Manual configuration is also available, and previous configurations from the [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr) plugin will be imported automatically if present. You may also configure settings via the Config-UI interface.
+Manual configuration is also available, and previous configurations from older Versions or from the [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr) plugin will be imported automatically if present. You may also configure settings via the Config-UI interface.
 
 ### Preparing the Receiver and Network
 To ensure proper connectivity for the plugin, connect the receiver to the network. The simplest way to verify that the receiver is accessible is to check if an iPhone can establish an AirPlay connection to the receiver. If this works, the receiver is ready. Otherwise, ensure the following:

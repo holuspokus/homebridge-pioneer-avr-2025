@@ -1,6 +1,6 @@
 {
     "bridge": {
-        "name": "Homebridge YMCA",
+        "name": "HomebridgePi",
         "username": "0E:2F:38:1D:33:7A",
         "port": 51919,
         "pin": "646-31-061",
