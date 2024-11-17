@@ -1,0 +1,33 @@
+{
+    "bridge": {
+        "name": "Homebridge YMCA",
+        "username": "0E:2F:38:1D:33:7A",
+        "port": 51919,
+        "pin": "646-31-061",
+        "advertiser": "avahi"
+    },
+    "accessories": [],
+    "platforms": [
+        {
+            "name": "Config",
+            "port": 8581,
+            "platform": "config",
+            "theme": "deep-purple"
+        },
+        {
+            "platform": "pioneerAvr2025",
+            "name": "pioneerAvr2025",
+            "device": {
+                "ip": "VSX-922.local",
+                "port": 23,
+                "name": "VSX-922"
+            },
+            "maxVolumeSet": 65,
+            "minVolumeSet": 30,
+            "_bridge": {
+                "username": "0E:D6:86:BA:AM:69",
+                "port": 35337
+            }
+        }
+    ]
+}

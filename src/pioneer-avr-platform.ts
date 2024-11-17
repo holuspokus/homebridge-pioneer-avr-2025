@@ -79,12 +79,13 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         port: this.config.device.port,
         source: 'pluginConfig'
       });
-      this.log.info('Using manually configured device:', devicesFound);
+      this.log.debug('Using manually configured device:', devicesFound);
     } else {
-      // Attempt to load the full Homebridge config.json file
       const homebridgeConfigPath = path.join(this.api.user.storagePath(), 'config.json');
+
       try {
-        const homebridgeConfig = JSON.parse(fs.readFileSync(homebridgeConfigPath, 'utf8'));
+        // Load the config.json file
+        const homebridgeConfig: any = JSON.parse(fs.readFileSync(homebridgeConfigPath, 'utf8'));
 
         // Check if "pioneerAvrAccessory" exists in accessories
         const pioneerAccessory = homebridgeConfig.accessories?.find(
@@ -99,10 +100,51 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             port: pioneerAccessory.port,
             source: 'pioneerAccessory'
           });
-          this.log.info('Using pioneerAvrAccessory from config.json:', devicesFound);
+          this.log.debug('Using pioneerAvrAccessory from config.json.', devicesFound);
+
+          // Ensure the platforms array exists
+          homebridgeConfig.platforms = homebridgeConfig.platforms || [];
+
+          // Check if "pioneerAvr2025" platform already exists
+          let pioneerPlatform = homebridgeConfig.platforms.find(
+            (platform: any) => platform.name === this.platformName
+          );
+
+          // If not found, create the platform entry
+          if (!pioneerPlatform) {
+            pioneerPlatform = { name: this.platformName, platform: this.platformName };
+            homebridgeConfig.platforms.push(pioneerPlatform);
+          }
+
+          // Add the "device" entry
+          if (!pioneerPlatform.device){
+            pioneerPlatform.device = {
+              ip: pioneerAccessory.host,
+              port: pioneerAccessory.port,
+              name: pioneerAccessory.name
+            };
+          }
+
+          this.log.info('Updated "' + this.platformName + '" platform in config.json with device info from "pioneerAvrAccessory".');
         }
+
+        // Remove all "pioneerAvrAccessory" entries from accessories
+        if (Array.isArray(homebridgeConfig.accessories)) {
+          const originalLength = homebridgeConfig.accessories.length;
+          homebridgeConfig.accessories = homebridgeConfig.accessories.filter(
+            (accessory: any) => accessory.accessory !== 'pioneerAvrAccessory'
+          );
+
+          if (homebridgeConfig.accessories.length !== originalLength) {
+            this.log.debug('Removed "pioneerAvrAccessory" entries from config.json.');
+          }
+        }
+
+        // Save the updated config.json
+        fs.writeFileSync(homebridgeConfigPath, JSON.stringify(homebridgeConfig, null, 2), 'utf8');
+        this.log.debug('Saved updated config.json.');
       } catch (error) {
-        this.log.error('Error reading config.json for pioneerAvrAccessory:', error);
+        this.log.error('Error updating config.json for pioneerAvrAccessory:', error);
       }
 
       let attempts = 0;

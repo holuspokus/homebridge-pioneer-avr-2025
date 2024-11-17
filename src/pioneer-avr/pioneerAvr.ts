@@ -175,9 +175,14 @@ class PioneerAvr extends InitializeMixin(
                              type: 'integer',
                              title: 'Device Port',
                              description: `Enter the port number for the device connection (e.g., 23 or 8102). To open the port, visit: http://${this.platform?.config?.ip || this.device.ip || 'vsx-923.local'}/1000/port_number.asp`,
-                             default: this.device.source === 'bonjour' ? this.device.port : this.platform?.config?.port || this.device.port || '23',
-                             placeholder: this.device.source === 'bonjour' ? this.device.port : this.platform?.config?.port || this.device.port || '23',
+                             placeholder: this.device.source === 'bonjour' ? this.device.port : this.platform?.config?.port || this.device.port || '23'
                          };
+
+                         if (this.device.source === 'bonjour' || this.platform?.config?.port || this.device.port){
+                              schema.schema.properties.device.properties.port.default = this.device.source === 'bonjour' ? this.device.port : this.platform?.config?.port || this.device.port;
+                         } else {
+                              delete schema.schema.properties.device.properties.port.default;
+                         }
 
                          schema.schema.properties.device.properties.name = {
                              type: 'string',

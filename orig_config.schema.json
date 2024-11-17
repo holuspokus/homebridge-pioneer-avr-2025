@@ -42,7 +42,7 @@
           "port": {
             "title": "Device Port",
             "type": "integer",
-            "default": 23,
+            "placeholder": 23,
             "description": "Enter the port number for the device connection (23 or 8102?). To Open the Port: http://vsx-923.local/1000/port_number.asp"
           }
         },
