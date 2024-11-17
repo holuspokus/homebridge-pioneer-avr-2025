@@ -7,7 +7,7 @@ import { TelnetAvr } from '../telnet-avr/telnetAvr';
 
 type Device = {
     name: string;
-    ip: string;
+    host: string;
     port: number;
     source: string;
 };

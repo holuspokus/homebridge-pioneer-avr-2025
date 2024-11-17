@@ -11,7 +11,7 @@ import * as path from 'path'; // For resolving the correct path to config.schema
 
 type Device = {
     name: string;
-    ip: string;
+    host: string;
     port: number;
     source: string;
 };
@@ -55,7 +55,7 @@ class PioneerAvr extends InitializeMixin(
                     this.platform = platform;
                     this.api = platform.api;
                     this.log = platform.log;
-                    this.host = accessory.device.ip;
+                    this.host = accessory.device.host;
                     this.port = accessory.device.port;
                     this.device = accessory.device;
                     this.accessory = accessory;
@@ -174,7 +174,7 @@ class PioneerAvr extends InitializeMixin(
                          schema.schema.properties.device.properties.port = {
                              type: 'integer',
                              title: 'Device Port',
-                             description: `Enter the port number for the device connection (e.g., 23 or 8102). To open the port, visit: http://${this.platform?.config?.ip || this.device.ip || 'vsx-923.local'}/1000/port_number.asp`,
+                             description: `Enter the port number for the device connection (e.g., 23 or 8102). To open the port, visit: http://${this.platform?.config?.host || this.device.host || 'vsx-923.local'}/1000/port_number.asp`,
                              placeholder: this.device.source === 'bonjour' ? this.device.port : this.platform?.config?.port || this.device.port || '23'
                          };
 
@@ -195,19 +195,19 @@ class PioneerAvr extends InitializeMixin(
                              }
                          };
 
-                         schema.schema.properties.device.properties.ip = {
+                         schema.schema.properties.device.properties.host = {
                              type: 'string',
                              title: 'Device IP Address',
                              description: 'Enter the IP address or the DNS name of the device (e.g., VSX-923.local).',
-                             default: this.device.source === 'bonjour' ? '' : this.platform?.config?.ip || this.device.ip || '',
-                             placeholder: this.platform?.config?.ip || this.device.ip || '192.168.1.99',
+                             default: this.device.source === 'bonjour' ? '' : this.platform?.config?.host || this.device.host || '',
+                             placeholder: this.platform?.config?.host || this.device.host || '192.168.1.99',
                              condition: {
                                "functionBody": "return !model.device.name || model.device.name !== '';"
                              }
                          };
 
                          // Add or update the headerDisplay dynamically
-                         const dynamicHost = this.platform?.config?.ip || this.device.ip || 'vsx-923.local';
+                         const dynamicHost = this.platform?.config?.host || this.device.host || 'vsx-923.local';
                          const dynamicHeaderLink = `To open a telnet port on the receiver or set Network Standby, click here: [http://${dynamicHost}/1000/port_number.asp](http://${dynamicHost}/1000/port_number.asp).`;
 
                          if (!schema.headerDisplay) {

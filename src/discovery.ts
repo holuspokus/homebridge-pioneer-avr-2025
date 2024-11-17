@@ -4,8 +4,8 @@ import * as net from 'net';
 import bonjour from 'bonjour'; // Bonjour for mDNS discovery
 
 // Main function to discover devices using mDNS (Bonjour) only
-async function findDevices(targetName: string, telnetPorts: number[], log: any, maxDevices: number = Infinity): Promise<{ name: string; origName: string; ip: string; port: number; source: string; }[]> {
-    const devices: { name: string; origName: string; ip: string; port: number; source: string; }[] = [];
+async function findDevices(targetName: string, telnetPorts: number[], log: any, maxDevices: number = Infinity): Promise<{ name: string; origName: string; host: string; port: number; source: string; }[]> {
+    const devices: { name: string; origName: string; host: string; port: number; source: string; }[] = [];
     const bonjourService = bonjour();
     log.debug("Searching for Pioneer Receivers via Bonjour...");
 
@@ -19,7 +19,7 @@ async function findDevices(targetName: string, telnetPorts: number[], log: any, 
 // mDNS (Bonjour) Discovery with port check
 async function discoverBonjourDevices(
     targetName: string,
-    devices: { name: string; origName: string; ip: string; port: number; source: string; }[],
+    devices: { name: string; origName: string; host: string; port: number; source: string; }[],
     telnetPorts: number[],
     log: any,
     bonjourService: any,
@@ -122,15 +122,15 @@ async function discoverBonjourDevices(
 
 
                 // Attempt to retrieve IP and name with direct assignment and fallbacks
-                const ip = service.host || service.referer?.address || (Array.isArray(service.addresses) ? service.addresses[0] : findIp(service));
-                const name = service.name || findName(service) || service.host || service.fqdn || ip;
+                const host = service.host || service.referer?.address || (Array.isArray(service.addresses) ? service.addresses[0] : findIp(service));
+                const name = service.name || findName(service) || service.host || service.fqdn || host;
 
-                if (hostsFound.indexOf(ip) === -1) {
-                    hostsFound.push(ip);
-                    checkPorts(ip, name, origName, telnetPorts, 'bonjour', log).then((device) => {
-                        if (device && !devices.some(d => d.ip === device.ip && d.port === device.port)) {
+                if (hostsFound.indexOf(host) === -1) {
+                    hostsFound.push(host);
+                    checkPorts(host, name, origName, telnetPorts, 'bonjour', log).then((device) => {
+                        if (device && !devices.some(d => d.host === device.host && d.port === device.port)) {
                             devices.push(device);
-                            log.debug(`Device with open port found: ${device.name} at ${device.ip}:${device.port}`);
+                            log.debug(`Device with open port found: ${device.name} at ${device.host}:${device.port}`);
                         }
 
                         // Stop search if the max number of devices has been found
@@ -167,18 +167,18 @@ async function discoverBonjourDevices(
 }
 
 // Check specific ports for open connections on each device
-async function checkPorts(ip: string, name: string, origName: string, ports: number[], source: string, log: any): Promise<{ name: string; origName: string; ip: string; port: number; source: string; } | null> {
+async function checkPorts(host: string, name: string, origName: string, ports: number[], source: string, log: any): Promise<{ name: string; origName: string; host: string; port: number; source: string; } | null> {
     for (const port of ports) {
-        if (await isPortOpen(ip, port, log)) {
-            return { name, origName, ip, port, source }; // Return device info if port is open
+        if (await isPortOpen(host, port, log)) {
+            return { name, origName, host, port, source }; // Return device info if port is open
         }
     }
     return null;
 }
 
 // Utility to check if a specific port on a device is open, with a connection attempt
-async function isPortOpen(ip: string, port: number, log: any): Promise<boolean> {
-    log.debug(`Checking if port ${port} on IP ${ip} is open`);
+async function isPortOpen(host: string, port: number, log: any): Promise<boolean> {
+    log.debug(`Checking if port ${port} on host ${host} is open`);
 
     return new Promise((resolve) => {
         const socket = new net.Socket();
@@ -188,8 +188,8 @@ async function isPortOpen(ip: string, port: number, log: any): Promise<boolean> 
         socket.setTimeout(10000);
 
         // Attempt to connect and check if we can access the port via Telnet
-        socket.connect(port, ip, () => {
-            log.debug(`Port ${port} on IP ${ip} responded; attempting to close connection.`);
+        socket.connect(port, host, () => {
+            log.debug(`Port ${port} on Host ${host} responded; attempting to close connection.`);
             socket.end(); // Close the connection
             isConnectionOpen = true;
         });
@@ -201,13 +201,13 @@ async function isPortOpen(ip: string, port: number, log: any): Promise<boolean> 
 
         // Event: Error in connection attempt (port likely closed)
         socket.on('error', (err) => {
-            log.debug(`Error accessing port ${port} on IP ${ip}: ${err.message}`);
+            log.debug(`Error accessing port ${port} on Host ${host}: ${err.message}`);
             resolve(false);
         });
 
         // Event: Connection timed out
         socket.on('timeout', () => {
-            log.debug(`Timeout reached when checking port ${port} on IP ${ip}`);
+            log.debug(`Timeout reached when checking port ${port} on Host ${host}`);
             socket.destroy();
             resolve(false);
         });

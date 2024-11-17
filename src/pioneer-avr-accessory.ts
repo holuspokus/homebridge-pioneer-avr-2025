@@ -9,7 +9,7 @@ import { PioneerAvrPlatform } from './pioneer-avr-platform';
 type Device = {
     name: string;
     origName: string;
-    ip: string;
+    host: string;
     port: number;
     source: string;
 };
@@ -42,7 +42,7 @@ class PioneerAvrAccessory {
         this.name = device.name || 'Pioneer AVR';
         this.manufacturer = this.platform.config.manufacturer || 'Pioneer';
         this.model = this.platform.config.model || device.name || 'Unknown Model';
-        this.host = device.ip || this.platform.config.host || '';
+        this.host = device.host || this.platform.config.host || '';
         this.maxVolumeSet = this.platform.config.maxVolumeSet || 100;
         this.prefsDir = this.platform.config.prefsDir || this.platform.api.user.storagePath() + "/pioneerAvr/";
         this.version = packageJson.version;
@@ -50,7 +50,7 @@ class PioneerAvrAccessory {
         this.name = this.name.replace(/[^a-zA-Z0-9 ']/g, '');
         this.name = this.name.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '').trim();
 
-        this.log.info(`Creating accessory ${this.name} for: ${this.device.origName} at ${this.device.ip}:${this.device.port}`);
+        this.log.info(`Creating accessory ${this.name} for: ${this.device.origName} at ${this.device.host}:${this.device.port}`);
 
         this.inputVisibilityFile = `${this.prefsDir}/inputsVisibility_${this.host}`.replace(/\/{2,}/g, '/');
         this.initializeVisibilityFile();

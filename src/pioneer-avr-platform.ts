@@ -72,11 +72,11 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     let needsRestart: boolean = false;
 
     // Check if the device is manually configured, bypassing discovery
-    if (this.config?.device?.name && this.config.device.ip && this.config.device.port) {
+    if (this.config?.device?.name && this.config.device.host && this.config.device.port) {
       devicesFound.push({
         name: this.config.device.name,
         origName: this.config.device.name,
-        ip: this.config.device.ip,
+        host: this.config.device.host,
         port: this.config.device.port,
         source: 'pluginConfig'
       });
@@ -93,11 +93,22 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
           (accessory: any) => accessory.accessory === 'pioneerAvrAccessory'
         );
 
-        if (pioneerAccessory.name && pioneerAccessory.host && pioneerAccessory.port) {
+        // Check if "pioneerAvr2025" platform already exists
+        let pioneerPlatform = homebridgeConfig.platforms.find(
+          (platform: any) => platform.name === this.platformName
+        );
+
+        // If not found, create the platform entry
+        if (!pioneerPlatform) {
+          pioneerPlatform = { name: this.platformName, platform: this.platformName };
+          homebridgeConfig.platforms.push(pioneerPlatform);
+        }
+
+        if (pioneerAccessory && pioneerAccessory.name && pioneerAccessory.host && pioneerAccessory.port) {
           devicesFound.push({
             name: pioneerAccessory.name,
             origName: pioneerAccessory.name,
-            ip: pioneerAccessory.host,
+            host: pioneerAccessory.host,
             port: pioneerAccessory.port,
             source: 'pioneerAccessory'
           });
@@ -106,21 +117,10 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
           // Ensure the platforms array exists
           homebridgeConfig.platforms = homebridgeConfig.platforms || [];
 
-          // Check if "pioneerAvr2025" platform already exists
-          let pioneerPlatform = homebridgeConfig.platforms.find(
-            (platform: any) => platform.name === this.platformName
-          );
-
-          // If not found, create the platform entry
-          if (!pioneerPlatform) {
-            pioneerPlatform = { name: this.platformName, platform: this.platformName };
-            homebridgeConfig.platforms.push(pioneerPlatform);
-          }
-
           // Add the "device" entry
-          if (!pioneerPlatform.device){
+          if (!pioneerPlatform.device || !pioneerPlatform.device.name || !pioneerPlatform.device.host){
             pioneerPlatform.device = {
-              ip: pioneerAccessory.host,
+              host: pioneerAccessory.host,
               port: pioneerAccessory.port,
               name: pioneerAccessory.name
             };
@@ -131,8 +131,18 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         }
 
         // Move _bridge settings from old config
-        if (pioneerAccessory._bridge) { // && !this.config._bridge
-          this.config._bridge = pioneerAccessory._bridge;
+        if (pioneerAccessory && pioneerAccessory._bridge) { // && !this.config._bridge
+          pioneerPlatform._bridge = pioneerAccessory._bridge;
+          needsRestart = true;
+        }
+
+        if (pioneerAccessory && pioneerAccessory.maxVolumeSet) {
+          pioneerPlatform.maxVolumeSet = pioneerAccessory.maxVolumeSet;
+          needsRestart = true;
+        }
+
+        if (pioneerAccessory && pioneerAccessory.minVolumeSet) {
+          pioneerPlatform.minVolumeSet = pioneerAccessory.minVolumeSet;
           needsRestart = true;
         }
 
@@ -152,16 +162,17 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         // Save the updated config.json
         fs.writeFileSync(homebridgeConfigPath, JSON.stringify(homebridgeConfig, null, 2), 'utf8');
         this.log.debug('Saved updated config.json.');
+
+        if (needsRestart) {
+          console.log(JSON.stringify(homebridgeConfig, null, 2));
+          console.error('PLEASE RESTART HOMEBRIDGE');
+          console.error('PLEASE RESTART HOMEBRIDGE');
+          console.error('PLEASE RESTART HOMEBRIDGE');
+          process.exit();
+          return;
+        }
       } catch (error) {
         this.log.error('Error updating config.json for pioneerAvrAccessory:', error);
-      }
-
-      if (needsRestart) {
-        console.error('PLEASE RESTART HOMEBRIDGE');
-        console.error('PLEASE RESTART HOMEBRIDGE');
-        console.error('PLEASE RESTART HOMEBRIDGE');
-        process.exit();
-        return;
       }
 
       let attempts = 0;
@@ -178,7 +189,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
               devicesFound.push({
                 name: dDevive.name,
                 origName: dDevive.origName,
-                ip: dDevive.ip,
+                host: dDevive.host,
                 port: dDevive.port,
                 source: dDevive.source
               });
@@ -234,7 +245,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         }
 
         // Generate a unique identifier (UUID) for the accessory based on device information
-        const uuid = this.api.hap.uuid.generate(String(uniqueName) + String(foundDevice.ip));
+        const uuid = this.api.hap.uuid.generate(String(uniqueName) + String(foundDevice.host));
 
         // Check if an accessory with this UUID is already registered in Homebridge
         const existingAccessory = this.accessories.find(accessory => accessory.UUID === uuid);
@@ -244,7 +255,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
           this.log.debug('Restoring existing accessory from cache:', existingAccessory.displayName);
           new PioneerAvrAccessory(foundDevice, this, existingAccessory);
         } else {
-          this.log.debug('Adding new accessory:', uniqueName, foundDevice.ip, foundDevice.port);
+          this.log.debug('Adding new accessory:', uniqueName, foundDevice.host, foundDevice.port);
 
           // Initialize a new accessory instance with the unique name and set device context
           const accessory = new this.api.platformAccessory(uniqueName, uuid);

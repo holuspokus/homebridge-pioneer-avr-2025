@@ -188,7 +188,7 @@ export class Connection {
 
             if (devices.length > 0) {
                 const updatedDevice = devices[0];
-                this.host = updatedDevice.ip;
+                this.host = updatedDevice.host;
                 this.port = updatedDevice.port;
                 this.log.info(`Updated device ${this.avr.device.name} connection info: ${this.host}:${this.port}`);
                 this.reconnectCounter = 0; // Reset counter after successful discovery
