@@ -32,7 +32,7 @@ With this plugin, you gain the ability to control multiple aspects of your Pione
 2. **Install the Plugin**: Use the Homebridge Web Interface (Config-UI) to install **homebridge-pioneer-avr-2025**.
 
 
-## Migration from 0.1.4 to 0.2.0
+### Migration from 0.1.4 to 0.2.0
 To complete the migration from version 0.1.4 to 0.2.0 of the plugin, you need to open the plugin configuration in the Homebridge Config UI and save it, even if you make no changes. This ensures that the new configuration format is applied and the plugin can start without issues.
 <br>
 
@@ -40,8 +40,6 @@ To complete the migration from version 0.1.4 to 0.2.0 of the plugin, you need to
 The receiver is detected automatically over the network.
 
 Manual configuration is also available, and previous configurations from the [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr) plugin will be imported automatically if present. You may also configure settings via the Config-UI interface.
-<br>
-
 
 ### Preparing the Receiver and Network
 To ensure proper connectivity for the plugin, connect the receiver to the network. The simplest way to verify that the receiver is accessible is to check if an iPhone can establish an AirPlay connection to the receiver. If this works, the receiver is ready. Otherwise, ensure the following:
