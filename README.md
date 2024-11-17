@@ -30,6 +30,10 @@ With this plugin, you gain the ability to control multiple aspects of your Pione
 ## Installation
 1. **Install Homebridge**: Follow the [Homebridge Installation Guide](https://github.com/homebridge/homebridge/wiki).
 2. **Install the Plugin**: Use the Homebridge Web Interface (Config-UI) to install **homebridge-pioneer-avr-2025**.
+
+
+## Migration from 0.1.4 to 0.2.0
+To complete the migration from version 0.1.4 to 0.2.0 of the plugin, you need to open the plugin configuration in the Homebridge Config UI and save it, even if you make no changes. This ensures that the new configuration format is applied and the plugin can start without issues.
 <br>
 
 ## Accessory Configuration
