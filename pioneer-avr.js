@@ -630,7 +630,6 @@ function PioneerAvr(log, host, port, maxVolumeSet, minVolumeSet, connectionReady
             if (thisThis.s.connectionReady) {
                 thisThis.log.info("Telnet connected");
 
-                require("deasync").sleep(50);
                 thisThis.__updateListeningMode(() => {});
 
                 //reset input locks
