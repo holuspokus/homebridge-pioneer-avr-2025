@@ -20,10 +20,11 @@ With this plugin, you gain the ability to control multiple aspects of your Pione
 * Use the iOS Remote's "Play/Pause" button to toggle between EXTENDED STEREO and PRO LOGIC 2 MOVIE modes
 * Automatic input discovery
 
-> The plugin is designed to function seamlessly out of the box—just install and start using it!
+> The plugin is designed to function seamlessly out of the box — just install and start using it!
+
 <br>
 
-> **Migration Note**: If upgrading from the homebridge-pioneer-avr plugin to homebridge-pioneer-avr-2025, it is recommended to remove the old plugin and delete any existing accessories within the Homebridge settings or reset Homebridge entirely. Additionally, rebooting iOS devices is advisable for a smooth transition.
+> **Migration Note**: If upgrading from the `homebridge-pioneer-avr` plugin to `homebridge-pioneer-avr-2025`, it is recommended to remove the old plugin and delete any existing accessories within the Homebridge settings or reset Homebridge entirely. Additionally, rebooting iOS devices is advisable for a smooth transition.
 
 <br>
 
@@ -31,6 +32,9 @@ With this plugin, you gain the ability to control multiple aspects of your Pione
 1. **Install Homebridge**: Follow the [Homebridge Installation Guide](https://github.com/homebridge/homebridge/wiki).
 2. **Install the Plugin**: Use the Homebridge Web Interface (Config-UI) to install **homebridge-pioneer-avr-2025**.
 
+
+### Migration from 0.1.6 to 0.2.0
+Nothing to do, just Restart Homebridge if needed.
 
 ### Migration from 0.1.4 to 0.2.0
 To complete the migration from version 0.1.4 to 0.2.0 of the plugin, you need to open the plugin configuration in the Homebridge Config UI and save it, make no changes. This ensures that the new configuration format is applied and the plugin can start without issues. Restart Homebridge. The plugin analyzes the config.json file and adjusts it automatically; in this case, another restart of Homebridge is necessary.  
@@ -52,6 +56,85 @@ To ensure proper connectivity for the plugin, connect the receiver to the networ
 3.  Enable “Network Standby” in the receiver’s network settings to ensure it remains accessible on the network (see the receiver’s manual for details).
 
 After confirming the network connection, restart the plugin to enable communication with the receiver.
+<br><br>
+
+## Manual installation:
+1. **Install the Homebridge framework:**
+   ```bash
+   npm install -g homebridge
+   ```
+
+2. **Update your configuration file:** Use the example below or check `sample-config.json` in this repository for a sample. Create or edit the `config.json` file in the Homebridge directory (typically `~/.homebridge/`) with the appropriate configuration for your Pioneer AVR.
+
+3. **Install **homebridge-pioneer-avr-2025**:**
+   ```bash
+   npm install -g homebridge-pioneer-avr-2025
+   ```
+
+4. **Start Homebridge:**
+   ```bash
+   homebridge
+   ```
+
+### Accessory Configuration Example
+
+Below is a sample configuration for your accessory:
+
+```json
+"platforms": [
+    {
+        "platform": "pioneerAvr2025",
+        "name": "pioneerAvr2025",
+        "host": "VSX-922.local",
+        "port": 23,
+        "name": "VSX-922",
+        "maxVolumeSet": 65,
+        "minVolumeSet": 30,
+        "_bridge": {
+            "username": "0E:D6:86:BA:AM:69",
+            "port": 35337
+        }
+    }
+]
+```
+
+|          Key | Value                         |
+| -----------: | :---------------------------- |
+|     platform | don't change                  |
+|         name | Custom input, can remain      |
+|         host | needs to be accurate or empty |
+|         port | needs to be accurate          |
+| maxVolumeSet | Optional input, can remain    |
+| minVolumeSet | Optional input, can remain    |
+
+> **host:**
+> To use the network scan (Multicast), leave `host` field empty in the plugin configuration.
+
+> **port:**  
+> The port used for Telnet to connect to your receiver.  
+> If port 23 does not work, try port 8102.  
+> Alternatively, enable Web Interface (see user manual) and then try opening in your web browser something like:
+> `http://vsx-922.local/1000/port_number.asp` or  
+> `http://192.168.178.99/1000/port_number.asp`  
+> ... to find the port number.
+
+> **maxVolumeSet:**  
+> A number between 0 and 100; for example, 60 means 60% of the max volume.  
+> 100 = -0dB (i.e., 185 = No Limit),  
+> 60 = -16dB,  
+> 0: disables the volume as brightness feature  
+> Defaults to 80 if undefined.  
+> A value of 60 has worked well for me.  
+
+> **Note:** The difference between `maxVolumeSet` and `minVolumeSet` should be at least 20.  
+> Both only affects the volume as a brightness feature, not the remote.
+
+> **minVolumeSet:**  
+> A number between 0 and 100; for example, 30 means 30% of the max volume.  
+> Defaults to 20 if undefined.  
+> This setting is only active in combination with `maxVolumeSet`.  
+> A value of 35 has worked well for me.  
+
 <br><br><br><br>
 
 ## Links
