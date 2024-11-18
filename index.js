@@ -5,7 +5,6 @@ const PioneerAvr = require("./pioneer-avr");
 const ppath = require("persist-path");
 const fs = require("fs");
 const { addExitHandler } = require('./exitHandler');
-
 const path = require('path');
 
 let initP = function() {},
@@ -82,7 +81,7 @@ function pioneerAvrAccessory(log, config) {
 
     log.debug("Preferences directory : %s", this.prefsDir);
     this.manufacturer = "Pioneer";
-    this.version = "0.1.5";
+    this.version = "0.1.6";
 
     // check if prefs directory ends with a /, if not then add it
     if (this.prefsDir.endsWith("/") === false) {
@@ -187,51 +186,59 @@ function pioneerAvrAccessory(log, config) {
 
 
 
-
-
-
-    // Entry to be added for next update of this plugin
-    const newPlatformEntry = {
-        name: "pioneerAvr2025",
-        platform: "pioneerAvr2025"
-    };
-
-    // Read the existing configuration
-    if (fs.existsSync(configjsonpath)) {
-        let config;
+    setTimeout(()=>{
         try {
-            config = JSON.parse(fs.readFileSync(configjsonpath, 'utf-8'));
-        } catch (error) {
-            console.error('Failed to parse config.json:', error);
-            return;
-        }
+            // Entry to be added for next update of this plugin
+            const newPlatformEntry = {
+                name: "pioneerAvr2025",
+                platform: "pioneerAvr2025"
+            };
 
-        // Check if "platforms" exists, otherwise create it
-        if (!Array.isArray(config.platforms)) {
-            config.platforms = [];
-        }
+            // Read the existing configuration
+            if (fs.existsSync(configjsonpath)) {
+                let config;
+                try {
+                    config = JSON.parse(fs.readFileSync(configjsonpath, 'utf-8'));
+                } catch (error) {
+                    console.error('Failed to parse config.json:', error);
+                }
 
-        // Check if the entry already exists
-        const platformExists = config.platforms.some(
-            (platform) => platform.name === newPlatformEntry.name && platform.platform === newPlatformEntry.platform
-        );
+                if(config.bridge){
+                    // Check if "platforms" exists, otherwise create it
+                    if (!Array.isArray(config.platforms)) {
+                        config.platforms = [];
+                    }
 
-        if (platformExists) {
-            console.log('Platform entry already exists in config.json.');
-        } else {
-            // Add new entry
-            config.platforms.push(newPlatformEntry);
-            console.log('Adding new platform entry to config.json...');
+                    // Check if the entry already exists
+                    const platformExists = config.platforms.some(
+                        (platform) => platform.name === newPlatformEntry.name && platform.platform === newPlatformEntry.platform
+                    );
 
-            // Write the updated configuration back
-            try {
-                fs.writeFileSync(configjsonpath, JSON.stringify(config, null, 4), 'utf-8');
-                console.log('Config updated successfully. Please restart Homebridge.');
-            } catch (error) {
-                console.error('Failed to write to config.json:', error);
+                    if (platformExists) {
+                        thisThis.log.debug('Platform entry already exists in config.json.');
+                    } else {
+                        // Add new entry
+                        config.platforms.push(newPlatformEntry);
+                        thisThis.log.debug('Adding new platform entry to config.json...');
+
+                        // Write the updated configuration back
+                        try {
+                            fs.writeFileSync(configjsonpath, JSON.stringify(config, null, 4), 'utf-8');
+                            thisThis.log.debug('Config updated successfully.');
+                        } catch (error) {
+                            thisThis.log.debug('Failed to write to config.json:', error);
+                        }
+                    }
+                }
             }
+        } catch (e) {
+          console.error(e);
         }
-    }
+      }, 30000);
+
+
+
+
 
 }
 
@@ -308,7 +315,7 @@ pioneerAvrAccessory.prototype.prepareTvService = function() {
                       thisThis.log.debug('functionSetPowerState called', set)
                       try {
                           thisThis.tvService.setCharacteristic(Characteristic.SleepDiscoveryMode, !set);
-                          thisThis.tvService.setCharacteristic(Characteristic.Active, set);
+                          thisThis.tvService.getCharacteristic(Characteristic.Active).setValue(set);
                       } catch (e) {
                           thisThis.log.debug('functionSetPowerState Error', e)
                       }
@@ -328,7 +335,7 @@ pioneerAvrAccessory.prototype.prepareTvService = function() {
                 // thisThis.log.debug('functionSetActiveIdentifierTimeout called')
                 try {
                     thisThis.tvService
-                        .setCharacteristic(Characteristic.ActiveIdentifier, set);
+                        .getCharacteristic(Characteristic.ActiveIdentifier).setValue(set);
                 } catch (e) {
                     thisThis.log.debug('functionSetActiveIdentifierTimeout Error', e)
                 }

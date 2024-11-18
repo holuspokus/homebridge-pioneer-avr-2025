@@ -139,7 +139,8 @@ Below is a sample configuration for your accessory:
 
 ## Release Notes
 
-- **v0.1.5**: Preparations for the transition of the plugin from Accessory to Platform. To ensure a smooth transition, this version should be installed before version 0.2.0.
+- **v0.1.6**: Fixes a bug where the receiver would start when the plugin started. Preparations for the transition of the plugin from Accessory to Platform. To ensure a smooth transition, this version should be installed before version 0.2.0.
+- **v0.1.5**: Withdrawn.
 - **v0.1.4**: Little fixes
 - **v0.1.3**: Improved communication of device status with HomeKit and fixed a bug with volume control in the iOS Remote.
 - **v0.1.2**: Fixed an issue where "Web Interface enabled" unintentionally turned on the receiver.
