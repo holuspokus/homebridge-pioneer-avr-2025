@@ -73,19 +73,21 @@ After confirming the network connection, restart the plugin to enable communicat
 - **v0.2.0**: Rewritten as a platform plugin in TypeScript for enhanced future-proofing and extensibility.
 
 ## Release Notes Accessory Version
-- **v0.1.4**: Small fixes.
-- **v0.1.3**: Improved device status communication with HomeKit and fixed volume control bug on iOS Remote.
-- **v0.1.2**: Resolved an issue where enabling "Web Interface" inadvertently turned on the receiver.
-- **v0.1.1**: Reduced npm dependencies, updated `package.json`, and minimized info logging.
-- **v0.1.0**: Stability enhancements.
-- **v0.0.9**: Resolved volume control issue on Apple Watch.
-- **v0.0.8**: Improved volume control (as Lightbulb) functionality.
-- **v0.0.7**: Enhanced Lightbulb volume control functionality.
-- **v0.0.6**: Added volume control within the receiver's Home icon.
-- **v0.0.5**: Enabled "Play/Pause" Remote-Key for toggling listening modes.
-- **v0.0.4**: Fixed plugin name in README.
-- **v0.0.3**: Added "AIRPLAY" input (Input 46).
-- **v0.0.2**: Minor fixes.
-- **v0.0.1**: Enhanced performance and responsiveness for Pioneer AVR receivers.
-- **v0.0.0**: Forked from homebridge-pioneer-avr.
+- **v0.1.6**: Fixes a bug where the receiver would start when the plugin started. Preparations for the transition of the plugin from Accessory to Platform. To ensure a smooth transition, this version should be installed before version 0.2.0.
+- **v0.1.5**: Withdrawn.
+- **v0.1.4**: Little fixes
+- **v0.1.3**: Improved communication of device status with HomeKit and fixed a bug with volume control in the iOS Remote.
+- **v0.1.2**: Fixed an issue where "Web Interface enabled" unintentionally turned on the receiver.
+- **v0.1.1**: Reduced npm dependencies and updated `package.json`, less info-logging.
+- **v0.1.0**: Some final improvements for stabilization.
+- **v0.0.9**: Fixed an issue related to volume control on Apple Watch.
+- **v0.0.8**: Volume as Lightbulb works even finer now!
+- **v0.0.7**: Volume as Lightbulb works fine now.
+- **v0.0.6**: The volume can now be adjusted within the Home icon of the receiver.
+- **v0.0.5**: The unused Remote-Key "Play/Pause" can now be used to toggle Listening-Mode.
+- **v0.0.4**: Plugin-Name in README fixed.
+- **v0.0.3**: Input 46 -> AIRPLAY added.
+- **v0.0.2**: Fixes.
+- **v0.0.1**: Enhanced performance and responsiveness of the Pioneer AVR receiver.
+- **v0.0.0**: Forked homebridge-pioneer-avr.
 <br>
