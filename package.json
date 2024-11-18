@@ -20,8 +20,8 @@
   "files": [
     "dist",
     "config.schema.json",
-    "orig_config.schema.json",
-    "sample.config.json",
+    "orig-config.schema.json",
+    "sample-config.json",
     "LICENSE",
     "README.md"
   ],
