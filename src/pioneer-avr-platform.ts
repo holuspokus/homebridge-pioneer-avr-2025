@@ -76,7 +76,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     let needsRestart: boolean = false;
 
     // Check if the device is manually configured, bypassing discovery
-    if (this.config?.device?.name && (this.config.device.host || this.config.device.ip) && this.config.device.port) {
+    if (this.config?.device?.name && (this.config.device.host || this.config.device.ip) && String(this.config.device.host || this.config.device.ip).length > 0 && this.config.device.port) {
       devicesFound.push({
         name: this.config.device.name,
         origName: this.config.device.name,
@@ -85,7 +85,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         source: 'pluginConfig'
       });
       this.log.debug('Using manually configured device:', devicesFound);
-    } else if (this.config.name && (this.config.host || this.config.ip) && this.config.port) {
+    } else if (this.config.name && (this.config.host || this.config.ip) && String(this.config.host || this.config.ip).length > 0 && this.config.port) {
       devicesFound.push({
         name: this.config.name,
         origName: this.config.name,
