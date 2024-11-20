@@ -3,9 +3,6 @@
 import { Connection } from "./connection";
 import PioneerAvr from '../pioneer-avr/pioneerAvr';
 
-const DEFAULT_PORT = 23;
-const DEFAULT_HOST = "127.0.0.1";
-
 export class TelnetAvr {
     public readonly connection: Connection;
     public onData: (error: any, data: string, callback?: Function) => void = () => {};
@@ -19,8 +16,8 @@ export class TelnetAvr {
 
     constructor(pioneerAvr: any) {
         // Use the properties from the passed-in PioneerAvr instance
-        this.host = pioneerAvr.host || DEFAULT_HOST;
-        this.port = pioneerAvr.port || DEFAULT_PORT;
+        this.host = pioneerAvr.host;
+        this.port = pioneerAvr.port;
         this.log = pioneerAvr.log;
         this.avr = pioneerAvr;
 
