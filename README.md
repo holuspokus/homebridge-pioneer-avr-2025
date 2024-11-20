@@ -1,7 +1,7 @@
 
 # homebridge-pioneer-avr-2025
 
-A [Homebridge](https://github.com/nfarina/homebridge) plugin that integrates your Pioneer AVR as a TV accessory in HomeKit. This project is compatible with Node 22 and below, as well as Homebridge 2 or earlier versions. It is written in TypeScript and leverages the latest Homebridge methods and practices, ensuring a streamlined setup with optional manual configuration. The plugin automatically detects your receiver, even in environments with dynamic IP addresses, for a more reliable user experience.
+A [Homebridge](https://github.com/nfarina/homebridge) plugin that integrates your Pioneer AVR as a TV accessory in HomeKit. This project is compatible with Node 22 and below, as well as Homebridge 2 or earlier versions. It is written in TypeScript and leverages the latest Homebridge methods and practices, ensuring a streamlined setup with optional manual configuration. The plugin automatically detects your receiver for a more reliable user experience.
 
 > **Note**: This plugin is specifically designed for Pioneer models released before 2017 that use Pioneer Telnet Commands (e.g., VSX-922). It may not be compatible with newer models that use the ISCP protocol (e.g., VSX-LX304). For newer models, please consider using the [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer) plugin or see the "Alternatives" section below.
 
@@ -19,27 +19,12 @@ With this plugin, you gain the ability to control multiple aspects of your Pione
 * Remote control functionality on iOS devices
 * Use the iOS Remote's "Play/Pause" button to toggle between EXTENDED STEREO and PRO LOGIC 2 MOVIE modes
 * Automatic input discovery
-
-> The plugin is designed to function seamlessly out of the box — just install and start using it!
-
 <br>
-
-> **Migration Note**: If upgrading from the `homebridge-pioneer-avr` plugin to `homebridge-pioneer-avr-2025`, it is recommended to remove the old plugin and delete any existing accessories within the Homebridge settings or reset Homebridge entirely. Additionally, rebooting iOS devices is advisable for a smooth transition.
-
 <br>
 
 ## Installation
 1. **Install Homebridge**: Follow the [Homebridge Installation Guide](https://github.com/homebridge/homebridge/wiki).
 2. **Install the Plugin**: Use the Homebridge Web Interface (Config-UI) to install **homebridge-pioneer-avr-2025**.
-
-
-### Migration from 0.1.6 to 0.2.0
-Nothing to do, just Restart Homebridge if needed.
-
-### Migration from 0.1.4 to 0.2.0
-To complete the migration from version 0.1.4 to 0.2.0 of the plugin, you need to open the plugin configuration in the Homebridge Config UI and save it, make no changes. This ensures that the new configuration format is applied and the plugin can start without issues. Restart Homebridge. The plugin analyzes the config.json file and adjusts it automatically; in this case, another restart of Homebridge is necessary.  
-Now the plugin can be configured as desired.    
-<br>
 
 ## Accessory Configuration
 The receiver is detected automatically over the network.

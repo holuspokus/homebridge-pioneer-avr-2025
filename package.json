@@ -2,8 +2,8 @@
   "name": "homebridge-pioneer-avr-2025",
   "displayName": "Pioneer AVR 2025",
   "platformName": "pioneerAvr2025",
-  "version": "0.2.0-beta.5",
-  "description": "Fast Pioneer AVR plugin for homebridge, ready for Node 22 or lower.",
+  "version": "0.2.0-beta.6",
+  "description": "A Pioneer AVR plugin for homebridge.",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",

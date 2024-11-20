@@ -71,7 +71,7 @@ class DataHandler {
                      const formattedMessage = "FL" + outMessage;
 
                      // Log and handle the translated display message
-                     this.log.debug('Translated display message>', formattedMessage);
+                     // this.log.debug('display>', formattedMessage);
                      this.displayChanged(outMessage);
                      continue; // Skip further processing for display messages
                  }
