@@ -49,7 +49,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     this.log.debug('Platform started:', this.platformName, this.pluginName);
 
     if (config.device?.port && !this.TELNET_PORTS.includes(parseInt(config.device.port, 10))) {
-        this.TELNET_PORTS.push(parseInt(config.device.port, 10))
+        this.TELNET_PORTS.unshift(parseInt(config.device.port, 10))
     }
 
     // Register for the 'didFinishLaunching' event to start device discovery after Homebridge startup

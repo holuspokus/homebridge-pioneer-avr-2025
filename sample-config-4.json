@@ -16,13 +16,7 @@
         },
         {
             "platform": "pioneerAvr2025",
-            "name": "pioneerAvr2025",
-            "maxVolumeSet": 65,
-            "minVolumeSet": 30,
-            "_bridge": {
-                "username": "0E:D6:86:BA:AM:69",
-                "port": 35337
-            }
+            "name": "pioneerAvr2025"
         }
     ]
 }

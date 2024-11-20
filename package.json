@@ -22,6 +22,9 @@
     "config.schema.json",
     "orig-config.schema.json",
     "sample-config.json",
+    "sample-config-2.json",
+    "sample-config-3.json",
+    "sample-config-4.json",
     "LICENSE",
     "README.md"
   ],

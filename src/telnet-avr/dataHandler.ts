@@ -68,10 +68,10 @@ class DataHandler {
                          outMessage += displayChars[pair] || "";
                      }
                      outMessage = outMessage.trim();
-                     const formattedMessage = "FL" + outMessage;
+                     // d = "FL" + outMessage;
 
                      // Log and handle the translated display message
-                     // this.log.debug('display>', formattedMessage);
+                     // this.log.debug('display>', outMessage);
                      this.displayChanged(outMessage);
                      continue; // Skip further processing for display messages
                  }
@@ -119,7 +119,7 @@ class DataHandler {
                      }
                  }
 
-                 // Handle unrecognized messages by passing them to the fallback handler
+                 // Handle unrecognized messages
                  if (!callbackCalled && !d.startsWith("FL") && !d.startsWith("R") &&
                      !d.startsWith("ST") && !["RGC", "RGD", "GBH", "GHH", "VTA", "AUA", "AUB", "GEH"].includes(d.substr(0, 3))) {
                      this.fallbackOnData(null, d);

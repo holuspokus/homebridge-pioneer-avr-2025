@@ -17,6 +17,11 @@
         {
             "platform": "pioneerAvr2025",
             "name": "pioneerAvr2025",
+            "device": {
+                "ip": "VSX-922.local",
+                "port": 23,
+                "name": "VSX922"
+            },
             "maxVolumeSet": 65,
             "minVolumeSet": 30,
             "_bridge": {

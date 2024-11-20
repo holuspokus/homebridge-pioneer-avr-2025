@@ -12,12 +12,11 @@ let platformName = packageJson.platformName || 'pioneerAvr2025'
 platformName = platformName.replace(/[^a-zA-Z0-9 ']/g, '');
 platformName = platformName.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '').trim();
 
-// Exportiere die Hauptfunktion
 export = (api: API) => {
   api.registerPlatform(platformName, PioneerAvrPlatform);
 };
 
 
 
-// homebridge -D -I | tee >(sed 's/\x1b\[[0-9;]*m//g' > /Users/me/.homebridge/homebridge.log)
+// homebridge -D -I | tee >(sed 's/\x1b\[[0-9;]*m//g' > ~/.homebridge/homebridge.log)
 // tsc --build --force

@@ -39,17 +39,13 @@ export class Connection {
         setTimeout(() => {
             clearInterval(this.checkConnInterval);
             this.checkConnInterval = setInterval(()=>{
-
-              // true 0 1731693363571 1731693368529 1731693368562
-              // this.log.debug('telnet setInterval', this.connectionReady, this.reconnectCounter, this.isConnecting, this.lastWrite, this.lastMessageReceived);
-
                   if (this.connectionReady && this.reconnectCounter === 0 && this.isConnecting === null && this.lastWrite !== null && this.lastMessageReceived !== null && this.lastWrite - this.lastMessageReceived > 10000 && Date.now() - this.lastMessageReceived > 60000 ) {
                       this.log.warn(` > Device ${this.avr.device.name} not responding.`);
                       this.connectionReady = false;
                       this.disconnect();
                       this.connect();
                   }
-            }, 11000);
+            }, 3107);
         }, 5000);
 
     }

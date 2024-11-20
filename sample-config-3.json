@@ -17,6 +17,9 @@
         {
             "platform": "pioneerAvr2025",
             "name": "pioneerAvr2025",
+            "device": {
+                "port": 23
+            },
             "maxVolumeSet": 65,
             "minVolumeSet": 30,
             "_bridge": {
