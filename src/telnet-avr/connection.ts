@@ -1,4 +1,5 @@
 // src/telnet-avr/connection.ts
+
 import net from "net";
 import { TelnetAvr } from './telnetAvr';
 import { MessageQueue } from "./messageQueue";
@@ -237,10 +238,11 @@ export class Connection {
 
         this.disconnectTimeout = setTimeout(() => this.disconnect(), 5 * 60 * 1000);
 
-        if (this.connectionReady && callbackChars === undefined) {
-            if (Date.now() - (this.lastWrite ?? 0) < 38) {
-                await new Promise(resolve => setTimeout(resolve, 50));
-            }
+        // if (this.connectionReady && callbackChars === undefined) {
+        //     if (Date.now() - (this.lastWrite ?? 0) < 38) {
+        //         await new Promise(resolve => setTimeout(resolve, 50));
+        //     }
+        if (this.connectionReady && callbackChars === undefined && Date.now() - (this.lastWrite ?? 0) >= 50) {
             this.directSend(message, callback);
         } else {
             this.queueMessage(message, callbackChars, callback);

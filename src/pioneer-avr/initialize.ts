@@ -108,16 +108,13 @@ export function InitializeMixin<TBase extends new (...args: any[]) => {
                         if (this.lastUserInteraction && Date.now() - this.lastUserInteraction > 48 * 60 * 60 * 1000) {
                             return;
                         }
-                        // if (this.telnetAvr.connectionReady && this.isReady && this.state.on && this.state.lastGetPowerStatus !== null) {
-                        //     this.__updateVolume?.(() => {});
-                        // }
-                        if (this.isReady && this.telnetAvr.connectionReady) {
+                        if (this.isReady && this.telnetAvr.connectionReady && (this.telnetAvr.connection.lastMessageReceived === null || Date.now() - this.telnetAvr.connection.lastMessageReceived > 29000)) {
                             this.__updatePower?.(() => {});
                         }
                     } catch (e) {
                         this.log.debug("Polling error", e);
                     }
-                }, 29000);
+                }, 2000);
 
             } catch (error) {
                 console.log('setupConnectionCallbacks() error' + String(error));

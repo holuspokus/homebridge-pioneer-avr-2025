@@ -186,7 +186,7 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
                     key = String(key);
                     this.inputBeingAdded = key;
 
-                    this.log.debug('inputMissing called key', key, this.inputMissing);
+                    // this.log.debug('inputMissing called key', key, this.inputMissing);
 
                     await this.telnetAvr.sendMessage(`?RGB${key}`, `RGB${key}`, this.addInputSourceService.bind(this));
                     await new Promise(resolve => setTimeout(resolve, 500));

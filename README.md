@@ -9,16 +9,17 @@ A [Homebridge](https://github.com/nfarina/homebridge) plugin that integrates you
 <br>
 
 ## Features
-With this plugin, you gain the ability to control multiple aspects of your Pioneer AVR, including:
+This plugin allows you to control various aspects of your Pioneer AVR directly from your Home app, including:
 
 * Power On/Off control
-* Input selection directly within the Home app
-* Volume adjustment (available as a Lightbulb control in the Home app)
-* Customize visibility of inputs in the Home app
-* Rename inputs for personalized identification
+* Input selection with ease
+* Volume adjustment (presented as a Lightbulb control in the Home app)
+* Customizing the visibility of inputs
+* Renaming inputs for easier identification
 * Remote control functionality on iOS devices
-* Use the iOS Remote's "Play/Pause" button to toggle between EXTENDED STEREO and PRO LOGIC 2 MOVIE modes
-* Automatic input discovery
+* Using the iOS Remote's "Play/Pause" button to toggle between EXTENDED STEREO and PRO LOGIC 2 MOVIE modes
+* Automatic input discovery for seamless setup
+* Automatic receiver discovery for effortless integration
 <br>
 <br>
 
@@ -53,11 +54,15 @@ After confirming the network connection, restart the plugin to enable communicat
 
 3. **Install **homebridge-pioneer-avr-2025**:**
    ```bash
+   hb-service; hb-service add homebridge-pioneer-avr-2025
+      or
    npm install -g homebridge-pioneer-avr-2025
    ```
 
 4. **Start Homebridge:**
    ```bash
+   sudo hb-service restart
+      or
    homebridge
    ```
 

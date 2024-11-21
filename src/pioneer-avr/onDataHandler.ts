@@ -270,7 +270,16 @@ function handleInputDiscovery(data: string, pioneerThis: PioneerAvr, callback: F
         pioneerThis.log.info(
             `Input [${tmpInput.name}] discovered`
         );
-    }
+      } else {
+          // Update the name of the existing input if it has changed
+          let existingInput = pioneerThis.inputs.find(input => input.id === tmpInput.id);
+          if (existingInput && existingInput.name !== tmpInput.name) {
+              existingInput.name = tmpInput.name;
+              // pioneerThis.log.info(
+              //     `Input [${tmpInput.id}] name updated to [${tmpInput.name}]`
+              // );
+          }
+      }
 
     let inputIndex = pioneerThis.inputs.findIndex(input => input.id === tmpInput.id);
     if (inputIndex !== -1) {
