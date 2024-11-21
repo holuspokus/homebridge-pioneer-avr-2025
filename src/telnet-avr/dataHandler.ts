@@ -62,27 +62,36 @@ class DataHandler {
                     continue;
                 }
 
-                // Process callbacks based on callback keys in the queue.
-                const callbackKeys = this.messageQueue.getCallbackKeys();
-                for (const callbackKey of callbackKeys) {
-                    if (d.includes(callbackKey)) {
-                        const callbacks = this.messageQueue.getCallbacksForKey(callbackKey);
+                if (d.startsWith("E")){
+                    // Clear the queue entry if a queue lock exists.
+                    const firstQueueEntry = this.messageQueue.queue[0];
+                    if (firstQueueEntry) {
+                        const [_, callbackChars] = firstQueueEntry;
+                        this.clearQueueEntry(callbackChars);
+                    }
+                } else {
+                    // Process callbacks based on callback keys in the queue.
+                    const callbackKeys = this.messageQueue.getCallbackKeys();
+                    for (const callbackKey of callbackKeys) {
+                        if (d.includes(callbackKey)) {
+                            const callbacks = this.messageQueue.getCallbacksForKey(callbackKey);
 
-                        for (const callback of callbacks) {
-                            if (typeof callback === "function") {
-                                try {
-                                    // Execute the matched callback with the received data.
-                                    this.fallbackOnData(null, d, callback);
-                                    callbackCalled = true;
-                                } catch (error) {
-                                    this.log.error(error);
+                            for (const callback of callbacks) {
+                                if (typeof callback === "function") {
+                                    try {
+                                        // Execute the matched callback with the received data.
+                                        this.fallbackOnData(null, d, callback);
+                                        callbackCalled = true;
+                                    } catch (error) {
+                                        this.log.error(error);
+                                    }
                                 }
                             }
-                        }
 
-                        // Unlock the callback key after processing its callbacks.
-                        this.messageQueue.removeCallbackForKey(callbackKey);
-                        this.clearQueueEntry(callbackKey);
+                            // Unlock the callback key after processing its callbacks.
+                            this.messageQueue.removeCallbackForKey(callbackKey);
+                            this.clearQueueEntry(callbackKey);
+                        }
                     }
                 }
 
@@ -94,17 +103,9 @@ class DataHandler {
                     !d.startsWith("ST") &&
                     !["RGC", "RGD", "GBH", "GHH", "VTA", "AUA", "AUB", "GEH"].includes(d.substr(0, 3))
                 ) {
+
                     // Fallback handling for unrecognized messages.
                     this.fallbackOnData(null, d);
-
-                    if (d.startsWith("E")){
-                        // Clear the queue entry if a queue lock exists.
-                        const firstQueueEntry = this.messageQueue.queue[0];
-                        if (firstQueueEntry) {
-                            const [_, callbackChars] = firstQueueEntry;
-                            this.clearQueueEntry(callbackChars);
-                        }
-                    }
                 }
             }
         } catch (error) {
