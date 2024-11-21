@@ -243,7 +243,10 @@ export class Connection {
         //     if (Date.now() - (this.lastWrite ?? 0) < 38) {
         //         await new Promise(resolve => setTimeout(resolve, 50));
         //     }
-        if (this.connectionReady && callbackChars === undefined && Date.now() - (this.lastWrite ?? 0) >= 50) {
+        if (
+            !message.startsWith("?") &&
+            !message.startsWith("!") &&
+            this.connectionReady && callbackChars === undefined && Date.now() - (this.lastWrite ?? 0) >= 50) {
             this.directSend(message, callback);
         } else {
             this.queueMessage(message, callbackChars, callback);

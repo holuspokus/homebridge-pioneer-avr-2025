@@ -85,20 +85,20 @@ export class MessageQueue {
      * @param callback - The function to execute when the response is received
      */
     public enqueue(message: string, callbackChars?: string, callback?: Function) {
-        if (callbackChars && callbackChars !== '!none' && callback) {
-            // Add the message to the queue if not already present
-            if (!this.queue.some(q => q[0] === message)) {
-                this.queue.push([message, callbackChars]);
-            }
+        if (!callbackChars || typeof(callbackChars) === undefined){
+            callbackChars = '!none'
+        }
+        // Add the message to the queue if not already present
+        if (!this.queue.some(q => q[0] === message)) {
+            this.queue.push([message, callbackChars]);
+        }
 
+        if(callback){
             // Add the callback to the list of callbacks for the callback character string
             if (!this.queueCallbackChars[callbackChars]) {
                 this.queueCallbackChars[callbackChars] = [];
             }
             this.queueCallbackChars[callbackChars].push(callback);
-        } else {
-            // Add messages without callbacks directly to the queue
-            this.queue.push([message, '!none']);
         }
     }
 
@@ -118,11 +118,14 @@ export class MessageQueue {
      */
     public removeCallbackForKey(callbackKey: string) {
         if (this.queueCallbackChars[callbackKey]) {
-            this.callbackLocks[callbackKey].queueLock = false;
-            this.callbackLocks[callbackKey].queueLockDate = null;
 
             // If no more callbacks exist for the key, delete the key
             delete this.queueCallbackChars[callbackKey];
+        }
+
+        if (this.callbackLocks[callbackKey]) {
+            this.callbackLocks[callbackKey].queueLock = false;
+            this.callbackLocks[callbackKey].queueLockDate = null;
         }
     }
 

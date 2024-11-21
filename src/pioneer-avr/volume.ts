@@ -172,17 +172,19 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
             }
 
             const steps = 3;
-            const delay = 25;
+            const delay = 125;
 
             // Function to execute each step with a delay
             const executeStep = (step) => {
+                this.log.debug('>>step', step)
                 if (step > 0) {
                     this.telnetAvr.sendMessage("VD", undefined, () => {
                         setTimeout(() => {
                             executeStep(step - 1);
                         }, delay);
                     });
-                } else {
+                }
+                else {
                     // After the last step, update volume and mute status
                     this.updateVolumeTimeout = setTimeout(() => {
                         this.__updateVolume(() => {});
