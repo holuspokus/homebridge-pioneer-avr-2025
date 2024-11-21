@@ -150,6 +150,11 @@ class PioneerAvrAccessory {
             .setCharacteristic(this.platform.characteristic.ConfiguredName, this.name)
             .setCharacteristic(this.platform.characteristic.SleepDiscoveryMode, this.platform.characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE);
 
+        addExitHandler(() => {
+            this.tvService
+                .updateCharacteristic(this.platform.characteristic.SleepDiscoveryMode, this.platform.characteristic.SleepDiscoveryMode.NOT_DISCOVERABLE);
+        }, this);
+
         this.tvService.getCharacteristic(this.platform.characteristic.Active)
             .onGet(this.getPowerOn.bind(this))
             .onSet(this.setPowerOn.bind(this));
@@ -169,7 +174,7 @@ class PioneerAvrAccessory {
               // console.log('functionSetPowerState called', typeof(this.tvService.getCharacteristic(this.platform.characteristic.Active).value), this.tvService.getCharacteristic(this.platform.characteristic.Active).value, boolToNum)
               if (this.tvService.getCharacteristic(this.platform.characteristic.Active).value !== boolToNum) {
                   // console.log('functionSetPowerState SET', boolToNum)
-                  this.tvService.setCharacteristic(this.platform.characteristic.SleepDiscoveryMode, !boolToNum);
+                  this.tvService.updateCharacteristic(this.platform.characteristic.SleepDiscoveryMode, !boolToNum);
                   this.tvService.updateCharacteristic(this.platform.characteristic.Active, boolToNum);
               }
           } catch(e) {
@@ -313,7 +318,7 @@ class PioneerAvrAccessory {
         }
 
         try {
-            // console.log('in addInputSourceService> ' + String(key))
+            // console.log('in addInputSourceService> ' + String(key), this.avr.inputs)
             const input = this.avr.inputs[key];
             const tmpInput = this.accessory.getServiceById(this.platform.service.InputSource, key.toString()) ||
                              this.accessory.addService(this.platform.service.InputSource, input.name.replace(/[^a-zA-Z0-9 ]/g, " "), key.toString());
@@ -353,6 +358,8 @@ class PioneerAvrAccessory {
         } catch (e) {
             console.error('Error addInputSourceService:', e);
         }
+
+        this.log.debug('endOF addInputSourceService', key, typeof key)
     }
 
     /**

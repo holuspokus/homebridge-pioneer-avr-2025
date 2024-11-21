@@ -1,8 +1,17 @@
 // src/pioneer-avr/inputs.ts
 
 import type { Service, Logging } from 'homebridge'; // Imports Logging type
+import fs from 'fs'; // For file system operations
+import path from 'path'; // For handling file paths
 import { TelnetAvr } from '../telnet-avr/telnetAvr';
 import type { AVState } from './pioneerAvr'; // Imports AVState type from PioneerAvr
+
+type Device = {
+    name: string;
+    host: string;
+    port: number;
+    source: string;
+};
 
 /**
  * This mixin adds input management methods to a base class, including input setup, handling,
@@ -17,10 +26,12 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
     lastUserInteraction: number;
     telnetAvr: TelnetAvr;
     isReady: boolean;
-    platform?: any; // Optional, in case platform is not always available
+    platform: any; // Optional, in case platform is not always available
+    device: Device;
 }>(Base: TBase) {
     return class extends Base {
         public prefsDir: string = '';
+        public inputCacheFile: string = '';
         public inputBeingAdded: string | boolean = false;
         public inputBeingAddedWaitCount: number = 0;
         public inputMissing: string[][] = [];
@@ -30,27 +41,31 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
         public inputToType: { [key: string]: number } = {};
         public pioneerAvrClassCallbackCalled: boolean = false;
         public initCount: number = 0;
-        // public lastInputDiscovered: number;
-
 
         constructor(...args: any[]) {
             super(...args);
-            // Set `prefsDir`, using platform config if available
-            this.prefsDir = this.platform?.config?.prefsDir || '';
+
+            // Set `prefsDir` and `inputCacheFile`
+            this.prefsDir = this.platform?.config?.prefsDir || this.platform?.api?.user?.storagePath() + "/pioneerAvr/" || '';
+            this.inputCacheFile = path.join(this.prefsDir, `inputCache_${this.device.host}.json`);
             this.inputs = [];
+
+            // Ensure the preferences directory exists
+            if (!fs.existsSync(this.prefsDir)) {
+                fs.mkdirSync(this.prefsDir, { recursive: true });
+            }
 
             // Add a callback to manage inputs when the Telnet connection is established
             this.telnetAvr.addOnConnectCallback(async () => {
                 await this.loadInputs(async () => {
 
-                  //callback von pioneerAvr class
+                    // Callback from pioneerAvr class
                     if (!this.pioneerAvrClassCallbackCalled) {
                         this.pioneerAvrClassCallbackCalled = true;
                         await new Promise(resolve => setTimeout(resolve, 50));
 
                         setTimeout(() => {
                             try {
-                                // this.log.debug("run pioneerAvrClassCallback");
                                 const runThis = this.pioneerAvrClassCallback?.bind(this);
                                 if (runThis) {
                                     runThis();
@@ -61,52 +76,19 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
 
                             this.__updateInput(() => {});
                         }, 1500);
-                    }else{
+                    } else {
                         this.__updateInput(() => {});
                     }
-
                 });
             });
         }
 
         /**
-         * Retrieves the current input status.
-         * @param callback - The callback function to handle the input status result.
-         */
-        public inputStatus(callback: (err: any, inputStatus?: number) => void) {
-            if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on || this.state.input === null) {
-                callback(null, 0);
-                return;
-            }
-
-            // this.log.debug("inputStatus updated %s", this.state.input);
-            try {
-                callback(null, this.state.input);
-            } catch (e) {
-                this.log.debug("inputStatus callback error", e);
-            }
-        }
-
-        /**
-         * Sets a specific input on the AVR.
-         * @param id - The identifier of the input to set.
-         */
-        public setInput(id: string) {
-            this.lastUserInteraction = Date.now();
-
-            if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) {
-                return;
-            }
-
-            this.telnetAvr.sendMessage(`${id}FN`);
-        }
-
-        /**
-         * Loads all available inputs and sends them to the AVR.
+         * Loads all available inputs, either from cache or by refreshing.
          * @param callback - Optional callback function to run after loading inputs.
          */
         public async loadInputs(callback?: () => void) {
-            if(this.isReady){
+            if (this.isReady) {
                 if (callback) {
                     try {
                         callback();
@@ -117,7 +99,42 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
                 return;
             }
 
+            // Check if cached inputs are valid
+            if (fs.existsSync(this.inputCacheFile)) {
+                try {
+                    const cache = JSON.parse(fs.readFileSync(this.inputCacheFile, 'utf-8'));
+                    const cacheTimestamp = new Date(cache.timestamp);
+                    const now = new Date();
 
+                    // Use cached inputs if they are less than 30 minutes old
+                    if (now.getTime() - cacheTimestamp.getTime() <= 30 * 60 * 1000) {
+                        this.inputs = cache.inputs;
+                        this.log.info("Load inputs from cache.");
+
+                        // Iterate over cached inputs and call addInputSourceService
+                        for (const [index, input] of this.inputs.entries()) {
+                            this.inputToType[input.id] = input.type;
+                            this.log.info(
+                                `Input [${input.name}] from cache`
+                            );
+                            this.addInputSourceService(null, index);
+                        }
+
+                        this.isReady = true;
+
+                        if (callback) {
+                            callback();
+                        }
+                        return;
+                    }
+                } catch (err) {
+                    this.log.debug("Failed to load cached inputs:", err);
+                }
+            }
+
+            // Refresh inputs if no valid cache is available
+            this.log.info("Refreshing inputs...");
+            this.inputs = [];
             for (let i = 1; i <= 60; i++) {
                 const key = i.toString().padStart(2, '0');
                 let value = 0;
@@ -160,50 +177,161 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
                 await new Promise(resolve => setTimeout(resolve, 150));
             }
 
-            if (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
-                await new Promise(resolve => setTimeout(resolve, 10));
-                this.inputBeingAddedWaitCount = 0;
-
-                while (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                }
-            }
-
-            let inputMissingWhileMax = 0;
-            while (this.inputMissing.length > 0 && inputMissingWhileMax++ < 3) {
-                for (const thiskey in this.inputMissing) {
-                    let key = this.inputMissing[thiskey][0];
-
-                    if (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
-                        await new Promise(resolve => setTimeout(resolve, 10));
-                        this.inputBeingAddedWaitCount = 0;
-
-                        while (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
-                            await new Promise(resolve => setTimeout(resolve, 500));
-                        }
-                    }
-
-                    key = String(key);
-                    this.inputBeingAdded = key;
-
-                    // this.log.debug('inputMissing called key', key, this.inputMissing);
-
-                    await this.telnetAvr.sendMessage(`?RGB${key}`, `RGB${key}`, this.addInputSourceService.bind(this));
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                }
-
-                await new Promise(resolve => setTimeout(resolve, 5000));
-            }
-
             if (this.inputMissing.length === 0 && Object.keys(this.inputToType).length > 0) {
-                // this.log.debug('set isReady to true');
                 this.isReady = true;
+
+                // Save inputs to cache
+                try {
+                    fs.writeFileSync(this.inputCacheFile, JSON.stringify({
+                        timestamp: new Date().toISOString(),
+                        inputs: this.inputs,
+                    }));
+                    this.log.info("Inputs cached successfully.");
+                } catch (err) {
+                    this.log.error("Failed to cache inputs:", err);
+                }
             }
 
             if (callback) {
                 callback();
             }
         }
+
+        /**
+         * Retrieves the current input status.
+         * @param callback - The callback function to handle the input status result.
+         */
+        public inputStatus(callback: (err: any, inputStatus?: number) => void) {
+            if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on || this.state.input === null) {
+                callback(null, 0);
+                return;
+            }
+
+            // this.log.debug("inputStatus updated %s", this.state.input);
+            try {
+                callback(null, this.state.input);
+            } catch (e) {
+                this.log.debug("inputStatus callback error", e);
+            }
+        }
+
+        /**
+         * Sets a specific input on the AVR.
+         * @param id - The identifier of the input to set.
+         */
+        public setInput(id: string) {
+            this.lastUserInteraction = Date.now();
+
+            if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) {
+                return;
+            }
+
+            this.telnetAvr.sendMessage(`${id}FN`);
+        }
+
+        // /**
+        //  * Loads all available inputs and sends them to the AVR.
+        //  * @param callback - Optional callback function to run after loading inputs.
+        //  */
+        // public async loadInputs(callback?: () => void) {
+        //     if(this.isReady){
+        //         if (callback) {
+        //             try {
+        //                 callback();
+        //             } catch (e) {
+        //                 this.log.debug("loadInputs already isReady callback", e);
+        //             }
+        //         }
+        //         return;
+        //     }
+        //
+        //
+        //     for (let i = 1; i <= 60; i++) {
+        //         const key = i.toString().padStart(2, '0');
+        //         let value = 0;
+        //
+        //         // Map specific input numbers to corresponding types
+        //         if ([2, 18, 38].includes(i)) value = 2;
+        //         else if ([19, 20, 21, 22, 23, 24, 25, 26, 31, 5, 6, 15].includes(i)) value = 3;
+        //         else if (i === 10) value = 4;
+        //         else if (i === 14) value = 6;
+        //         else if (i === 17) value = 9;
+        //         else if (i === 26) value = 10;
+        //         else if (i === 46) value = 8;
+        //
+        //         this.inputToType[key] = value;
+        //
+        //         if (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
+        //             await new Promise(resolve => setTimeout(resolve, 10));
+        //             this.inputBeingAddedWaitCount = 0;
+        //
+        //             while (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
+        //                 await new Promise(resolve => setTimeout(resolve, 150));
+        //             }
+        //         }
+        //
+        //         this.inputBeingAdded = String(key);
+        //
+        //         let index = -1;
+        //         for (const i in this.inputMissing) {
+        //             if (this.inputMissing[i].indexOf(key) > -1) {
+        //                 index = parseInt(i, 10);
+        //                 break;
+        //             }
+        //         }
+        //
+        //         if (index === -1) {
+        //             this.inputMissing.push([key]);
+        //         }
+        //
+        //         await this.telnetAvr.sendMessage(`?RGB${key}`, `RGB${key}`, this.addInputSourceService.bind(this));
+        //         await new Promise(resolve => setTimeout(resolve, 150));
+        //     }
+        //
+        //     if (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
+        //         await new Promise(resolve => setTimeout(resolve, 10));
+        //         this.inputBeingAddedWaitCount = 0;
+        //
+        //         while (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
+        //             await new Promise(resolve => setTimeout(resolve, 500));
+        //         }
+        //     }
+        //
+        //     let inputMissingWhileMax = 0;
+        //     while (this.inputMissing.length > 0 && inputMissingWhileMax++ < 3) {
+        //         for (const thiskey in this.inputMissing) {
+        //             let key = this.inputMissing[thiskey][0];
+        //
+        //             if (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
+        //                 await new Promise(resolve => setTimeout(resolve, 10));
+        //                 this.inputBeingAddedWaitCount = 0;
+        //
+        //                 while (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
+        //                     await new Promise(resolve => setTimeout(resolve, 500));
+        //                 }
+        //             }
+        //
+        //             key = String(key);
+        //             this.inputBeingAdded = key;
+        //
+        //             // this.log.debug('inputMissing called key', key, this.inputMissing);
+        //
+        //             await this.telnetAvr.sendMessage(`?RGB${key}`, `RGB${key}`, this.addInputSourceService.bind(this));
+        //             await new Promise(resolve => setTimeout(resolve, 500));
+        //         }
+        //
+        //         await new Promise(resolve => setTimeout(resolve, 5000));
+        //     }
+        //
+        //     if (this.inputMissing.length === 0 && Object.keys(this.inputToType).length > 0) {
+        //         // this.log.debug('set isReady to true');
+        //         this.isReady = true;
+        //     }
+        //
+        //     if (callback) {
+        //         callback();
+        //     }
+        // }
 
         /**
          * Renames an existing input on the AVR.
