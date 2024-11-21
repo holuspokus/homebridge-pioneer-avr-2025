@@ -108,7 +108,10 @@ export function InitializeMixin<TBase extends new (...args: any[]) => {
                         if (this.lastUserInteraction && Date.now() - this.lastUserInteraction > 48 * 60 * 60 * 1000) {
                             return;
                         }
-                        if (this.isReady && this.telnetAvr.connectionReady && (this.telnetAvr.connection.lastMessageReceived === null || Date.now() - this.telnetAvr.connection.lastMessageReceived > 29000)) {
+
+                        if (this.telnetAvr.connection.lastMessageReceived !== null) console.log(Date.now() - this.telnetAvr.connection.lastMessageReceived);
+                        if (this.isReady && this.telnetAvr.connectionReady && this.telnetAvr.connection.lastMessageReceived !== null && Date.now() - this.telnetAvr.connection.lastMessageReceived > 29000) {
+                            console.log('doupdatepwr:');
                             this.__updatePower?.(() => {});
                         }
                     } catch (e) {

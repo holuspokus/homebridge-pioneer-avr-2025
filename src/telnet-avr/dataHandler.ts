@@ -78,13 +78,11 @@ class DataHandler {
                                     this.log.error(error);
                                 }
                             }
-
-                            // Remove the processed callback and unlock the callback key.
-                            this.messageQueue.removeCallbackForKey(callbackKey, callback);
                         }
 
                         // Unlock the callback key after processing its callbacks.
-                        this.messageQueue.unlockCallbackKey(callbackKey);
+                        this.messageQueue.removeCallbackForKey(callbackKey);
+                        this.clearQueueEntry(callbackKey);
                     }
                 }
 
@@ -99,16 +97,38 @@ class DataHandler {
                     // Fallback handling for unrecognized messages.
                     this.fallbackOnData(null, d);
 
-                    // Unlock the callback key if a queue entry exists.
-                    const firstQueueEntry = this.messageQueue.queue[0];
-                    if (firstQueueEntry) {
-                        const [_, callbackChars] = firstQueueEntry;
-                        this.messageQueue.unlockCallbackKey(callbackChars);
+                    if (d.startsWith("E")){
+                        // Clear the queue entry if a queue lock exists.
+                        const firstQueueEntry = this.messageQueue.queue[0];
+                        if (firstQueueEntry) {
+                            const [_, callbackChars] = firstQueueEntry;
+                            this.clearQueueEntry(callbackChars);
+                        }
                     }
                 }
             }
         } catch (error) {
             this.log.error(error);
+        }
+    }
+
+    /**
+     * Removes the first entry from the queue and unlocks the corresponding callback lock.
+     * Optionally, it clears specific callbacks if a callbackKey is provided.
+     * @param callbackKey - The specific callback key to clear, if applicable
+     */
+    private clearQueueEntry(callbackKey?: string) {
+        // Remove the first item in the queue to allow processing of the next item.
+        this.messageQueue.queue.shift();
+
+        // If a specific callback key is provided, unlock its callback lock.
+        if (callbackKey && this.messageQueue.callbackLocks[callbackKey]) {
+            this.messageQueue.callbackLocks[callbackKey].queueLock = false;
+            this.messageQueue.callbackLocks[callbackKey].queueLockDate = null;
+
+            // If no more callbacks exist for the key, delete the key.
+            delete this.messageQueue.queueCallbackChars[callbackKey];
+            delete this.messageQueue.callbackLocks[callbackKey];
         }
     }
 

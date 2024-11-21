@@ -52,6 +52,10 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         this.TELNET_PORTS.unshift(parseInt(config.device.port, 10))
     }
 
+    if (config.port && !this.TELNET_PORTS.includes(parseInt(config.port, 10))) {
+        this.TELNET_PORTS.unshift(parseInt(config.port, 10))
+    }
+
     // Register for the 'didFinishLaunching' event to start device discovery after Homebridge startup
     this.api.on('didFinishLaunching', () => {
       this.discoverDevices();
@@ -76,7 +80,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     let needsRestart: boolean = false;
 
     // Check if the device is manually configured, bypassing discovery
-    if (this.config?.device?.name && (this.config.device.host || this.config.device.ip) && String(this.config.device.host || this.config.device.ip).length > 0 && this.config.device.port) {
+    if (this.config && this.config?.device && this.config?.device?.name && (this.config.device.host || this.config.device.ip) && String(this.config.device.host || this.config.device.ip).length > 0 && this.config.device.port) {
       devicesFound.push({
         name: this.config.device.name,
         origName: this.config.device.name,
@@ -85,7 +89,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         source: 'pluginConfig'
       });
       this.log.debug('Using manually configured device:', devicesFound);
-    } else if (this.config.name && (this.config.host || this.config.ip) && String(this.config.host || this.config.ip).length > 0 && this.config.port) {
+    } else if (this.config && this.config.name && (this.config.host || this.config.ip) && String(this.config.host || this.config.ip).length > 0 && this.config.port) {
       devicesFound.push({
         name: this.config.name,
         origName: this.config.name,

@@ -36,8 +36,9 @@ export class MessageQueue {
             for (const key of Object.keys(this.callbackLocks)) {
                 const lock = this.callbackLocks[key];
                 if (lock.queueLock && lock.queueLockDate && Date.now() - lock.queueLockDate > 5000) {
-                    lock.queueLock = false;
-                    lock.queueLockDate = null;
+                    // lock.queueLock = false;
+                    // lock.queueLockDate = null;
+                    delete this.callbackLocks[key];
                 }
             }
 
@@ -111,30 +112,17 @@ export class MessageQueue {
     }
 
     /**
-     * Unlocks the specified callback key.
-     * @param callbackKey - The callback key to unlock
-     */
-    public unlockCallbackKey(callbackKey: string) {
-        if (this.callbackLocks[callbackKey]) {
-            this.callbackLocks[callbackKey].queueLock = false;
-            this.callbackLocks[callbackKey].queueLockDate = null;
-        }
-    }
-
-    /**
      * Removes all callbacks associated with a specific callback character key.
      * @param callbackKey - The callback key to clear
      * @param callback - The specific callback to remove
      */
-    public removeCallbackForKey(callbackKey: string, callback: Function) {
+    public removeCallbackForKey(callbackKey: string) {
         if (this.queueCallbackChars[callbackKey]) {
-            // Filter out the specified callback from the array
-            this.queueCallbackChars[callbackKey] = this.queueCallbackChars[callbackKey].filter(cb => cb !== callback);
+            this.callbackLocks[callbackKey].queueLock = false;
+            this.callbackLocks[callbackKey].queueLockDate = null;
 
             // If no more callbacks exist for the key, delete the key
-            if (this.queueCallbackChars[callbackKey].length === 0) {
-                delete this.queueCallbackChars[callbackKey];
-            }
+            delete this.queueCallbackChars[callbackKey];
         }
     }
 
