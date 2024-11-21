@@ -5,6 +5,8 @@ import { Service, Logging, PlatformAccessory, CharacteristicValue } from 'homebr
 import * as fs from 'fs';
 import packageJson from "../package.json";
 import { PioneerAvrPlatform } from './pioneer-avr-platform';
+import { addExitHandler } from './exitHandler';
+
 
 type Device = {
     name: string;

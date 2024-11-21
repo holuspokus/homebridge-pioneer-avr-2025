@@ -90,7 +90,7 @@ class DataHandler {
                     // Process callbacks based on callback keys in the queue.
                     const callbackKeys = this.messageQueue.getCallbackKeys();
                     for (const callbackKey of callbackKeys) {
-                        if (d.includes(callbackKey)) {
+                        if (d.includes(callbackKey) || callbackKey == "!none") {
                             const callbacks = this.messageQueue.getCallbacksForKey(callbackKey);
 
                             for (const callback of callbacks) {

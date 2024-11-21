@@ -85,9 +85,10 @@ export class MessageQueue {
      * @param callback - The function to execute when the response is received
      */
     public enqueue(message: string, callbackChars?: string, callback?: Function) {
-        if (!callbackChars || typeof(callbackChars) === undefined){
+        if (!callbackChars){
             callbackChars = '!none'
         }
+
         // Add the message to the queue if not already present
         if (!this.queue.some(q => q[0] === message)) {
             this.queue.push([message, callbackChars]);
