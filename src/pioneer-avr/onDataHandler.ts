@@ -8,6 +8,10 @@ export function onDataHandler(pioneerThis: PioneerAvr) {
         pioneerThis.initCount = 0;
     }
 
+    if (!pioneerThis.volumeUpdateTimeout) {
+        pioneerThis.volumeUpdateTimeout = null;
+    }
+
     return function (error: any, data: string, callback: Function = () => {}) {
         // Log the received data if needed
         // pioneerThis.log.debug("Receive data: %s", data);
@@ -134,7 +138,17 @@ function handleVolumeStatus(data: string, pioneerThis: PioneerAvr, callback: Fun
 
     if (vol.length === 3 && !isNaN(volPctF)) {
         pioneerThis.state.volume = Math.floor(volPctF);
-        pioneerThis.functionSetLightbulbVolume(pioneerThis.state.volume);
+
+        // Clear any existing timeout to prevent multiple executions
+        if (pioneerThis.volumeUpdateTimeout) {
+            clearTimeout(pioneerThis.volumeUpdateTimeout);
+        }
+
+        // // Set a new timeout to execute functionSetLightbulbVolume after 5 seconds
+        // pioneerThis.volumeUpdateTimeout = setTimeout(() => {
+        //     pioneerThis.functionSetLightbulbVolume(pioneerThis.state.volume);
+        //     pioneerThis.log.debug("functionSetLightbulbVolume executed for volume %s (%s%%)", vol, volPctF);
+        // }, 5000);
     }
 
     pioneerThis.log.debug("Volume is %s (%s%%)", vol, volPctF);
@@ -145,6 +159,7 @@ function handleVolumeStatus(data: string, pioneerThis: PioneerAvr, callback: Fun
         pioneerThis.log.debug("onData", e);
     }
 }
+
 
 /**
  * Converts the received volume value to a percentage

@@ -23,6 +23,8 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
     return class extends Base {
         public telnetAvr!: TelnetAvr;
         public updateVolumeTimeout: NodeJS.Timeout | null = null;
+        public volumeUpdateTimeout: NodeJS.Timeout | null = null;
+
 
         constructor(...args: any[]) {
             super(...args);

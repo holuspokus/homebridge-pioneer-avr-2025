@@ -40,9 +40,10 @@ export class Connection {
         setTimeout(() => {
             clearInterval(this.checkConnInterval);
             this.checkConnInterval = setInterval(()=>{
-                  if (this.connectionReady && this.reconnectCounter === 0 && this.isConnecting === null && this.lastWrite !== null && this.lastMessageReceived !== null && this.lastWrite - this.lastMessageReceived > 10000 && Date.now() - this.lastMessageReceived > 60000 ) {
+                  if (this.connectionReady && this.reconnectCounter === 0 && this.isConnecting === null && this.lastWrite !== null && this.lastMessageReceived !== null && this.lastWrite - this.lastMessageReceived > 10000 && Date.now() - this.lastMessageReceived > 60 * 1000 ) {
                       this.log.warn(` > Device ${this.avr.device.name} not responding.`);
                       this.connectionReady = false;
+                      this.messageQueue.clearQueue();
                       this.disconnect();
                       this.connect();
                   }
@@ -246,7 +247,7 @@ export class Connection {
         if (
             !message.startsWith("?") &&
             !message.startsWith("!") &&
-            this.connectionReady && callbackChars === undefined && Date.now() - (this.lastWrite ?? 0) >= 50) {
+            this.connectionReady && callbackChars === undefined && this.messageQueue.queue.length === 0) {
             this.directSend(message, callback);
         } else {
             this.queueMessage(message, callbackChars, callback);

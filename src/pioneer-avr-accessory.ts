@@ -359,7 +359,6 @@ class PioneerAvrAccessory {
             console.error('Error addInputSourceService:', e);
         }
 
-        this.log.debug('endOF addInputSourceService', key, typeof key)
     }
 
     /**

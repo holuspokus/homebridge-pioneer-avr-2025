@@ -18,35 +18,20 @@ export class MessageQueue {
      */
     private startQueueCheck() {
         setInterval(() => {
-            const lastWrite = this.connection.lastWrite;
-            const lastMessageReceived = this.connection.lastMessageReceived;
-
-            // Clear the queue if the connection is inactive for more than 60 seconds
-            if (
-                lastWrite !== null &&
-                lastMessageReceived !== null &&
-                lastWrite - lastMessageReceived > 60 * 1000
-            ) {
-                this.connection.setConnectionReady(false);
-                this.clearQueue();
-                return;
-            }
-
-            // Unlock callbackLocks if they are active for more than 5 seconds
-            for (const key of Object.keys(this.callbackLocks)) {
-                const lock = this.callbackLocks[key];
-                if (lock.queueLock && lock.queueLockDate && Date.now() - lock.queueLockDate > 5000) {
-                    // lock.queueLock = false;
-                    // lock.queueLockDate = null;
-                    delete this.callbackLocks[key];
-                }
-            }
-
             // Process the next item in the queue if it is not locked
             if (this.queue.length > 0) {
+
+                // Unlock callbackLocks if they are active for more than 5 seconds
+                for (const key of Object.keys(this.callbackLocks)) {
+                    const lock = this.callbackLocks[key];
+                    if (lock.queueLock && lock.queueLockDate && Date.now() - lock.queueLockDate > 5000) {
+                        delete this.callbackLocks[key];
+                    }
+                }
+
                 this.processQueue();
             }
-        }, 17); // Check every 17ms
+        }, 7); // Check every 17ms
     }
 
     /**
