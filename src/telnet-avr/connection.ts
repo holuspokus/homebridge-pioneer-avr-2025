@@ -53,6 +53,7 @@ export class Connection {
 
     private disconnectOnExit() {
         onExitCalled = true;
+        clearInterval(this.checkConnInterval);
         if (this.connectionReady) {
             this.connectionReady = false;
             this.disconnect();

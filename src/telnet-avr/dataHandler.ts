@@ -67,7 +67,24 @@ class DataHandler {
                     const firstQueueEntry = this.messageQueue.queue[0];
                     if (firstQueueEntry) {
                         const [_, callbackChars] = firstQueueEntry;
+                        const callbacks = this.messageQueue.getCallbacksForKey(callbackChars);
+
+                        for (const callback of callbacks) {
+                            if (typeof callback === "function") {
+                                try {
+                                    // Execute the matched callback with the received data.
+                                    this.fallbackOnData(null, d + callbackChars, callback);
+                                    callbackCalled = true;
+                                } catch (error) {
+                                    this.log.error(error);
+                                }
+                            }
+                        }
+
+                        // Unlock the callback key after processing its callbacks.
+                        this.messageQueue.removeCallbackForKey(callbackChars);
                         this.clearQueueEntry(callbackChars);
+
                     }
                 } else {
                     // Process callbacks based on callback keys in the queue.
