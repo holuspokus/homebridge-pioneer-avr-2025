@@ -1,11 +1,11 @@
 // src/telnet-avr/connection.ts
 
 import net from "net";
-import { TelnetAvr } from './telnetAvr';
+import { TelnetAvr } from "./telnetAvr";
 import { MessageQueue } from "./messageQueue";
 import DataHandler from "./dataHandler";
 import { addExitHandler } from "../exitHandler";
-import { findDevices } from '../discovery';
+import { findDevices } from "../discovery";
 
 let onExitCalled = false;
 
@@ -39,17 +39,26 @@ export class Connection {
 
         setTimeout(() => {
             clearInterval(this.checkConnInterval);
-            this.checkConnInterval = setInterval(()=>{
-                  if (this.connectionReady && this.reconnectCounter === 0 && this.isConnecting === null && this.lastWrite !== null && this.lastMessageReceived !== null && this.lastWrite - this.lastMessageReceived > 10000 && Date.now() - this.lastMessageReceived > 60 * 1000 ) {
-                      this.log.warn(` > Device ${this.avr.device.name} not responding.`);
-                      this.connectionReady = false;
-                      this.messageQueue.clearQueue();
-                      this.disconnect();
-                      this.connect();
-                  }
+            this.checkConnInterval = setInterval(() => {
+                if (
+                    this.connectionReady &&
+                    this.reconnectCounter === 0 &&
+                    this.isConnecting === null &&
+                    this.lastWrite !== null &&
+                    this.lastMessageReceived !== null &&
+                    this.lastWrite - this.lastMessageReceived > 10000 &&
+                    Date.now() - this.lastMessageReceived > 60 * 1000
+                ) {
+                    this.log.warn(
+                        ` > Device ${this.avr.device.name} not responding.`,
+                    );
+                    this.connectionReady = false;
+                    this.messageQueue.clearQueue();
+                    this.disconnect();
+                    this.connect();
+                }
             }, 3107);
         }, 5000);
-
     }
 
     private disconnectOnExit() {
@@ -62,20 +71,27 @@ export class Connection {
     }
 
     connect(callback: () => void = () => {}) {
-        if (!this.connectionReady && this.isConnecting !== null && Date.now() - this.isConnecting < 30000) {
+        if (
+            !this.connectionReady &&
+            this.isConnecting !== null &&
+            Date.now() - this.isConnecting < 30000
+        ) {
             setTimeout(callback, 1500);
             return;
         }
 
-        this.log.debug('connect() called');
+        this.log.debug("connect() called");
 
         if (this.socket) {
-            if (!this.connectionReady && Date.now() - (this.lastConnect ?? 0) > 15 * 1000) {
+            if (
+                !this.connectionReady &&
+                Date.now() - (this.lastConnect ?? 0) > 15 * 1000
+            ) {
                 this.reconnect(callback);
             } else if (this.connectionReady) {
                 this.log.debug("Already connected, delaying callback.");
                 setTimeout(callback, 1500);
-            }else{
+            } else {
                 try {
                     callback();
                 } catch (e) {
@@ -83,13 +99,13 @@ export class Connection {
                 }
             }
         } else {
-        // if (!this.socket) {
+            // if (!this.socket) {
             this.initializeSocket(callback);
         }
     }
 
     private initializeSocket(callback: () => void) {
-        this.log.debug('initializeSocket() called');
+        this.log.debug("initializeSocket() called");
         this.isConnecting = Date.now();
         this.socket = new net.Socket();
         this.socket.setTimeout(30 * 1000);
@@ -97,9 +113,10 @@ export class Connection {
         this.socket.removeAllListeners("connect");
 
         this.socket.on("connect", () => {
-            if (onExitCalled  || !this.socket) return;
-            if(this.socket.destroyed) return;
-            if (this.socket.connecting || this.socket.readyState !== 'open') return;
+            if (onExitCalled || !this.socket) return;
+            if (this.socket.destroyed) return;
+            if (this.socket.connecting || this.socket.readyState !== "open")
+                return;
 
             this.reconnectCounter = 0;
             this.lastMessageReceived = null;
@@ -112,17 +129,25 @@ export class Connection {
                     try {
                         callback();
                     } catch (e) {
-                        this.log.error("Connect initializeSocket callback error:", e);
+                        this.log.error(
+                            "Connect initializeSocket callback error:",
+                            e,
+                        );
                     }
                     this.isReconnect = true;
-                }else{
-                   this.log.info('>> successfuly reconnected ' + this.avr.device.name)
+                } else {
+                    this.log.info(
+                        ">> successfuly reconnected " + this.avr.device.name,
+                    );
                 }
 
                 try {
                     this.onConnect();
                 } catch (e) {
-                    this.log.error("Connect initializeSocket onConnect error:", e);
+                    this.log.error(
+                        "Connect initializeSocket onConnect error:",
+                        e,
+                    );
                 }
             });
         });
@@ -159,7 +184,7 @@ export class Connection {
     private tryReconnect() {
         if (onExitCalled) return;
 
-        this.log.debug('tryReconnect() called');
+        this.log.debug("tryReconnect() called");
 
         this.reconnectCounter++;
         const delay = this.reconnectCounter > 30 ? 60 : 15;
@@ -173,49 +198,64 @@ export class Connection {
 
     async reconnect(callback: () => void) {
         if (onExitCalled || this.connectionReady || !this.socket) return;
-        if (this.socket.connecting || this.socket.readyState === 'open') {
+        if (this.socket.connecting || this.socket.readyState === "open") {
             try {
                 callback();
             } catch (error) {
-                this.log.debug('reconnect callback error', error)
+                this.log.debug("reconnect callback error", error);
             }
-        };
+        }
 
-        this.log.debug('reconnect() called')
+        this.log.debug("reconnect() called");
 
-        if (this.reconnectCounter >= this.maxReconnectAttempts && this.avr.device.source == 'bonjour') {
-            const TELNET_PORTS = this.avr.platform.TELNET_PORTS || [23, 24, 8102];
-            const devices = await findDevices(this.avr.device.origName, TELNET_PORTS, this.log, 1);
+        if (
+            this.reconnectCounter >= this.maxReconnectAttempts &&
+            this.avr.device.source == "bonjour"
+        ) {
+            const TELNET_PORTS = this.avr.platform.TELNET_PORTS || [
+                23, 24, 8102,
+            ];
+            const devices = await findDevices(
+                this.avr.device.origName,
+                TELNET_PORTS,
+                this.log,
+                1,
+            );
 
             if (devices.length > 0) {
                 const updatedDevice = devices[0];
                 this.host = updatedDevice.host;
                 this.port = updatedDevice.port;
-                this.log.info(`Updated device ${this.avr.device.name} connection info: ${this.host}:${this.port}`);
+                this.log.info(
+                    `Updated device ${this.avr.device.name} connection info: ${this.host}:${this.port}`,
+                );
                 this.reconnectCounter = 0; // Reset counter after successful discovery
             } else {
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                await new Promise((resolve) => setTimeout(resolve, 5000));
             }
         }
 
         if (!this.socket) {
             this.initializeSocket(callback);
-        } else if (!this.lastConnect || Date.now() - (this.lastConnect ?? 0) > 15 * 1000) {
+        } else if (
+            !this.lastConnect ||
+            Date.now() - (this.lastConnect ?? 0) > 15 * 1000
+        ) {
             this.log.debug("Reconnecting socket.");
             this.socket.connect(this.port, this.host, callback);
-        }else{
+        } else {
             setTimeout(() => {
                 try {
                     callback();
                 } catch (error) {
-                    this.log.debug('reconnect callback error', error)
+                    this.log.debug("reconnect callback error", error);
                 }
             }, 30000);
         }
     }
 
     disconnect() {
-        this.log.debug('disconnect() called');
+        this.log.debug("disconnect() called");
         this.setConnectionReady(false);
         this.onDisconnect();
 
@@ -224,14 +264,18 @@ export class Connection {
             this.socket.destroy();
             this.socket = null;
         }
-        this.log.debug('telnet> disconnected!');
+        this.log.debug("telnet> disconnected!");
     }
 
     isConnected() {
         return this.connectionReady;
     }
 
-    async sendMessage(message: string, callbackChars?: string, callback?: (error: any, response: string) => void) {
+    async sendMessage(
+        message: string,
+        callbackChars?: string,
+        callback?: (error: any, response: string) => void,
+    ) {
         if (!this.connectionReady) {
             this.tryReconnect();
         }
@@ -240,7 +284,10 @@ export class Connection {
             clearTimeout(this.disconnectTimeout);
         }
 
-        this.disconnectTimeout = setTimeout(() => this.disconnect(), 5 * 60 * 1000);
+        this.disconnectTimeout = setTimeout(
+            () => this.disconnect(),
+            5 * 60 * 1000,
+        );
 
         // if (this.connectionReady && callbackChars === undefined) {
         //     if (Date.now() - (this.lastWrite ?? 0) < 38) {
@@ -249,14 +296,20 @@ export class Connection {
         if (
             !message.startsWith("?") &&
             !message.startsWith("!") &&
-            this.connectionReady && callbackChars === undefined && this.messageQueue.queue.length === 0) {
+            this.connectionReady &&
+            callbackChars === undefined &&
+            this.messageQueue.queue.length === 0
+        ) {
             this.directSend(message, callback);
         } else {
             this.queueMessage(message, callbackChars, callback);
         }
     }
 
-    public directSend(message: string, callback?: (error: any, response: string) => void) {
+    public directSend(
+        message: string,
+        callback?: (error: any, response: string) => void,
+    ) {
         if (!this.connectionReady) {
             this.log.warn("Connection not ready, skipping direct send.");
             return;
@@ -266,7 +319,7 @@ export class Connection {
             message = message.substring(1);
         }
 
-        this.log.debug('telnet write>', message);
+        this.log.debug("telnet write>", message);
         this.socket?.write(message + "\r\n");
         this.setLastWrite(Date.now());
         callback?.(null, `${message}:SENT`);
@@ -274,7 +327,11 @@ export class Connection {
         this.messageQueue.processQueue();
     }
 
-    private queueMessage(message: string, callbackChars?: string, callback?: (error: any, response: string) => void) {
+    private queueMessage(
+        message: string,
+        callbackChars?: string,
+        callback?: (error: any, response: string) => void,
+    ) {
         this.messageQueue.enqueue(message, callbackChars, callback!);
 
         if (this.clearQueueTimeout) {

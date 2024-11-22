@@ -1,6 +1,6 @@
 // src/pioneer-avr/onDataHandler.ts
 
-import PioneerAvr from './pioneerAvr';
+import PioneerAvr from "./pioneerAvr";
 
 export function onDataHandler(pioneerThis: PioneerAvr) {
     // Ensure `initCount` is initialized
@@ -23,14 +23,22 @@ export function onDataHandler(pioneerThis: PioneerAvr) {
         }
 
         // Handle different data responses based on prefixes
-        if (data.startsWith("E") && !data.startsWith("E06RGB") && !data.startsWith("E04RGB")) {
+        if (
+            data.startsWith("E") &&
+            !data.startsWith("E06RGB") &&
+            !data.startsWith("E04RGB")
+        ) {
             pioneerThis.log.debug("Receive error: " + String(data));
             try {
                 callback(String(data), data);
             } catch (e) {
                 pioneerThis.log.debug("onData", e);
             }
-        } else if (data.indexOf("VD:SENT") > -1 || data.indexOf("VU:SENT") > -1 || data.indexOf("MO:SENT") > -1) {
+        } else if (
+            data.indexOf("VD:SENT") > -1 ||
+            data.indexOf("VU:SENT") > -1 ||
+            data.indexOf("MO:SENT") > -1
+        ) {
             try {
                 callback(error, data);
             } catch (e) {
@@ -43,9 +51,9 @@ export function onDataHandler(pioneerThis: PioneerAvr) {
         } else if (data.indexOf("MUT") > -1) {
             handleMuteStatus(data, pioneerThis, callback);
         } else if (data.indexOf("SR") > -1 && data.length === 6) {
-            handleListeningMode(data, pioneerThis, callback, 'listeningMode');
+            handleListeningMode(data, pioneerThis, callback, "listeningMode");
         } else if (data.indexOf("LM") > -1 && data.length === 6) {
-            handleListeningMode(data, pioneerThis, callback, 'listeningModeLM');
+            handleListeningMode(data, pioneerThis, callback, "listeningModeLM");
         } else if (data.indexOf("VOL") > -1) {
             handleVolumeStatus(data, pioneerThis, callback);
         } else if (data.indexOf("FN") > -1) {
@@ -64,10 +72,18 @@ export function onDataHandler(pioneerThis: PioneerAvr) {
  * @param pioneerThis - The current instance of PioneerAvr
  * @param callback - Callback function for further actions
  */
-function handlePowerStatus(data: string, pioneerThis: PioneerAvr, callback: Function) {
+function handlePowerStatus(
+    data: string,
+    pioneerThis: PioneerAvr,
+    callback: Function,
+) {
     data = data.substring(data.indexOf("PWR"));
     pioneerThis.state.on = parseInt(data[3], 10) === 0;
-    pioneerThis.log.debug("Receive Power status: %s (%s)", pioneerThis.state.on ? "On" : "Off", data);
+    pioneerThis.log.debug(
+        "Receive Power status: %s (%s)",
+        pioneerThis.state.on ? "On" : "Off",
+        data,
+    );
     pioneerThis.state.lastGetPowerStatus = Date.now();
 
     try {
@@ -89,10 +105,19 @@ function handlePowerStatus(data: string, pioneerThis: PioneerAvr, callback: Func
  * @param pioneerThis - The current instance of PioneerAvr
  * @param callback - Callback function for further actions
  */
-function handleMuteStatus(data: string, pioneerThis: PioneerAvr, callback: Function) {
+function handleMuteStatus(
+    data: string,
+    pioneerThis: PioneerAvr,
+    callback: Function,
+) {
     data = data.substring(data.indexOf("MUT"));
     pioneerThis.state.muted = parseInt(data[3], 10) === 0;
-    pioneerThis.log.debug("Receive Mute status: %s (%s -> %s)", pioneerThis.state.muted ? "Muted" : "Not Muted", data[3], data);
+    pioneerThis.log.debug(
+        "Receive Mute status: %s (%s -> %s)",
+        pioneerThis.state.muted ? "Muted" : "Not Muted",
+        data[3],
+        data,
+    );
 
     try {
         callback(null, pioneerThis.state.muted);
@@ -111,8 +136,15 @@ function handleMuteStatus(data: string, pioneerThis: PioneerAvr, callback: Funct
  * @param callback - Callback function for further actions
  * @param modeKey - The mode key for updating state
  */
-function handleListeningMode(data: string, pioneerThis: PioneerAvr, callback: Function, modeKey: string) {
-    data = data.substring(data.indexOf(modeKey === 'listeningMode' ? "SR" : "LM"));
+function handleListeningMode(
+    data: string,
+    pioneerThis: PioneerAvr,
+    callback: Function,
+    modeKey: string,
+) {
+    data = data.substring(
+        data.indexOf(modeKey === "listeningMode" ? "SR" : "LM"),
+    );
     pioneerThis.state[modeKey] = data.substr(2, 4);
     try {
         callback(null, data);
@@ -127,7 +159,11 @@ function handleListeningMode(data: string, pioneerThis: PioneerAvr, callback: Fu
  * @param pioneerThis - The current instance of PioneerAvr
  * @param callback - Callback function for further actions
  */
-function handleVolumeStatus(data: string, pioneerThis: PioneerAvr, callback: Function) {
+function handleVolumeStatus(
+    data: string,
+    pioneerThis: PioneerAvr,
+    callback: Function,
+) {
     data = data.substring(data.indexOf("VOL"));
     let vol = data.substr(3, 3);
     let volPctF = calculateVolumePercentage(vol, pioneerThis);
@@ -145,7 +181,6 @@ function handleVolumeStatus(data: string, pioneerThis: PioneerAvr, callback: Fun
     }
 }
 
-
 /**
  * Converts the received volume value to a percentage
  * @param vol - Volume in the AVR scale
@@ -158,10 +193,17 @@ function calculateVolumePercentage(vol: string, pioneerThis: PioneerAvr) {
         const minVolumeIn185 = (pioneerThis.minVolume / 100) * 185;
         const maxVolumeIn185 = (pioneerThis.maxVolume / 100) * 185;
         const parsedVol = parseInt(vol, 10);
-        const adjustedVol = Math.min(Math.max(parsedVol, minVolumeIn185), maxVolumeIn185);
-        volPctF = Math.floor(((adjustedVol - minVolumeIn185) / (maxVolumeIn185 - minVolumeIn185)) * 100);
+        const adjustedVol = Math.min(
+            Math.max(parsedVol, minVolumeIn185),
+            maxVolumeIn185,
+        );
+        volPctF = Math.floor(
+            ((adjustedVol - minVolumeIn185) /
+                (maxVolumeIn185 - minVolumeIn185)) *
+                100,
+        );
     } else {
-        volPctF = Math.floor(parseInt(vol, 10) * 100 / 185);
+        volPctF = Math.floor((parseInt(vol, 10) * 100) / 185);
     }
     return volPctF;
 }
@@ -172,12 +214,18 @@ function calculateVolumePercentage(vol: string, pioneerThis: PioneerAvr) {
  * @param pioneerThis - The current instance of PioneerAvr
  * @param callback - Callback function for further actions
  */
-function handleInputStatus(data: string, pioneerThis: PioneerAvr, callback: Function) {
+function handleInputStatus(
+    data: string,
+    pioneerThis: PioneerAvr,
+    callback: Function,
+) {
     data = data.substring(data.indexOf("FN"));
     pioneerThis.log.debug("Receive Input status: %s", data);
 
     let inputId = data.substr(2, 2);
-    let inputIndex = pioneerThis.inputs.findIndex(input => input.id === inputId);
+    let inputIndex = pioneerThis.inputs.findIndex(
+        (input) => input.id === inputId,
+    );
 
     if (inputIndex === -1) {
         try {
@@ -205,7 +253,11 @@ function handleInputStatus(data: string, pioneerThis: PioneerAvr, callback: Func
  * @param pioneerThis - The current instance of PioneerAvr
  * @param callback - Callback function for further actions
  */
-function handleInputErrors(data: string, pioneerThis: PioneerAvr, callback: Function) {
+function handleInputErrors(
+    data: string,
+    pioneerThis: PioneerAvr,
+    callback: Function,
+) {
     try {
         data = data.substring(data.indexOf("RGB"));
         let thisId = data.substr(3, 2);
@@ -214,7 +266,9 @@ function handleInputErrors(data: string, pioneerThis: PioneerAvr, callback: Func
             if (String(key) === String(thisId)) {
                 delete pioneerThis.inputToType[key];
 
-                let indexMissing = pioneerThis.inputMissing.findIndex(missingInput => missingInput.includes(thisId));
+                let indexMissing = pioneerThis.inputMissing.findIndex(
+                    (missingInput) => missingInput.includes(thisId),
+                );
                 if (indexMissing !== -1) {
                     pioneerThis.inputMissing.splice(indexMissing, 1);
                 }
@@ -239,7 +293,11 @@ function handleInputErrors(data: string, pioneerThis: PioneerAvr, callback: Func
  * @param pioneerThis - The current instance of PioneerAvr
  * @param callback - Callback function for further actions
  */
-function handleInputDiscovery(data: string, pioneerThis: PioneerAvr, callback: Function) {
+function handleInputDiscovery(
+    data: string,
+    pioneerThis: PioneerAvr,
+    callback: Function,
+) {
     data = data.substring(data.indexOf("RGB"));
     let tmpInput = {
         id: data.substr(3, 2),
@@ -252,12 +310,17 @@ function handleInputDiscovery(data: string, pioneerThis: PioneerAvr, callback: F
         return;
     }
 
-    if (typeof pioneerThis.inputBeingAdded === 'string' && pioneerThis.inputBeingAdded === tmpInput.id) {
+    if (
+        typeof pioneerThis.inputBeingAdded === "string" &&
+        pioneerThis.inputBeingAdded === tmpInput.id
+    ) {
         pioneerThis.inputBeingAdded = false;
         pioneerThis.inputBeingAddedWaitCount = 0;
     }
 
-    let alreadyExists = pioneerThis.inputs.some(input => input.id === tmpInput.id);
+    let alreadyExists = pioneerThis.inputs.some(
+        (input) => input.id === tmpInput.id,
+    );
 
     if (!alreadyExists) {
         pioneerThis.inputs.push(tmpInput);
@@ -267,21 +330,23 @@ function handleInputDiscovery(data: string, pioneerThis: PioneerAvr, callback: F
         //     `Input [${tmpInput.name}] discovered (id: ${tmpInput.id}, type: ${tmpInput.type}). InitCount=${pioneerThis.initCount}/${Object.keys(pioneerThis.inputToType).length}` +
         //     (pioneerThis.inputMissing.length > 0 ? `, inputMissing: ${pioneerThis.inputMissing}` : '')
         // );
-        pioneerThis.log.info(
-            `Input [${tmpInput.name}] discovered`
+        pioneerThis.log.info(`Input [${tmpInput.name}] discovered`);
+    } else {
+        // Update the name of the existing input if it has changed
+        let existingInput = pioneerThis.inputs.find(
+            (input) => input.id === tmpInput.id,
         );
-      } else {
-          // Update the name of the existing input if it has changed
-          let existingInput = pioneerThis.inputs.find(input => input.id === tmpInput.id);
-          if (existingInput && existingInput.name !== tmpInput.name) {
-              existingInput.name = tmpInput.name;
-              // pioneerThis.log.info(
-              //     `Input [${tmpInput.id}] name updated to [${tmpInput.name}]`
-              // );
-          }
-      }
+        if (existingInput && existingInput.name !== tmpInput.name) {
+            existingInput.name = tmpInput.name;
+            // pioneerThis.log.info(
+            //     `Input [${tmpInput.id}] name updated to [${tmpInput.name}]`
+            // );
+        }
+    }
 
-    let inputIndex = pioneerThis.inputs.findIndex(input => input.id === tmpInput.id);
+    let inputIndex = pioneerThis.inputs.findIndex(
+        (input) => input.id === tmpInput.id,
+    );
     if (inputIndex !== -1) {
         try {
             callback(null, inputIndex);
@@ -297,7 +362,9 @@ function handleInputDiscovery(data: string, pioneerThis: PioneerAvr, callback: F
  * @param inputId - The input ID to remove from missing list
  */
 function removeFromInputMissing(pioneerThis: PioneerAvr, inputId: string) {
-    let indexMissing = pioneerThis.inputMissing.findIndex(missingInput => missingInput.includes(inputId));
+    let indexMissing = pioneerThis.inputMissing.findIndex((missingInput) =>
+        missingInput.includes(inputId),
+    );
     if (indexMissing !== -1) {
         pioneerThis.inputMissing.splice(indexMissing, 1);
     }

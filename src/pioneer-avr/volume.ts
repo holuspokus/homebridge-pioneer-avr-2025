@@ -1,9 +1,9 @@
 // src/pioneer-avr/volume.ts
 
-import { TelnetAvr } from '../telnet-avr/telnetAvr';
-import { addExitHandler } from '../exitHandler';
-import type { Logging } from 'homebridge';
-import type { AVState } from './pioneerAvr';
+import { TelnetAvr } from "../telnet-avr/telnetAvr";
+import { addExitHandler } from "../exitHandler";
+import type { Logging } from "homebridge";
+import type { AVState } from "./pioneerAvr";
 
 /**
  * This mixin adds volume management methods to a base class, including volume control,
@@ -11,22 +11,22 @@ import type { AVState } from './pioneerAvr';
  * @param Base - The base class to extend with volume management methods.
  * @returns A new class that extends the base class with added volume management functionality.
  */
-export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
-    log: Logging;
-    state: AVState;
-    lastUserInteraction: number;
-    telnetAvr: TelnetAvr;
-    isReady: boolean;
-    maxVolume: number;
-    minVolume: number;
-}>(Base: TBase) {
+export function VolumeManagementMixin<
+    TBase extends new (...args: any[]) => {
+        log: Logging;
+        state: AVState;
+        lastUserInteraction: number;
+        telnetAvr: TelnetAvr;
+        isReady: boolean;
+        maxVolume: number;
+        minVolume: number;
+    },
+>(Base: TBase) {
     return class extends Base {
         public telnetAvr!: TelnetAvr;
         public updateVolumeTimeout: NodeJS.Timeout | null = null;
         public cancelVolumeDownSteps: boolean = false;
         public activeVolumeDownStepTimeouts: NodeJS.Timeout[] = []; // Array to track active timeouts
-
-
 
         constructor(...args: any[]) {
             super(...args);
@@ -77,7 +77,9 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
          * Sends a volume status query to the AVR and updates the volume state.
          * @param callback - Function to run after updating the volume.
          */
-        public async __updateVolume(callback: (error: any, response: string) => void) {
+        public async __updateVolume(
+            callback: (error: any, response: string) => void,
+        ) {
             this.telnetAvr.sendMessage("?V", "VOL", callback);
         }
 
@@ -85,7 +87,9 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
          * Sends a mute status query to the AVR and updates the mute state.
          * @param callback - Function to run after updating the mute state.
          */
-        public async __updateMute(callback: (error: any, response: string) => void) {
+        public async __updateMute(
+            callback: (error: any, response: string) => void,
+        ) {
             this.telnetAvr.sendMessage("?M", "MUT", callback);
         }
 
@@ -109,16 +113,28 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
          * @param targetVolume - The desired volume level.
          * @param callback - The function to call after setting the volume.
          */
-        public setVolume(targetVolume: number, callback?: (error: any, response: string) => void) {
-            if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) return;
+        public setVolume(
+            targetVolume: number,
+            callback?: (error: any, response: string) => void,
+        ) {
+            if (
+                !this.telnetAvr ||
+                !this.telnetAvr.connectionReady ||
+                !this.state.on
+            )
+                return;
 
             targetVolume = parseInt(targetVolume.toString(), 10);
 
-            if (callback && (isNaN(targetVolume) || Math.floor(targetVolume) === this.state.volume)) {
+            if (
+                callback &&
+                (isNaN(targetVolume) ||
+                    Math.floor(targetVolume) === this.state.volume)
+            ) {
                 try {
-                  callback(null, '');
+                    callback(null, "");
                 } catch (e) {
-                    this.log.debug('', e);
+                    this.log.debug("", e);
                 }
 
                 return;
@@ -129,13 +145,15 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
             if (this.maxVolume > 0) {
                 const minVolumeIn185 = (this.minVolume / 100) * 185;
                 const maxVolumeIn185 = (this.maxVolume / 100) * 185;
-                vsxVol = ((targetVolume / 100) * (maxVolumeIn185 - minVolumeIn185)) + minVolumeIn185;
+                vsxVol =
+                    (targetVolume / 100) * (maxVolumeIn185 - minVolumeIn185) +
+                    minVolumeIn185;
             } else {
                 vsxVol = (targetVolume * 185) / 100;
             }
 
             vsxVol = Math.floor(vsxVol);
-            const vsxVolStr = vsxVol.toString().padStart(3, '0');
+            const vsxVolStr = vsxVol.toString().padStart(3, "0");
 
             this.telnetAvr.sendMessage(`${vsxVolStr}VL`, undefined, callback);
             this.lastUserInteraction = Date.now();
@@ -146,7 +164,12 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
          */
         public volumeUp() {
             this.lastUserInteraction = Date.now();
-            if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) return;
+            if (
+                !this.telnetAvr ||
+                !this.telnetAvr.connectionReady ||
+                !this.state.on
+            )
+                return;
 
             this.log.debug("Volume up");
 
@@ -165,52 +188,56 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
         /**
          * Decreases the volume by three steps, with a delay of 100ms between each step.
          */
-          public volumeDown() {
-              this.lastUserInteraction = Date.now();
-              if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) return;
+        public volumeDown() {
+            this.lastUserInteraction = Date.now();
+            if (
+                !this.telnetAvr ||
+                !this.telnetAvr.connectionReady ||
+                !this.state.on
+            )
+                return;
 
-              this.log.debug("Volume down");
+            this.log.debug("Volume down");
 
-              // Cancel any ongoing steps and clear active timeouts
-              this.cancelVolumeDownSteps = true;
-              if (this.updateVolumeTimeout) {
-                  clearTimeout(this.updateVolumeTimeout);
-              }
+            // Cancel any ongoing steps and clear active timeouts
+            this.cancelVolumeDownSteps = true;
+            if (this.updateVolumeTimeout) {
+                clearTimeout(this.updateVolumeTimeout);
+            }
 
-              this.activeVolumeDownStepTimeouts.forEach(timeout => clearTimeout(timeout));
-              this.activeVolumeDownStepTimeouts = [];
+            this.activeVolumeDownStepTimeouts.forEach((timeout) =>
+                clearTimeout(timeout),
+            );
+            this.activeVolumeDownStepTimeouts = [];
 
-              const steps = 3;
-              const delay = 25;
+            const steps = 3;
+            const delay = 25;
 
-              // Function to execute each step with a delay
-              const executeStep = (step: number) => {
-                  if (step > 0 && !this.cancelVolumeDownSteps) {
-                      this.telnetAvr.sendMessage("VD", "VOL", () => {
-                          const timeout = setTimeout(() => {
-                              executeStep(step - 1);
-                          }, delay);
-                          this.activeVolumeDownStepTimeouts.push(timeout); // Track the timeout
-                      });
-                  } else if (step === 0 && !this.cancelVolumeDownSteps) {
-                      if (this.updateVolumeTimeout) {
-                          clearTimeout(this.updateVolumeTimeout);
-                      }
-                      // After the last step, update volume and mute status
-                      this.updateVolumeTimeout = setTimeout(() => {
-                          this.__updateVolume(() => {});
-                          this.__updateMute(() => {});
-                      }, 1000);
-                  }
-              };
+            // Function to execute each step with a delay
+            const executeStep = (step: number) => {
+                if (step > 0 && !this.cancelVolumeDownSteps) {
+                    this.telnetAvr.sendMessage("VD", "VOL", () => {
+                        const timeout = setTimeout(() => {
+                            executeStep(step - 1);
+                        }, delay);
+                        this.activeVolumeDownStepTimeouts.push(timeout); // Track the timeout
+                    });
+                } else if (step === 0 && !this.cancelVolumeDownSteps) {
+                    if (this.updateVolumeTimeout) {
+                        clearTimeout(this.updateVolumeTimeout);
+                    }
+                    // After the last step, update volume and mute status
+                    this.updateVolumeTimeout = setTimeout(() => {
+                        this.__updateVolume(() => {});
+                        this.__updateMute(() => {});
+                    }, 1000);
+                }
+            };
 
-              // Reset the cancel flag and start the first step
-              this.cancelVolumeDownSteps = false;
-              executeStep(steps);
-          }
-
-
-
+            // Reset the cancel flag and start the first step
+            this.cancelVolumeDownSteps = false;
+            executeStep(steps);
+        }
 
         /**
          * Retrieves the mute status of the AVR.
@@ -232,7 +259,13 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
          */
         public muteOn() {
             this.lastUserInteraction = Date.now();
-            if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on || this.state.muted === true) return;
+            if (
+                !this.telnetAvr ||
+                !this.telnetAvr.connectionReady ||
+                !this.state.on ||
+                this.state.muted === true
+            )
+                return;
 
             this.log.debug("Mute on");
             this.telnetAvr.sendMessage("MO");
@@ -243,7 +276,13 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
          */
         public muteOff() {
             this.lastUserInteraction = Date.now();
-            if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on || this.state.muted === false) return;
+            if (
+                !this.telnetAvr ||
+                !this.telnetAvr.connectionReady ||
+                !this.state.on ||
+                this.state.muted === false
+            )
+                return;
 
             this.log.debug("Mute off");
             this.telnetAvr.sendMessage("MF");
@@ -253,7 +292,9 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
          * Sends a query to update the current listening mode.
          * @param callback - The function to handle the response.
          */
-        public __updateListeningMode(callback: (error: any, response: string) => void) {
+        public __updateListeningMode(
+            callback: (error: any, response: string) => void,
+        ) {
             this.telnetAvr.sendMessage("?S", "SR", callback);
         }
 
@@ -271,13 +312,15 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
          * Toggles the listening mode between presets.
          * @param callback - Optional function to handle the toggle result.
          */
-        public toggleListeningMode(callback?: (error: any, response: string) => void) {
+        public toggleListeningMode(
+            callback?: (error: any, response: string) => void,
+        ) {
             this.lastUserInteraction = Date.now();
 
             // Check if the AVR is ready and if a listening mode is set
             if (!this.isReady || !this.state.listeningMode) {
                 if (callback) {
-                    callback(null, this.state.listeningMode ?? '');
+                    callback(null, this.state.listeningMode ?? "");
                 }
                 return;
             }
@@ -290,7 +333,10 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
 
                 // Execute the callback with a delay if provided
                 if (callback) {
-                    setTimeout(() => callback(null, this.state.listeningMode!), 100);
+                    setTimeout(
+                        () => callback(null, this.state.listeningMode!),
+                        100,
+                    );
                 }
             } else {
                 this.state.listeningMode = "0013";
@@ -302,11 +348,13 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
 
                     // Execute the callback with a delay if provided
                     if (callback) {
-                        setTimeout(() => callback(null, this.state.listeningMode!), 100);
+                        setTimeout(
+                            () => callback(null, this.state.listeningMode!),
+                            100,
+                        );
                     }
                 });
             }
         }
-
     };
 }

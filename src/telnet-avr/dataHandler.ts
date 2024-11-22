@@ -1,15 +1,18 @@
 // src/telnet-avr/dataHandler.ts
 
-import { TelnetAvr } from './telnetAvr';
-import displayChars from './displayChars';
-import { MessageQueue } from './messageQueue';
+import { TelnetAvr } from "./telnetAvr";
+import displayChars from "./displayChars";
+import { MessageQueue } from "./messageQueue";
 
 class DataHandler {
     private telnetAvr: TelnetAvr; // Reference to TelnetAvr instance for managing Telnet operations
     public log: any; // Logger instance for logging debug/error messages
     private _lastMessageReceived: number | null = null; // Timestamp of the last message received
 
-    constructor(telnetAvr: TelnetAvr, private messageQueue: MessageQueue) {
+    constructor(
+        telnetAvr: TelnetAvr,
+        private messageQueue: MessageQueue,
+    ) {
         this.telnetAvr = telnetAvr;
         this.log = telnetAvr.log;
     }
@@ -37,8 +40,12 @@ class DataHandler {
     handleData(data: Buffer) {
         try {
             // Split the received data into lines and trim whitespace.
-            const lines = data.toString().split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0);
-            this.log.debug('telnet data>', data.toString().trim());
+            const lines = data
+                .toString()
+                .split(/\r?\n/)
+                .map((line) => line.trim())
+                .filter((line) => line.length > 0);
+            this.log.debug("telnet data>", data.toString().trim());
 
             // Update the timestamp of the last received message.
             this._lastMessageReceived = Date.now();
@@ -62,18 +69,23 @@ class DataHandler {
                     continue;
                 }
 
-                if (d.startsWith("E")){
+                if (d.startsWith("E")) {
                     // Clear the queue entry if a queue lock exists.
                     const firstQueueEntry = this.messageQueue.queue[0];
                     if (firstQueueEntry) {
                         const [_, callbackChars] = firstQueueEntry;
-                        const callbacks = this.messageQueue.getCallbacksForKey(callbackChars);
+                        const callbacks =
+                            this.messageQueue.getCallbacksForKey(callbackChars);
 
                         for (const callback of callbacks) {
                             if (typeof callback === "function") {
                                 try {
                                     // Execute the matched callback with the received data.
-                                    this.fallbackOnData(null, d + callbackChars, callback);
+                                    this.fallbackOnData(
+                                        null,
+                                        d + callbackChars,
+                                        callback,
+                                    );
                                     callbackCalled = true;
                                 } catch (error) {
                                     this.log.error(error);
@@ -84,14 +96,16 @@ class DataHandler {
                         // Unlock the callback key after processing its callbacks.
                         this.messageQueue.removeCallbackForKey(callbackChars);
                         this.clearQueueEntry(callbackChars);
-
                     }
                 } else {
                     // Process callbacks based on callback keys in the queue.
                     const callbackKeys = this.messageQueue.getCallbackKeys();
                     for (const callbackKey of callbackKeys) {
                         if (d.includes(callbackKey) || callbackKey == "!none") {
-                            const callbacks = this.messageQueue.getCallbacksForKey(callbackKey);
+                            const callbacks =
+                                this.messageQueue.getCallbacksForKey(
+                                    callbackKey,
+                                );
 
                             for (const callback of callbacks) {
                                 if (typeof callback === "function") {
@@ -118,9 +132,19 @@ class DataHandler {
                     !d.startsWith("FL") &&
                     !d.startsWith("R") &&
                     !d.startsWith("ST") &&
-                    !["RGC", "RGD", "GBH", "GHH", "VTA", "AUA", "AUB", "GEH", "STM", "STO"].includes(d.substr(0, 3))
+                    ![
+                        "RGC",
+                        "RGD",
+                        "GBH",
+                        "GHH",
+                        "VTA",
+                        "AUA",
+                        "AUB",
+                        "GEH",
+                        "STM",
+                        "STO",
+                    ].includes(d.substr(0, 3))
                 ) {
-
                     // Fallback handling for unrecognized messages.
                     this.fallbackOnData(null, d);
                 }

@@ -1,10 +1,10 @@
 // src/pioneer-avr/inputs.ts
 
-import type { Service, Logging } from 'homebridge'; // Imports Logging type
-import fs from 'fs'; // For file system operations
-import path from 'path'; // For handling file paths
-import { TelnetAvr } from '../telnet-avr/telnetAvr';
-import type { AVState } from './pioneerAvr'; // Imports AVState type from PioneerAvr
+import type { Service, Logging } from "homebridge"; // Imports Logging type
+import fs from "fs"; // For file system operations
+import path from "path"; // For handling file paths
+import { TelnetAvr } from "../telnet-avr/telnetAvr";
+import type { AVState } from "./pioneerAvr"; // Imports AVState type from PioneerAvr
 
 type Device = {
     name: string;
@@ -22,19 +22,21 @@ type Device = {
  * @param Base - The base class to extend with input management methods.
  * @returns A new class that extends the base class with added input handling capabilities.
  */
-export function InputManagementMixin<TBase extends new (...args: any[]) => {
-    log: Logging;
-    state: AVState;
-    pioneerAvrClassCallback?: () => Promise<void>;
-    lastUserInteraction: number;
-    telnetAvr: TelnetAvr;
-    isReady: boolean;
-    platform: any; // Optional, in case platform is not always available
-    device: Device;
-}>(Base: TBase) {
+export function InputManagementMixin<
+    TBase extends new (...args: any[]) => {
+        log: Logging;
+        state: AVState;
+        pioneerAvrClassCallback?: () => Promise<void>;
+        lastUserInteraction: number;
+        telnetAvr: TelnetAvr;
+        isReady: boolean;
+        platform: any; // Optional, in case platform is not always available
+        device: Device;
+    },
+>(Base: TBase) {
     return class extends Base {
-        public prefsDir: string = '';
-        public inputCacheFile: string = '';
+        public prefsDir: string = "";
+        public inputCacheFile: string = "";
         public inputBeingAdded: string | boolean = false;
         public inputBeingAddedWaitCount: number = 0;
         public inputMissing: string[][] = [];
@@ -49,8 +51,14 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
             super(...args);
 
             // Set `prefsDir` and `inputCacheFile`
-            this.prefsDir = this.platform?.config?.prefsDir || this.platform?.api?.user?.storagePath() + "/pioneerAvr/" || '';
-            this.inputCacheFile = path.join(this.prefsDir, `inputCache_${this.device.host}.json`);
+            this.prefsDir =
+                this.platform?.config?.prefsDir ||
+                this.platform?.api?.user?.storagePath() + "/pioneerAvr/" ||
+                "";
+            this.inputCacheFile = path.join(
+                this.prefsDir,
+                `inputCache_${this.device.host}.json`,
+            );
             this.inputs = [];
 
             // Ensure the preferences directory exists
@@ -61,20 +69,23 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
             // Add a callback to manage inputs when the Telnet connection is established
             this.telnetAvr.addOnConnectCallback(async () => {
                 await this.loadInputs(async () => {
-
                     // Callback from pioneerAvr class
                     if (!this.pioneerAvrClassCallbackCalled) {
                         this.pioneerAvrClassCallbackCalled = true;
-                        await new Promise(resolve => setTimeout(resolve, 50));
+                        await new Promise((resolve) => setTimeout(resolve, 50));
 
                         setTimeout(() => {
                             try {
-                                const runThis = this.pioneerAvrClassCallback?.bind(this);
+                                const runThis =
+                                    this.pioneerAvrClassCallback?.bind(this);
                                 if (runThis) {
                                     runThis();
                                 }
                             } catch (e) {
-                                this.log.debug("pioneerAvrClassCallback() inputs.ts Error", e);
+                                this.log.debug(
+                                    "pioneerAvrClassCallback() inputs.ts Error",
+                                    e,
+                                );
                             }
 
                             this.__updateInput(() => {});
@@ -96,7 +107,10 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
                     try {
                         callback();
                     } catch (e) {
-                        this.log.debug("loadInputs already isReady callback", e);
+                        this.log.debug(
+                            "loadInputs already isReady callback",
+                            e,
+                        );
                     }
                 }
                 return;
@@ -105,21 +119,24 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
             // Check if cached inputs are valid
             if (fs.existsSync(this.inputCacheFile)) {
                 try {
-                    const cache = JSON.parse(fs.readFileSync(this.inputCacheFile, 'utf-8'));
+                    const cache = JSON.parse(
+                        fs.readFileSync(this.inputCacheFile, "utf-8"),
+                    );
                     const cacheTimestamp = new Date(cache.timestamp);
                     const now = new Date();
 
                     // Use cached inputs if they are less than 30 minutes old
-                    if (now.getTime() - cacheTimestamp.getTime() <= 30 * 60 * 1000) {
+                    if (
+                        now.getTime() - cacheTimestamp.getTime() <=
+                        30 * 60 * 1000
+                    ) {
                         this.inputs = cache.inputs;
                         this.log.info("Load inputs from cache.");
 
                         // Iterate over cached inputs and call addInputSourceService
                         for (const [index, input] of this.inputs.entries()) {
                             this.inputToType[input.id] = input.type;
-                            this.log.info(
-                                `Input [${input.name}] from cache`
-                            );
+                            this.log.info(`Input [${input.name}] from cache`);
                             this.addInputSourceService(null, index);
                         }
 
@@ -139,12 +156,15 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
             this.log.info("Refreshing inputs...");
             this.inputs = [];
             for (let i = 1; i <= 60; i++) {
-                const key = i.toString().padStart(2, '0');
+                const key = i.toString().padStart(2, "0");
                 let value = 0;
 
                 // Map specific input numbers to corresponding types
                 if ([2, 18, 38].includes(i)) value = 2;
-                else if ([19, 20, 21, 22, 23, 24, 25, 26, 31, 5, 6, 15].includes(i)) value = 3;
+                else if (
+                    [19, 20, 21, 22, 23, 24, 25, 26, 31, 5, 6, 15].includes(i)
+                )
+                    value = 3;
                 else if (i === 10) value = 4;
                 else if (i === 14) value = 6;
                 else if (i === 17) value = 9;
@@ -153,12 +173,20 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
 
                 this.inputToType[key] = value;
 
-                if (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
-                    await new Promise(resolve => setTimeout(resolve, 10));
+                if (
+                    typeof this.inputBeingAdded === "string" &&
+                    this.inputBeingAddedWaitCount++ < 30
+                ) {
+                    await new Promise((resolve) => setTimeout(resolve, 10));
                     this.inputBeingAddedWaitCount = 0;
 
-                    while (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
-                        await new Promise(resolve => setTimeout(resolve, 150));
+                    while (
+                        typeof this.inputBeingAdded === "string" &&
+                        this.inputBeingAddedWaitCount++ < 30
+                    ) {
+                        await new Promise((resolve) =>
+                            setTimeout(resolve, 150),
+                        );
                     }
                 }
 
@@ -176,19 +204,29 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
                     this.inputMissing.push([key]);
                 }
 
-                await this.telnetAvr.sendMessage(`?RGB${key}`, `RGB${key}`, this.addInputSourceService.bind(this));
-                await new Promise(resolve => setTimeout(resolve, 150));
+                await this.telnetAvr.sendMessage(
+                    `?RGB${key}`,
+                    `RGB${key}`,
+                    this.addInputSourceService.bind(this),
+                );
+                await new Promise((resolve) => setTimeout(resolve, 150));
             }
 
-            if (this.inputMissing.length === 0 && Object.keys(this.inputToType).length > 0) {
+            if (
+                this.inputMissing.length === 0 &&
+                Object.keys(this.inputToType).length > 0
+            ) {
                 this.isReady = true;
 
                 // Save inputs to cache
                 try {
-                    fs.writeFileSync(this.inputCacheFile, JSON.stringify({
-                        timestamp: new Date().toISOString(),
-                        inputs: this.inputs,
-                    }));
+                    fs.writeFileSync(
+                        this.inputCacheFile,
+                        JSON.stringify({
+                            timestamp: new Date().toISOString(),
+                            inputs: this.inputs,
+                        }),
+                    );
                     this.log.info("Inputs cached successfully.");
                 } catch (err) {
                     this.log.error("Failed to cache inputs:", err);
@@ -205,7 +243,12 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
          * @param callback - The callback function to handle the input status result.
          */
         public inputStatus(callback: (err: any, inputStatus?: number) => void) {
-            if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on || this.state.input === null) {
+            if (
+                !this.telnetAvr ||
+                !this.telnetAvr.connectionReady ||
+                !this.state.on ||
+                this.state.input === null
+            ) {
                 callback(null, 0);
                 return;
             }
@@ -225,7 +268,11 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
         public setInput(id: string) {
             this.lastUserInteraction = Date.now();
 
-            if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) {
+            if (
+                !this.telnetAvr ||
+                !this.telnetAvr.connectionReady ||
+                !this.state.on
+            ) {
                 return;
             }
 
@@ -342,9 +389,16 @@ export function InputManagementMixin<TBase extends new (...args: any[]) => {
          * @param newName - The new name to assign to the input.
          */
         public async renameInput(id: string, newName: string) {
-            if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) return;
+            if (
+                !this.telnetAvr ||
+                !this.telnetAvr.connectionReady ||
+                !this.state.on
+            )
+                return;
 
-            const shrinkName = newName.replace(/[^\p{L}\p{N} /:._-]/gu, "").substring(0, 14);
+            const shrinkName = newName
+                .replace(/[^\p{L}\p{N} /:._-]/gu, "")
+                .substring(0, 14);
             this.telnetAvr.sendMessage(`${shrinkName}1RGB${id}`);
         }
 

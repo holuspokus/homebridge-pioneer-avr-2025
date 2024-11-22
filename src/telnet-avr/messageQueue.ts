@@ -5,7 +5,10 @@ import { Connection } from "./connection";
 export class MessageQueue {
     public queue: [string, string][] = []; // Array storing message and its callback character string
     public queueCallbackChars: Record<string, Function[]> = {}; // Maps callback character strings to an array of associated callbacks
-    public callbackLocks: Record<string, { queueLock: boolean; queueLockDate: number | null }> = {}; // Locks specific to callback characters
+    public callbackLocks: Record<
+        string,
+        { queueLock: boolean; queueLockDate: number | null }
+    > = {}; // Locks specific to callback characters
 
     constructor(private connection: Connection) {
         // Start periodic queue checking
@@ -20,11 +23,14 @@ export class MessageQueue {
         setInterval(() => {
             // Process the next item in the queue if it is not locked
             if (this.queue.length > 0) {
-
                 // Unlock callbackLocks if they are active for more than 5 seconds
                 for (const key of Object.keys(this.callbackLocks)) {
                     const lock = this.callbackLocks[key];
-                    if (lock.queueLock && lock.queueLockDate && Date.now() - lock.queueLockDate > 15000) {
+                    if (
+                        lock.queueLock &&
+                        lock.queueLockDate &&
+                        Date.now() - lock.queueLockDate > 15000
+                    ) {
                         delete this.callbackLocks[key];
                     }
                 }
@@ -48,7 +54,10 @@ export class MessageQueue {
 
         // Lock the callback key before sending the message
         if (!this.callbackLocks[callbackKey]) {
-            this.callbackLocks[callbackKey] = { queueLock: true, queueLockDate: Date.now() };
+            this.callbackLocks[callbackKey] = {
+                queueLock: true,
+                queueLockDate: Date.now(),
+            };
         } else {
             this.callbackLocks[callbackKey].queueLock = true;
             this.callbackLocks[callbackKey].queueLockDate = Date.now();
@@ -56,7 +65,7 @@ export class MessageQueue {
 
         // Enforce a delay between messages if necessary
         if (Date.now() - (this.connection.lastWrite ?? 0) < 17) {
-            await new Promise(resolve => setTimeout(resolve, 7));
+            await new Promise((resolve) => setTimeout(resolve, 7));
         }
 
         // Send the message via the connection
@@ -69,17 +78,21 @@ export class MessageQueue {
      * @param callbackChars - The callback character string to track
      * @param callback - The function to execute when the response is received
      */
-    public enqueue(message: string, callbackChars?: string, callback?: Function) {
-        if (!callbackChars){
-            callbackChars = '!none'
+    public enqueue(
+        message: string,
+        callbackChars?: string,
+        callback?: Function,
+    ) {
+        if (!callbackChars) {
+            callbackChars = "!none";
         }
 
         // Add the message to the queue if not already present
-        if (!this.queue.some(q => q[0] === message)) {
+        if (!this.queue.some((q) => q[0] === message)) {
             this.queue.push([message, callbackChars]);
         }
 
-        if(callback){
+        if (callback) {
             // Add the callback to the list of callbacks for the callback character string
             if (!this.queueCallbackChars[callbackChars]) {
                 this.queueCallbackChars[callbackChars] = [];
@@ -104,7 +117,6 @@ export class MessageQueue {
      */
     public removeCallbackForKey(callbackKey: string) {
         if (this.queueCallbackChars[callbackKey]) {
-
             // If no more callbacks exist for the key, delete the key
             delete this.queueCallbackChars[callbackKey];
         }

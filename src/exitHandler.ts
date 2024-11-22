@@ -14,11 +14,11 @@ export function addExitHandler(handler: () => void, context: any) {
 /**
  * Runs all registered exit handlers in their respective contexts.
  */
- let runHandlersCalled = false
+let runHandlersCalled = false;
 function runHandlers() {
     if (runHandlersCalled) return;
 
-    runHandlersCalled = true
+    runHandlersCalled = true;
     handlers.forEach(({ handler, context }) => {
         try {
             handler.call(context);

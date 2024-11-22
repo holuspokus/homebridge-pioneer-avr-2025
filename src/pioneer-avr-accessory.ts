@@ -1,12 +1,16 @@
 // src/pioneer-avr-accessory.ts
 
-import PioneerAvr from './pioneer-avr/pioneerAvr';
-import { Service, Logging, PlatformAccessory, CharacteristicValue } from 'homebridge';
-import * as fs from 'fs';
+import PioneerAvr from "./pioneer-avr/pioneerAvr";
+import {
+    Service,
+    Logging,
+    PlatformAccessory,
+    CharacteristicValue,
+} from "homebridge";
+import * as fs from "fs";
 import packageJson from "../package.json";
-import { PioneerAvrPlatform } from './pioneer-avr-platform';
-import { addExitHandler } from './exitHandler';
-
+import { PioneerAvrPlatform } from "./pioneer-avr-platform";
+import { addExitHandler } from "./exitHandler";
 
 type Device = {
     name: string;
@@ -38,52 +42,74 @@ class PioneerAvrAccessory {
     public accessory: PlatformAccessory;
     private version: string;
 
-    constructor(private device: Device, platform: PioneerAvrPlatform, accessory: PlatformAccessory) {
+    constructor(
+        private device: Device,
+        platform: PioneerAvrPlatform,
+        accessory: PlatformAccessory,
+    ) {
         this.device = device;
         this.platform = platform;
         this.accessory = accessory;
         this.log = this.platform.log;
-        this.name = device.name || 'Pioneer AVR';
-        this.manufacturer = this.platform.config.manufacturer || 'Pioneer';
-        this.model = this.platform.config.model || device.name || 'Unknown Model';
-        this.host = device.host || this.platform.config.host || '';
+        this.name = device.name || "Pioneer AVR";
+        this.manufacturer = this.platform.config.manufacturer || "Pioneer";
+        this.model =
+            this.platform.config.model || device.name || "Unknown Model";
+        this.host = device.host || this.platform.config.host || "";
         this.maxVolume = this.platform.config.maxVolume || 100;
-        this.prefsDir = this.platform.config.prefsDir || this.platform.api.user.storagePath() + "/pioneerAvr/";
+        this.prefsDir =
+            this.platform.config.prefsDir ||
+            this.platform.api.user.storagePath() + "/pioneerAvr/";
         this.version = packageJson.version;
 
-        this.name = this.name.replace(/[^a-zA-Z0-9 ']/g, '');
-        this.name = this.name.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '').trim();
+        this.name = this.name.replace(/[^a-zA-Z0-9 ']/g, "");
+        this.name = this.name
+            .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, "")
+            .trim();
 
-        this.log.info(`Creating accessory ${this.name} for: ${this.device.origName} at ${this.device.host}:${this.device.port}`);
+        this.log.info(
+            `Creating accessory ${this.name} for: ${this.device.origName} at ${this.device.host}:${this.device.port}`,
+        );
 
-        this.inputVisibilityFile = `${this.prefsDir}/inputsVisibility_${this.host}`.replace(/\/{2,}/g, '/');
+        this.inputVisibilityFile =
+            `${this.prefsDir}/inputsVisibility_${this.host}`.replace(
+                /\/{2,}/g,
+                "/",
+            );
         this.initializeVisibilityFile();
 
         try {
-            this.avr = new PioneerAvr(platform, this, async (): Promise<void> => {
-                try {
+            this.avr = new PioneerAvr(
+                platform,
+                this,
+                async (): Promise<void> => {
+                    try {
+                        while (!this.avr) {
+                            await new Promise((resolve) =>
+                                setTimeout(resolve, 180),
+                            );
+                        }
 
-                    while(!this.avr){
-                        await new Promise(resolve => setTimeout(resolve, 180));
+                        this.enabledServices = [];
+                        await this.prepareInformationService();
+                        await this.prepareTvService();
+                        await this.prepareTvSpeakerService();
+
+                        if (this.maxVolume !== 0) {
+                            await this.prepareVolumeService();
+                        }
+
+                        this.log.info(
+                            `> Finished initializing. Device ${this.name} ready!`,
+                        );
+                    } catch (err) {
+                        this.log.debug("Error during AVR setup callback:", err);
                     }
+                },
+            );
 
-                    this.enabledServices = [];
-                    await this.prepareInformationService();
-                    await this.prepareTvService();
-                    await this.prepareTvSpeakerService();
-
-                    if (this.maxVolume !== 0) {
-                        await this.prepareVolumeService();
-                    }
-
-                    this.log.info(`> Finished initializing. Device ${this.name} ready!`);
-                } catch (err) {
-                    this.log.debug("Error during AVR setup callback:", err);
-                }
-            });
-
-            this.avr.addInputSourceService = this.addInputSourceService.bind(this);
-
+            this.avr.addInputSourceService =
+                this.addInputSourceService.bind(this);
         } catch (err) {
             this.log.debug("Error initializing AVR:", err);
         }
@@ -99,14 +125,22 @@ class PioneerAvrAccessory {
                 if (err) {
                     fs.writeFile(this.inputVisibilityFile, "{}", (err) => {
                         if (err) {
-                            this.log.error("Error creating the Input visibility file:", err);
+                            this.log.error(
+                                "Error creating the Input visibility file:",
+                                err,
+                            );
                         } else {
-                            this.log.debug("Input visibility file successfully created.");
+                            this.log.debug(
+                                "Input visibility file successfully created.",
+                            );
                             this.loadSavedVisibility();
                         }
                     });
                 } else {
-                    this.log.debug("The Input visibility file already exists:", this.inputVisibilityFile);
+                    this.log.debug(
+                        "The Input visibility file already exists:",
+                        this.inputVisibilityFile,
+                    );
                     this.loadSavedVisibility();
                 }
             });
@@ -117,10 +151,13 @@ class PioneerAvrAccessory {
 
     private loadSavedVisibility() {
         try {
-            const fileData = fs.readFileSync(this.inputVisibilityFile, 'utf-8');
+            const fileData = fs.readFileSync(this.inputVisibilityFile, "utf-8");
             this.savedVisibility = JSON.parse(fileData);
         } catch (err) {
-            this.log.debug("Input visibility file does not exist or JSON parsing failed:", err);
+            this.log.debug(
+                "Input visibility file does not exist or JSON parsing failed:",
+                err,
+            );
         }
     }
 
@@ -128,15 +165,32 @@ class PioneerAvrAccessory {
      * Prepares the accessory's information service.
      */
     private async prepareInformationService() {
-        this.informationService = this.accessory.getService(this.platform.service.AccessoryInformation) ||
-                                  this.accessory.addService(this.platform.service.AccessoryInformation);
+        this.informationService =
+            this.accessory.getService(
+                this.platform.service.AccessoryInformation,
+            ) ||
+            this.accessory.addService(
+                this.platform.service.AccessoryInformation,
+            );
 
         this.informationService
-            .setCharacteristic(this.platform.characteristic.Name, this.device.name.replace(/[^a-zA-Z0-9 ]/g, ""))
-            .setCharacteristic(this.platform.characteristic.Manufacturer, this.manufacturer)
+            .setCharacteristic(
+                this.platform.characteristic.Name,
+                this.device.name.replace(/[^a-zA-Z0-9 ]/g, ""),
+            )
+            .setCharacteristic(
+                this.platform.characteristic.Manufacturer,
+                this.manufacturer,
+            )
             .setCharacteristic(this.platform.characteristic.Model, this.model)
-            .setCharacteristic(this.platform.characteristic.SerialNumber, this.device.origName.replace(/[^a-zA-Z0-9 ]/g, ""))
-            .setCharacteristic(this.platform.characteristic.FirmwareRevision, this.version);
+            .setCharacteristic(
+                this.platform.characteristic.SerialNumber,
+                this.device.origName.replace(/[^a-zA-Z0-9 ]/g, ""),
+            )
+            .setCharacteristic(
+                this.platform.characteristic.FirmwareRevision,
+                this.version,
+            );
 
         this.enabledServices.push(this.informationService);
     }
@@ -145,51 +199,86 @@ class PioneerAvrAccessory {
      * Sets up the Television service to control the AVR's power and input selection.
      */
     private async prepareTvService() {
-        this.tvService = this.accessory.getService(this.platform.service.Television) ||
-                         this.accessory.addService(this.platform.service.Television, this.name, 'tvService');
+        this.tvService =
+            this.accessory.getService(this.platform.service.Television) ||
+            this.accessory.addService(
+                this.platform.service.Television,
+                this.name,
+                "tvService",
+            );
 
         this.tvService
-            .setCharacteristic(this.platform.characteristic.ConfiguredName, this.name)
-            .setCharacteristic(this.platform.characteristic.SleepDiscoveryMode, this.platform.characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE);
+            .setCharacteristic(
+                this.platform.characteristic.ConfiguredName,
+                this.name,
+            )
+            .setCharacteristic(
+                this.platform.characteristic.SleepDiscoveryMode,
+                this.platform.characteristic.SleepDiscoveryMode
+                    .ALWAYS_DISCOVERABLE,
+            );
 
         addExitHandler(() => {
-            this.tvService
-                .updateCharacteristic(this.platform.characteristic.SleepDiscoveryMode, this.platform.characteristic.SleepDiscoveryMode.NOT_DISCOVERABLE);
+            this.tvService.updateCharacteristic(
+                this.platform.characteristic.SleepDiscoveryMode,
+                this.platform.characteristic.SleepDiscoveryMode
+                    .NOT_DISCOVERABLE,
+            );
         }, this);
 
-        this.tvService.getCharacteristic(this.platform.characteristic.Active)
+        this.tvService
+            .getCharacteristic(this.platform.characteristic.Active)
             .onGet(this.getPowerOn.bind(this))
             .onSet(this.setPowerOn.bind(this));
 
-        this.tvService.getCharacteristic(this.platform.characteristic.ActiveIdentifier)
+        this.tvService
+            .getCharacteristic(this.platform.characteristic.ActiveIdentifier)
             .onGet(this.getActiveIdentifier.bind(this))
             .onSet(this.setActiveIdentifier.bind(this));
 
-        this.tvService.getCharacteristic(this.platform.characteristic.RemoteKey)
+        this.tvService
+            .getCharacteristic(this.platform.characteristic.RemoteKey)
             .onSet(this.remoteKeyPress.bind(this));
 
         this.enabledServices.push(this.tvService);
 
         this.avr.functionSetPowerState = (set: boolean) => {
-          try {
-              let boolToNum = set?1:0
-              // console.log('functionSetPowerState called', typeof(this.tvService.getCharacteristic(this.platform.characteristic.Active).value), this.tvService.getCharacteristic(this.platform.characteristic.Active).value, boolToNum)
-              if (this.tvService.getCharacteristic(this.platform.characteristic.Active).value !== boolToNum) {
-                  // console.log('functionSetPowerState SET', boolToNum)
-                  this.tvService.updateCharacteristic(this.platform.characteristic.SleepDiscoveryMode, !boolToNum);
-                  this.tvService.updateCharacteristic(this.platform.characteristic.Active, boolToNum);
-              }
-          } catch(e) {
-              this.log.debug('Error functionSetPowerState:', e);
-          }
+            try {
+                let boolToNum = set ? 1 : 0;
+                // console.log('functionSetPowerState called', typeof(this.tvService.getCharacteristic(this.platform.characteristic.Active).value), this.tvService.getCharacteristic(this.platform.characteristic.Active).value, boolToNum)
+                if (
+                    this.tvService.getCharacteristic(
+                        this.platform.characteristic.Active,
+                    ).value !== boolToNum
+                ) {
+                    // console.log('functionSetPowerState SET', boolToNum)
+                    this.tvService.updateCharacteristic(
+                        this.platform.characteristic.SleepDiscoveryMode,
+                        !boolToNum,
+                    );
+                    this.tvService.updateCharacteristic(
+                        this.platform.characteristic.Active,
+                        boolToNum,
+                    );
+                }
+            } catch (e) {
+                this.log.debug("Error functionSetPowerState:", e);
+            }
         };
 
         this.avr.functionSetPowerState(this.avr.state.on);
 
         this.avr.functionSetActiveIdentifier = (set: number) => {
             // console.log('functionSetActiveIdentifier called', this.tvService.getCharacteristic(this.platform.characteristic.ActiveIdentifier).value, set)
-            if (this.tvService.getCharacteristic(this.platform.characteristic.ActiveIdentifier).value !== set) {
-                this.tvService.updateCharacteristic(this.platform.characteristic.ActiveIdentifier, set);
+            if (
+                this.tvService.getCharacteristic(
+                    this.platform.characteristic.ActiveIdentifier,
+                ).value !== set
+            ) {
+                this.tvService.updateCharacteristic(
+                    this.platform.characteristic.ActiveIdentifier,
+                    set,
+                );
             }
         };
     }
@@ -198,32 +287,47 @@ class PioneerAvrAccessory {
      * Prepares the Television Speaker service for volume control.
      */
     private async prepareTvSpeakerService() {
-
-        while(!this.tvService || !this.enabledServices.includes(this.tvService)){
-            await new Promise(resolve => setTimeout(resolve, 180));
+        while (
+            !this.tvService ||
+            !this.enabledServices.includes(this.tvService)
+        ) {
+            await new Promise((resolve) => setTimeout(resolve, 180));
         }
 
-        this.tvSpeakerService = this.accessory.getService(this.platform.service.TelevisionSpeaker) ||
-                                this.accessory.addService(this.platform.service.TelevisionSpeaker, this.name + " Speaker", "tvSpeakerService");
+        this.tvSpeakerService =
+            this.accessory.getService(
+                this.platform.service.TelevisionSpeaker,
+            ) ||
+            this.accessory.addService(
+                this.platform.service.TelevisionSpeaker,
+                this.name + " Speaker",
+                "tvSpeakerService",
+            );
 
-        this.tvSpeakerService.getCharacteristic(this.platform.characteristic.Active)
+        this.tvSpeakerService
+            .getCharacteristic(this.platform.characteristic.Active)
             .onGet(this.getMutedInverted.bind(this))
             .onSet(this.setMutedInverted.bind(this));
 
         this.tvSpeakerService
             // .setCharacteristic(this.platform.characteristic.Active, this.platform.characteristic.Active.ACTIVE)
-            .setCharacteristic(this.platform.characteristic.VolumeControlType, this.platform.characteristic.VolumeControlType.RELATIVE);
-            // .setCharacteristic(this.platform.characteristic.VolumeControlType, this.platform.characteristic.VolumeControlType.ABSOLUTE);
+            .setCharacteristic(
+                this.platform.characteristic.VolumeControlType,
+                this.platform.characteristic.VolumeControlType.RELATIVE,
+            );
+        // .setCharacteristic(this.platform.characteristic.VolumeControlType, this.platform.characteristic.VolumeControlType.ABSOLUTE);
 
-
-        this.tvSpeakerService.getCharacteristic(this.platform.characteristic.VolumeSelector)
+        this.tvSpeakerService
+            .getCharacteristic(this.platform.characteristic.VolumeSelector)
             .onSet(this.setVolumeSwitch.bind(this));
 
-        this.tvSpeakerService.getCharacteristic(this.platform.characteristic.Mute)
+        this.tvSpeakerService
+            .getCharacteristic(this.platform.characteristic.Mute)
             .onGet(this.getMuted.bind(this))
             .onSet(this.setMuted.bind(this));
 
-        this.tvSpeakerService.getCharacteristic(this.platform.characteristic.Volume)
+        this.tvSpeakerService
+            .getCharacteristic(this.platform.characteristic.Volume)
             .onGet(this.getVolume.bind(this));
 
         // this.tvSpeakerService.getCharacteristic(this.platform.characteristic.Volume)
@@ -239,116 +343,182 @@ class PioneerAvrAccessory {
      * Prepares the Lightbulb service for volume control.
      */
     private async prepareVolumeService() {
-        while(!this.tvService || !this.enabledServices.includes(this.tvService) || !this.tvSpeakerService || !this.enabledServices.includes(this.tvSpeakerService)){
-            await new Promise(resolve => setTimeout(resolve, 180));
+        while (
+            !this.tvService ||
+            !this.enabledServices.includes(this.tvService) ||
+            !this.tvSpeakerService ||
+            !this.enabledServices.includes(this.tvSpeakerService)
+        ) {
+            await new Promise((resolve) => setTimeout(resolve, 180));
         }
 
-        this.volumeServiceLightbulb = this.accessory.getService(this.platform.service.Lightbulb) ||
-                                      this.accessory.addService(this.platform.service.Lightbulb, this.name + " Volume", 'volumeInput');
+        this.volumeServiceLightbulb =
+            this.accessory.getService(this.platform.service.Lightbulb) ||
+            this.accessory.addService(
+                this.platform.service.Lightbulb,
+                this.name + " Volume",
+                "volumeInput",
+            );
 
-        this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On)
+        this.volumeServiceLightbulb
+            .getCharacteristic(this.platform.characteristic.On)
             .onGet(this.getMutedInverted.bind(this))
             .onSet(this.setMutedInverted.bind(this));
 
-        this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.Brightness)
+        this.volumeServiceLightbulb
+            .getCharacteristic(this.platform.characteristic.Brightness)
             .onGet(this.getVolume.bind(this))
             .onSet(this.setVolume.bind(this));
 
         this.tvService.addLinkedService(this.volumeServiceLightbulb);
         this.enabledServices.push(this.volumeServiceLightbulb);
 
-
         this.avr.functionSetLightbulbVolume = (set: number) => {
             try {
-                const currentBrightness = this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.Brightness).value;
-                const currentOnState = this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On).value;
+                const currentBrightness =
+                    this.volumeServiceLightbulb.getCharacteristic(
+                        this.platform.characteristic.Brightness,
+                    ).value;
+                const currentOnState =
+                    this.volumeServiceLightbulb.getCharacteristic(
+                        this.platform.characteristic.On,
+                    ).value;
 
                 // Update Brightness only if it is different from the new volume
                 if (currentBrightness !== set) {
                     this.volumeServiceLightbulb.updateCharacteristic(
                         this.platform.characteristic.Brightness,
-                        (this.avr.state.muted || !this.avr.state.on) ? 0 : set
+                        this.avr.state.muted || !this.avr.state.on ? 0 : set,
                     );
                 }
 
                 // Update On state based on mute and power status
-                if (currentOnState !== !(this.avr.state.muted || !this.avr.state.on)) {
+                if (
+                    currentOnState !==
+                    !(this.avr.state.muted || !this.avr.state.on)
+                ) {
                     this.volumeServiceLightbulb.updateCharacteristic(
                         this.platform.characteristic.On,
-                        !(this.avr.state.muted || !this.avr.state.on)
+                        !(this.avr.state.muted || !this.avr.state.on),
                     );
                 }
             } catch (e) {
-                this.log.debug('Error updating Lightbulb volume:', e);
+                this.log.debug("Error updating Lightbulb volume:", e);
             }
         };
 
         // Initial volume setup only if volume state is valid
-        if (typeof this.avr.state.volume === 'number') {
+        if (typeof this.avr.state.volume === "number") {
             this.avr.functionSetLightbulbVolume(this.avr.state.volume);
         }
 
         this.avr.functionSetLightbulbMuted = () => {
             try {
-                const currentOnState = this.volumeServiceLightbulb.getCharacteristic(this.platform.characteristic.On).value;
-                if (currentOnState !== !(this.avr.state.muted || !this.avr.state.on)) {
+                const currentOnState =
+                    this.volumeServiceLightbulb.getCharacteristic(
+                        this.platform.characteristic.On,
+                    ).value;
+                if (
+                    currentOnState !==
+                    !(this.avr.state.muted || !this.avr.state.on)
+                ) {
                     this.volumeServiceLightbulb.updateCharacteristic(
                         this.platform.characteristic.On,
-                        !(this.avr.state.muted || !this.avr.state.on)
+                        !(this.avr.state.muted || !this.avr.state.on),
                     );
                 }
             } catch (e) {
-                this.log.debug('Error updating Lightbulb mute state:', e);
+                this.log.debug("Error updating Lightbulb mute state:", e);
             }
         };
 
         this.avr.functionSetLightbulbMuted(this.avr.state.muted);
     }
 
-
     /**
      * Prepares the input source service to allow selection of various AVR inputs.
      */
     private async addInputSourceService(error: any, key: any) {
-        if(error){
-          // console.log('in addInputSourceService ERROR> ' + String(error),  String(key))
-          return
+        if (error) {
+            // console.log('in addInputSourceService ERROR> ' + String(error),  String(key))
+            return;
         }
 
-        while(!this.tvService || !this.enabledServices.includes(this.tvService)){
-            await new Promise(resolve => setTimeout(resolve, 180));
+        while (
+            !this.tvService ||
+            !this.enabledServices.includes(this.tvService)
+        ) {
+            await new Promise((resolve) => setTimeout(resolve, 180));
         }
 
         try {
             // console.log('in addInputSourceService> ' + String(key), this.avr.inputs)
             const input = this.avr.inputs[key];
-            const tmpInput = this.accessory.getServiceById(this.platform.service.InputSource, key.toString()) ||
-                             this.accessory.addService(this.platform.service.InputSource, input.name.replace(/[^a-zA-Z0-9 ]/g, " "), key.toString());
+            const tmpInput =
+                this.accessory.getServiceById(
+                    this.platform.service.InputSource,
+                    key.toString(),
+                ) ||
+                this.accessory.addService(
+                    this.platform.service.InputSource,
+                    input.name.replace(/[^a-zA-Z0-9 ]/g, " "),
+                    key.toString(),
+                );
 
             tmpInput
                 .setCharacteristic(this.platform.characteristic.Identifier, key)
-                .setCharacteristic(this.platform.characteristic.ConfiguredName, input.name.replace(/[^a-zA-Z0-9 ]/g, " "))
-                .setCharacteristic(this.platform.characteristic.IsConfigured, this.platform.characteristic.IsConfigured.CONFIGURED)
-                .setCharacteristic(this.platform.characteristic.InputSourceType, input.type)
-                .setCharacteristic(this.platform.characteristic.CurrentVisibilityState, this.savedVisibility[input.id] || this.platform.characteristic.CurrentVisibilityState.SHOWN);
+                .setCharacteristic(
+                    this.platform.characteristic.ConfiguredName,
+                    input.name.replace(/[^a-zA-Z0-9 ]/g, " "),
+                )
+                .setCharacteristic(
+                    this.platform.characteristic.IsConfigured,
+                    this.platform.characteristic.IsConfigured.CONFIGURED,
+                )
+                .setCharacteristic(
+                    this.platform.characteristic.InputSourceType,
+                    input.type,
+                )
+                .setCharacteristic(
+                    this.platform.characteristic.CurrentVisibilityState,
+                    this.savedVisibility[input.id] ||
+                        this.platform.characteristic.CurrentVisibilityState
+                            .SHOWN,
+                );
 
-            tmpInput.getCharacteristic(this.platform.characteristic.TargetVisibilityState)
+            tmpInput
+                .getCharacteristic(
+                    this.platform.characteristic.TargetVisibilityState,
+                )
                 .onSet((state) => {
                     setTimeout(() => {
                         try {
-                            tmpInput.updateCharacteristic(this.platform.characteristic.CurrentVisibilityState, state);
+                            tmpInput.updateCharacteristic(
+                                this.platform.characteristic
+                                    .CurrentVisibilityState,
+                                state,
+                            );
                             this.savedVisibility[input.id] = state;
                             // this.log.debug('set visibility:', input.name, state)
-                            fs.writeFile(this.inputVisibilityFile, JSON.stringify(this.savedVisibility), ()=>{
-                                this.log.debug('saved visibility:', input.name, state)
-                            });
+                            fs.writeFile(
+                                this.inputVisibilityFile,
+                                JSON.stringify(this.savedVisibility),
+                                () => {
+                                    this.log.debug(
+                                        "saved visibility:",
+                                        input.name,
+                                        state,
+                                    );
+                                },
+                            );
                         } catch (error) {
-                            this.log.error('set visibility Error', error)
+                            this.log.error("set visibility Error", error);
                         }
                     }, 10);
                 });
 
-            tmpInput.getCharacteristic(this.platform.characteristic.ConfiguredName)
+            tmpInput
+                .getCharacteristic(this.platform.characteristic.ConfiguredName)
                 .onSet((name) => {
                     this.avr.renameInput(input.id, String(name));
                 });
@@ -356,11 +526,9 @@ class PioneerAvrAccessory {
             // console.log('add input to homebridge', key)
             this.tvService.addLinkedService(tmpInput);
             this.enabledServices.push(tmpInput);
-
         } catch (e) {
-            console.error('Error addInputSourceService:', e);
+            console.error("Error addInputSourceService:", e);
         }
-
     }
 
     /**
@@ -407,16 +575,25 @@ class PioneerAvrAccessory {
         });
     }
 
-    private async setActiveIdentifier(newValue: CharacteristicValue): Promise<void> {
+    private async setActiveIdentifier(
+        newValue: CharacteristicValue,
+    ): Promise<void> {
         // console.log('setActiveIdentifier called', newValue, typeof(newValue))
-        if (typeof newValue === 'number' && this.avr.telnetAvr.connectionReady) {
-            this.log.debug('set active identifier:', this.avr.inputs[newValue].name, this.avr.inputs[newValue].id)
+        if (
+            typeof newValue === "number" &&
+            this.avr.telnetAvr.connectionReady
+        ) {
+            this.log.debug(
+                "set active identifier:",
+                this.avr.inputs[newValue].name,
+                this.avr.inputs[newValue].id,
+            );
             this.avr.setInput(this.avr.inputs[newValue].id);
         }
     }
 
     private async setVolumeSwitch(state: CharacteristicValue): Promise<void> {
-        this.log.debug('setVolumeSwitch called:', state)
+        this.log.debug("setVolumeSwitch called:", state);
         if (state !== 1) {
             this.avr.volumeUp();
         } else {
@@ -449,23 +626,23 @@ class PioneerAvrAccessory {
         // Extract the return value from volume as a number or default to 0 if undefined
         return new Promise<number>((resolve) => {
             this.avr.volumeStatus((_error, volume) => {
-                resolve(typeof volume === 'number' ? volume : 0);
+                resolve(typeof volume === "number" ? volume : 0);
             });
         });
     }
 
     private async setVolume(volume: CharacteristicValue): Promise<void> {
         // Check if volume is a number before sending it to the device
-        if (typeof volume === 'number') {
+        if (typeof volume === "number") {
             this.avr.setVolume(volume);
         } else {
-            this.log.debug('setVolume called with invalid volume:', volume);
+            this.log.debug("setVolume called with invalid volume:", volume);
         }
     }
 
-
     private async getMuted(): Promise<CharacteristicValue> {
-        if (!this.avr || this.avr.state.muted || !this.avr.state.on) return true;
+        if (!this.avr || this.avr.state.muted || !this.avr.state.on)
+            return true;
 
         return new Promise((resolve) => {
             this.avr.muteStatus((_error, isMuted) => {
@@ -483,7 +660,7 @@ class PioneerAvrAccessory {
     }
 
     private async getMutedInverted(): Promise<CharacteristicValue> {
-        return !(!this.avr || this.avr.state.muted || !this.avr.state.on)
+        return !(!this.avr || this.avr.state.muted || !this.avr.state.on);
     }
 
     private async setMutedInverted(mute: CharacteristicValue): Promise<void> {
@@ -494,7 +671,9 @@ class PioneerAvrAccessory {
         }
     }
 
-    private async remoteKeyPress(remoteKey: CharacteristicValue): Promise<void> {
+    private async remoteKeyPress(
+        remoteKey: CharacteristicValue,
+    ): Promise<void> {
         switch (remoteKey) {
             case this.platform.characteristic.RemoteKey.ARROW_UP:
                 this.avr.remoteKey("UP");

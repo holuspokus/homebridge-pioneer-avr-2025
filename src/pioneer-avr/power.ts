@@ -1,9 +1,9 @@
 // src/pioneer-avr/power.ts
 
-import { TelnetAvr } from '../telnet-avr/telnetAvr';
-import { addExitHandler } from '../exitHandler';
-import type { Logging } from 'homebridge';
-import type { AVState } from './pioneerAvr';
+import { TelnetAvr } from "../telnet-avr/telnetAvr";
+import { addExitHandler } from "../exitHandler";
+import type { Logging } from "homebridge";
+import type { AVState } from "./pioneerAvr";
 
 /**
  * This mixin adds power management methods to a base class, including power control,
@@ -11,12 +11,14 @@ import type { AVState } from './pioneerAvr';
  * @param Base - The base class to extend with power management methods.
  * @returns A new class that extends the base class with added power management functionality.
  */
-export function PowerManagementMixin<TBase extends new (...args: any[]) => {
-    log: Logging;
-    state: AVState;
-    lastUserInteraction: number;
-    telnetAvr: TelnetAvr;
-}>(Base: TBase) {
+export function PowerManagementMixin<
+    TBase extends new (...args: any[]) => {
+        log: Logging;
+        state: AVState;
+        lastUserInteraction: number;
+        telnetAvr: TelnetAvr;
+    },
+>(Base: TBase) {
     return class extends Base {
         public telnetAvr!: TelnetAvr;
 
@@ -76,7 +78,9 @@ export function PowerManagementMixin<TBase extends new (...args: any[]) => {
          * Retrieves the power status of the AVR.
          * @param callback - The function to handle the power status result.
          */
-        public async powerStatus(callback: (err: any, status?: boolean) => void) {
+        public async powerStatus(
+            callback: (err: any, status?: boolean) => void,
+        ) {
             if (this.state.on !== null) {
                 try {
                     callback(null, this.state.on);

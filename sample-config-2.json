@@ -17,23 +17,25 @@
         {
             "platform": "pioneerAvr2025",
             "name": "pioneerAvr2025",
-            "devices": [{
-                "host": "VSX-922.local",
-                "port": 23,
-                "name": "VSX922"
-            },
-            {
-                "ip": "196.168.1.2",
-                "port": 23,
-                "name": "VSX923",
-                "maxVolume": 75,
-                "minVolume": 20,
-            },
-            {
-                "ip": "VSX-1120.local",
-                "port": 24,
-                "name": "VSX1120"
-            }],
+            "devices": [
+                {
+                    "host": "VSX-922.local",
+                    "port": 23,
+                    "name": "VSX922"
+                },
+                {
+                    "ip": "196.168.1.2",
+                    "port": 23,
+                    "name": "VSX923",
+                    "maxVolume": 75,
+                    "minVolume": 20
+                },
+                {
+                    "ip": "VSX-1120.local",
+                    "port": 24,
+                    "name": "VSX1120"
+                }
+            ],
             "maxVolume": 65,
             "minVolume": 30,
             "_bridge": {
