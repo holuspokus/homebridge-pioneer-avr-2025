@@ -148,7 +148,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
       this.log.debug('Using manually configured device:', devicesFound);
     } else if (this.config && (this.config.host || this.config.ip) && String(this.config.host || this.config.ip).length > 0) {
       let addDevice: Device = {
-          name: this.config.name || String(this.config.host || this.config.ip).replace(/\.local$/, '').replace(/[^a-zA-Z0-9 ]/g, ""),
+          name: String(this.config.host || this.config.ip).replace(/\.local$/, '').replace(/[^a-zA-Z0-9 ]/g, ""),
           origName: this.config.name || String(this.config.host || this.config.ip).replace(/\.local$/, '').replace(/[^a-zA-Z0-9 ]/g, ""),
           host: this.config.host || this.config.ip,
           port: this.config.port || 23,
@@ -423,16 +423,16 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
           for (const foundDevice of foundDevices) {
               if (foundDevice.source !== 'bonjour') {
-                  let addDevice = {
+                  let addDevice: { name: any; host: any; port: any; maxVolume?: any; minVolume?: any } = {
                     "name": foundDevice.name,
                     "host": foundDevice.host,
                     "port": foundDevice.port
                   };
                   if (foundDevice.maxVolume) {
-                      addDevice.maxVolume = foundDevices.maxVolume;
+                      addDevice.maxVolume = foundDevice.maxVolume;
                   }
                   if (foundDevice.minVolume) {
-                      addDevice.minVolume = foundDevices.minVolume;
+                      addDevice.minVolume = foundDevice.minVolume;
                   }
                   schema.schema.properties.devices.default.push(addDevice);
               }
