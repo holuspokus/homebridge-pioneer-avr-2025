@@ -92,9 +92,6 @@ class PioneerAvr extends InitializeMixin(
                     // Log initialization
                     this.log.debug('Initializing Pioneer AVR with accessory:', accessory.name);
 
-                    // // Write min/max volume to config.schema.json
-                    // this.updateConfigSchema();
-
                     // Set default callback if none is provided
                     if (typeof pioneerAvrClassCallback !== "function") {
                         pioneerAvrClassCallback = async () => {

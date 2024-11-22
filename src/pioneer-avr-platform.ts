@@ -377,11 +377,11 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
               type: 'string',
               title: 'Device Name',
               description: 'Enter the name of the device visible in HomeKit.',
-              placeholder: firstDevice.name || 'VSX922',
+              placeholder: String(firstDevice.name || 'VSX922').replace(/[^a-zA-Z0-9]/g, ""),
           };
 
           if (firstDevice.source !== 'bonjour' && firstDevice.name) {
-              schema.schema.properties.devices.items.properties.name.default = firstDevice.name;
+              schema.schema.properties.devices.items.properties.name.default = firstDevice.name.replace(/[^a-zA-Z0-9 ]/g, "");
           }
 
           schema.schema.properties.devices.items.properties.host = {
@@ -398,13 +398,13 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
           schema.schema.properties.devices.items.properties.minVolume = {
               type: 'integer',
               title: 'Minimum Volume',
-              description: 'The minimum volume level allowed for the AVR.',
+              description: 'Set the minimum volume level for all devices (0-100). Overrides global setting.',
               minimum: 0,
               maximum: 100,
           };
 
           if (firstDevice.source !== 'bonjour' && firstDevice.minVolume) {
-              schema.schema.properties.devices.items.properties.minVolume.default = firstDevice.minVolume;
+              schema.schema.properties.devices.items.properties.minVolume.default = parseInt(firstDevice.minVolume, 10);
           }
 
           schema.schema.properties.devices.items.properties.maxVolume = {
@@ -416,7 +416,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
           };
 
           if (firstDevice.source !== 'bonjour' && firstDevice.maxVolume) {
-              schema.schema.properties.devices.items.properties.maxVolume.default = firstDevice.maxVolume;
+              schema.schema.properties.devices.items.properties.maxVolume.default = parseInt(firstDevice.maxVolume, 10);
           }
 
           schema.schema.properties.devices.default = []; // Initialize as an empty array
@@ -429,10 +429,10 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     "port": foundDevice.port
                   };
                   if (foundDevice.maxVolume) {
-                      addDevice.maxVolume = foundDevice.maxVolume;
+                      addDevice.maxVolume = parseInt(foundDevice.maxVolume, 10);
                   }
                   if (foundDevice.minVolume) {
-                      addDevice.minVolume = foundDevice.minVolume;
+                      addDevice.minVolume = parseInt(foundDevice.minVolume, 10);
                   }
                   schema.schema.properties.devices.default.push(addDevice);
               }
