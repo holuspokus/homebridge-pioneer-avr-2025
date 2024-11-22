@@ -135,6 +135,7 @@ export class Connection {
     }
 
     private handleClose() {
+        this.isConnecting = null;
         this.setConnectionReady(false);
 
         if (onExitCalled) return;
@@ -147,6 +148,7 @@ export class Connection {
     }
 
     private handleError(err: Error) {
+        this.isConnecting = null;
         this.log.error("Connection error:", err);
         if (err.message.includes("CONN")) {
             this.setConnectionReady(false);
@@ -268,7 +270,7 @@ export class Connection {
         this.socket?.write(message + "\r\n");
         this.setLastWrite(Date.now());
         callback?.(null, `${message}:SENT`);
-        
+
         this.messageQueue.processQueue();
     }
 
