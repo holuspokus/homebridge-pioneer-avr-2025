@@ -268,6 +268,8 @@ export class Connection {
         this.socket?.write(message + "\r\n");
         this.setLastWrite(Date.now());
         callback?.(null, `${message}:SENT`);
+        
+        this.messageQueue.processQueue();
     }
 
     private queueMessage(message: string, callbackChars?: string, callback?: (error: any, response: string) => void) {

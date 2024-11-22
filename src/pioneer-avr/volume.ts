@@ -23,6 +23,9 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
     return class extends Base {
         public telnetAvr!: TelnetAvr;
         public updateVolumeTimeout: NodeJS.Timeout | null = null;
+        public cancelVolumeDownSteps: boolean = false;
+        public activeVolumeDownStepTimeouts: NodeJS.Timeout[] = []; // Array to track active timeouts
+
 
 
         constructor(...args: any[]) {
@@ -151,7 +154,7 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
                 clearTimeout(this.updateVolumeTimeout);
             }
 
-            this.telnetAvr.sendMessage("VU", "VOL", () => {
+            this.telnetAvr.sendMessage("VU", undefined, () => {
                 this.updateVolumeTimeout = setTimeout(() => {
                     this.__updateVolume(() => {});
                     this.__updateMute(() => {});
@@ -162,42 +165,51 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
         /**
          * Decreases the volume by three steps, with a delay of 100ms between each step.
          */
-        public volumeDown() {
-            this.lastUserInteraction = Date.now();
-            if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) return;
+          public volumeDown() {
+              this.lastUserInteraction = Date.now();
+              if (!this.telnetAvr || !this.telnetAvr.connectionReady || !this.state.on) return;
 
-            this.log.debug("Volume down");
+              this.log.debug("Volume down");
 
-            if (this.updateVolumeTimeout) {
-                clearTimeout(this.updateVolumeTimeout);
-            }
+              // Cancel any ongoing steps and clear active timeouts
+              this.cancelVolumeDownSteps = true;
+              if (this.updateVolumeTimeout) {
+                  clearTimeout(this.updateVolumeTimeout);
+              }
 
-            const steps = 3;
-            const delay = 25;
+              this.activeVolumeDownStepTimeouts.forEach(timeout => clearTimeout(timeout));
+              this.activeVolumeDownStepTimeouts = [];
 
-            // Function to execute each step with a delay
-            const executeStep = (step) => {
-                // this.log.debug('>>step', step)
-                if (step > 0) {
-                    this.telnetAvr.sendMessage("VD", "VOL", () => {
-                        // this.log.debug('>>callback step', step)
-                        setTimeout(() => {
-                            executeStep(step - 1);
-                        }, delay);
-                    });
-                }
-                else {
-                    // After the last step, update volume and mute status
-                    this.updateVolumeTimeout = setTimeout(() => {
-                        this.__updateVolume(() => {});
-                        this.__updateMute(() => {});
-                    }, 1000);
-                }
-            };
+              const steps = 3;
+              const delay = 25;
 
-            // Start the first step
-            executeStep(steps);
-        }
+              // Function to execute each step with a delay
+              const executeStep = (step: number) => {
+                  if (step > 0 && !this.cancelVolumeDownSteps) {
+                      this.telnetAvr.sendMessage("VD", "VOL", () => {
+                          const timeout = setTimeout(() => {
+                              executeStep(step - 1);
+                          }, delay);
+                          this.activeVolumeDownStepTimeouts.push(timeout); // Track the timeout
+                      });
+                  } else if (step === 0 && !this.cancelVolumeDownSteps) {
+                      if (this.updateVolumeTimeout) {
+                          clearTimeout(this.updateVolumeTimeout);
+                      }
+                      // After the last step, update volume and mute status
+                      this.updateVolumeTimeout = setTimeout(() => {
+                          this.__updateVolume(() => {});
+                          this.__updateMute(() => {});
+                      }, 1000);
+                  }
+              };
+
+              // Reset the cancel flag and start the first step
+              this.cancelVolumeDownSteps = false;
+              executeStep(steps);
+          }
+
+
 
 
         /**

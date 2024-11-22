@@ -7,14 +7,6 @@
     "title": "Pioneer AVR Plugin",
     "type": "object",
     "properties": {
-      "name": {
-        "title": "Platform Name",
-        "type": "string",
-        "default": "pioneerAvr2025",
-        "placeholder": "pioneerAvr2025",
-        "required": true,
-        "description": "The name of the plugin, e.g. shown in the logs."
-      },
       "devices": {
         "type": "array",
         "title": "Devices",
@@ -75,6 +67,14 @@
         "minimum": 0,
         "maximum": 100,
         "description": "Set the minimum volume level for all devices (0-100)."
+      },
+      "name": {
+        "title": "Platform Name",
+        "type": "string",
+        "default": "pioneerAvr2025",
+        "placeholder": "pioneerAvr2025",
+        "required": true,
+        "description": "The name of the plugin, e.g. shown in the logs."
       }
     }
   }

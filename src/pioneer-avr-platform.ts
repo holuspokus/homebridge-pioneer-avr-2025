@@ -78,6 +78,8 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     this.api.on('didFinishLaunching', () => {
       this.discoverDevices();
     });
+
+
   }
 
   /**
@@ -303,7 +305,158 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
     // Process each device found or manually configured
     await this.loopDevices(devicesFound);
+
+    this.updateConfigSchema(devicesFound);
   }
+
+
+
+
+  /**
+   * Updates the config.schema.json file with the current min and max volume settings.
+   */
+   updateConfigSchema(foundDevices: any[]) {
+      if (foundDevices.length === 0) return;
+
+      try {
+          // const schemaPathSource = path.resolve(__dirname, '../orig-config.schema.json');
+          const schemaPath = path.resolve(__dirname, '../config.schema.json');
+
+          // if (!fs.existsSync(schemaPathSource)) {
+          //     this.log.error(`Config schema file not found at path: ${schemaPathSource}`);
+          //     return;
+          // }
+
+          if (!fs.existsSync(schemaPath)) {
+              this.log.error(`Config schema file not found at path: ${schemaPath}`);
+              return;
+          }
+
+          const rawSchema = fs.readFileSync(schemaPath, 'utf8');
+          let schema;
+
+          try {
+              schema = JSON.parse(rawSchema);
+          } catch (error) {
+              this.log.debug('Failed to parse config.schema.json:', error);
+              return;
+          }
+
+          if (!schema.schema || !schema.schema.properties) {
+              this.log.debug('Schema properties are missing in config.schema.json.');
+              return;
+          }
+
+          if (!schema.schema.properties.devices){
+              schema.schema.properties.devices = {
+                  "type": "array",
+                  "title": "Devices",
+                  "description": "Add multiple Pioneer AVR devices to your configuration.",
+                  "items": {
+                      "type": "object",
+                      "title": "Device Configuration",
+                      "properties": {}
+                  }
+              };
+          }
+
+          let firstDevice = foundDevices[0];
+
+          schema.schema.properties.devices.items.properties.port = {
+              type: 'integer',
+              title: 'Device Port',
+              description: `Enter the port number for the device connection (e.g., 23 or 8102). To open the port, visit: http://${firstDevice.host || 'vsx-922.local'}/1000/port_number.asp`,
+              placeholder: firstDevice.port || '23',
+          };
+
+          if (firstDevice.source !== 'bonjour' && firstDevice.port) {
+              schema.schema.properties.devices.items.properties.port.default = firstDevice.port;
+          }
+
+          schema.schema.properties.devices.items.properties.name = {
+              type: 'string',
+              title: 'Device Name',
+              description: 'Enter the name of the device visible in HomeKit.',
+              placeholder: firstDevice.name || 'VSX922',
+          };
+
+          if (firstDevice.source !== 'bonjour' && firstDevice.name) {
+              schema.schema.properties.devices.items.properties.name.default = firstDevice.name;
+          }
+
+          schema.schema.properties.devices.items.properties.host = {
+              type: 'string',
+              title: 'Device IP Address',
+              description: 'Enter the IP address or the DNS name of the device (e.g., VSX-922.local).',
+              placeholder: firstDevice.host || '192.168.1.99',
+          };
+
+          if (firstDevice.source !== 'bonjour' && firstDevice.host) {
+              schema.schema.properties.devices.items.properties.host.default = firstDevice.host;
+          }
+
+          schema.schema.properties.devices.items.properties.minVolume = {
+              type: 'integer',
+              title: 'Minimum Volume',
+              description: 'The minimum volume level allowed for the AVR.',
+              minimum: 0,
+              maximum: 100,
+          };
+
+          if (firstDevice.source !== 'bonjour' && firstDevice.minVolume) {
+              schema.schema.properties.devices.items.properties.minVolume.default = firstDevice.minVolume;
+          }
+
+          schema.schema.properties.devices.items.properties.maxVolume = {
+              type: 'integer',
+              title: 'Maximum Volume Setting (Lightbulb)',
+              description: 'Set the maximum volume level (0-100). Overrides global setting.',
+              minimum: 0,
+              maximum: 100,
+          };
+
+          if (firstDevice.source !== 'bonjour' && firstDevice.maxVolume) {
+              schema.schema.properties.devices.items.properties.maxVolume.default = firstDevice.maxVolume;
+          }
+
+          schema.schema.properties.devices.default = []; // Initialize as an empty array
+
+          for (const foundDevice of foundDevices) {
+              if (foundDevice.source !== 'bonjour') {
+                  let addDevice = {
+                    "name": foundDevice.name,
+                    "host": foundDevice.host,
+                    "port": foundDevice.port
+                  };
+                  if (foundDevice.maxVolume) {
+                      addDevice.maxVolume = foundDevices.maxVolume;
+                  }
+                  if (foundDevice.minVolume) {
+                      addDevice.minVolume = foundDevices.minVolume;
+                  }
+                  schema.schema.properties.devices.default.push(addDevice);
+              }
+          }
+
+          const dynamicHost = firstDevice.host || 'vsx-922.local';
+          const dynamicHeaderLink = `To open a telnet port on the receiver or set Network Standby, click here: [http://${dynamicHost}/1000/port_number.asp](http://${dynamicHost}/1000/port_number.asp).`;
+
+          if (!schema.headerDisplay) {
+              schema.headerDisplay = `# Configuration\n\n${dynamicHeaderLink}`;
+          } else {
+              const regex = /To open a telnet port on the receiver or set Network Standby, click here: \[http:\/\/.*?\/1000\/port_number\.asp\]\(http:\/\/.*?\/1000\/port_number\.asp\)\./;
+              schema.headerDisplay = schema.headerDisplay.replace(regex, '').trim();
+              schema.headerDisplay += `\n\n${dynamicHeaderLink}`;
+          }
+
+          fs.writeFileSync(schemaPath, JSON.stringify(schema, null, 4), 'utf8');
+
+          this.log.debug('Updated config.schema.json successfully.');
+      } catch (error) {
+          this.log.error('Failed to update config.schema.json: ', error);
+      }
+  }
+
 
   /**
    * Processes each discovered or manually configured device asynchronously.

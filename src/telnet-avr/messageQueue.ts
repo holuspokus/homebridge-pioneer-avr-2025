@@ -24,7 +24,7 @@ export class MessageQueue {
                 // Unlock callbackLocks if they are active for more than 5 seconds
                 for (const key of Object.keys(this.callbackLocks)) {
                     const lock = this.callbackLocks[key];
-                    if (lock.queueLock && lock.queueLockDate && Date.now() - lock.queueLockDate > 5000) {
+                    if (lock.queueLock && lock.queueLockDate && Date.now() - lock.queueLockDate > 15000) {
                         delete this.callbackLocks[key];
                     }
                 }
@@ -37,7 +37,7 @@ export class MessageQueue {
     /**
      * Processes the first item in the queue, sending the message if not locked.
      */
-    private async processQueue() {
+    public async processQueue() {
         if (this.queue.length === 0) return;
 
         const [message, callbackKey] = this.queue[0];
@@ -55,8 +55,8 @@ export class MessageQueue {
         }
 
         // Enforce a delay between messages if necessary
-        if (Date.now() - (this.connection.lastWrite ?? 0) < 38) {
-            await new Promise(resolve => setTimeout(resolve, 50));
+        if (Date.now() - (this.connection.lastWrite ?? 0) < 17) {
+            await new Promise(resolve => setTimeout(resolve, 7));
         }
 
         // Send the message via the connection
