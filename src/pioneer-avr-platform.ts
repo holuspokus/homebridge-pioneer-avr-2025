@@ -190,10 +190,14 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
           if (pioneerAccessory.minVolume) {
               addDevice.minVolume = pioneerAccessory.minVolume;
+          } else if (pioneerAccessory.minVolumeSet) {
+              addDevice.minVolume = pioneerAccessory.minVolumeSet;
           }
 
           if (pioneerAccessory.maxVolume) {
               addDevice.maxVolume = pioneerAccessory.maxVolume;
+          } else if (pioneerAccessory.maxVolumeSet) {
+              addDevice.maxVolume = pioneerAccessory.maxVolumeSet;
           }
 
           devicesFound.push(addDevice);
