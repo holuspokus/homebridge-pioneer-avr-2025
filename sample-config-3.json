@@ -20,8 +20,8 @@
             "device": {
                 "port": 23
             },
-            "maxVolumeSet": 65,
-            "minVolumeSet": 30,
+            "maxVolume": 65,
+            "minVolume": 30,
             "_bridge": {
                 "username": "0E:D6:86:BA:AM:69",
                 "port": 35337

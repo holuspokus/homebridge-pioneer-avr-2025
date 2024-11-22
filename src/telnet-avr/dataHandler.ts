@@ -118,7 +118,7 @@ class DataHandler {
                     !d.startsWith("FL") &&
                     !d.startsWith("R") &&
                     !d.startsWith("ST") &&
-                    !["RGC", "RGD", "GBH", "GHH", "VTA", "AUA", "AUB", "GEH"].includes(d.substr(0, 3))
+                    !["RGC", "RGD", "GBH", "GHH", "VTA", "AUA", "AUB", "GEH", "STM", "STO"].includes(d.substr(0, 3))
                 ) {
 
                     // Fallback handling for unrecognized messages.

@@ -5,7 +5,7 @@ import bonjour from 'bonjour'; // Bonjour for mDNS discovery
 
 // Main function to discover devices using mDNS (Bonjour) only
 async function findDevices(targetName: string, telnetPorts: number[], log: any, maxDevices: number = Infinity): Promise<{ name: string; origName: string; host: string; port: number; source: string; }[]> {
-    const devices: { name: string; origName: string; host: string; port: number; source: string; }[] = [];
+    const devices: { name: string; origName: string; host: string; port: number; source: string; maxVolume?: number; minVolume?: number; }[] = [];
     const bonjourService = bonjour();
     log.debug("Searching for Pioneer Receivers via Bonjour...");
 
@@ -19,7 +19,7 @@ async function findDevices(targetName: string, telnetPorts: number[], log: any, 
 // mDNS (Bonjour) Discovery with port check
 async function discoverBonjourDevices(
     targetName: string,
-    devices: { name: string; origName: string; host: string; port: number; source: string; }[],
+    devices: { name: string; origName: string; host: string; port: number; source: string; maxVolume?: number; minVolume?: number; }[],
     telnetPorts: number[],
     log: any,
     bonjourService: any,

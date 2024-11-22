@@ -14,6 +14,8 @@ type Device = {
     host: string;
     port: number;
     source: string;
+    maxVolume?: number;
+    minVolume?: number;
 };
 
 class PioneerAvrAccessory {
@@ -27,7 +29,7 @@ class PioneerAvrAccessory {
     private manufacturer: string;
     private model: string;
     private host: string;
-    private maxVolumeSet: number;
+    private maxVolume: number;
     private prefsDir: string;
     private inputVisibilityFile: string;
     private savedVisibility: Record<string, any> = {};
@@ -45,7 +47,7 @@ class PioneerAvrAccessory {
         this.manufacturer = this.platform.config.manufacturer || 'Pioneer';
         this.model = this.platform.config.model || device.name || 'Unknown Model';
         this.host = device.host || this.platform.config.host || '';
-        this.maxVolumeSet = this.platform.config.maxVolumeSet || 100;
+        this.maxVolume = this.platform.config.maxVolume || 100;
         this.prefsDir = this.platform.config.prefsDir || this.platform.api.user.storagePath() + "/pioneerAvr/";
         this.version = packageJson.version;
 
@@ -70,7 +72,7 @@ class PioneerAvrAccessory {
                     await this.prepareTvService();
                     await this.prepareTvSpeakerService();
 
-                    if (this.maxVolumeSet !== 0) {
+                    if (this.maxVolume !== 0) {
                         await this.prepareVolumeService();
                     }
 

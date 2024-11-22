@@ -7,6 +7,16 @@ import * as fs from 'fs';
 import * as path from 'path';
 import packageJson from "../package.json"; // Import package.json
 
+type Device = {
+    name: string;
+    origName: string;
+    host: string;
+    port: number;
+    source: string;
+    maxVolume?: number;
+    minVolume?: number;
+};
+
 /**
  * PioneerAvrPlatform
  * This class serves as the main entry point for the plugin, where user configuration is parsed,
@@ -56,6 +66,14 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         this.TELNET_PORTS.unshift(parseInt(config.port, 10))
     }
 
+    if (config.devices && Array.isArray(config.devices) && config.devices.length > 0){
+        for (const device of config.devices) {
+            if (device.port  && !this.TELNET_PORTS.includes(parseInt(device.port, 10)) ) {
+                this.TELNET_PORTS.unshift(parseInt(device.port, 10))
+            }
+        }
+    }
+
     // Register for the 'didFinishLaunching' event to start device discovery after Homebridge startup
     this.api.on('didFinishLaunching', () => {
       this.discoverDevices();
@@ -80,23 +98,62 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     let needsRestart: boolean = false;
 
     // Check if the device is manually configured, bypassing discovery
-    if (this.config && this.config?.device && this.config?.device?.name && (this.config.device.host || this.config.device.ip) && String(this.config.device.host || this.config.device.ip).length > 0 && this.config.device.port) {
-      devicesFound.push({
-        name: this.config.device.name,
-        origName: this.config.device.name,
+    if (this.config && this.config?.devices && Array.isArray(this.config?.devices) && this.config.devices.length > 0) {
+        for (const device of this.config.devices) {
+
+            if (device && (device.host || device.ip) && String(device.host || device.ip).length > 0) {
+                let addDevice: Device = {
+                    name: device.name || String(device.host || device.ip).replace(/\.local$/, '').replace(/[^a-zA-Z0-9 ]/g, ""),
+                    origName: device.name || String(device.host || device.ip).replace(/\.local$/, '').replace(/[^a-zA-Z0-9 ]/g, ""),
+                    host: device.host || device.ip,
+                    port: device.port || 23,
+                    source: 'pluginConfig'
+                };
+
+                if (device.minVolume) {
+                    addDevice.minVolume = device.minVolume;
+                }
+
+                if (device.maxVolume) {
+                    addDevice.maxVolume = device.maxVolume;
+                }
+
+                devicesFound.push(addDevice);
+            }
+        }
+
+        this.log.debug('Using manually configured devices:', devicesFound);
+    } else if (this.config && this.config?.device && (this.config.device.host || this.config.device.ip) && String(this.config.device.host || this.config.device.ip).length > 0 && this.config.device.port) {
+
+      let addDevice: Device = {
+        name: this.config.device.name || String(this.config.device.host || this.config.device.ip).replace(/\.local$/, '').replace(/[^a-zA-Z0-9 ]/g, ""),
+        origName: this.config.device.name || String(this.config.device.host || this.config.device.ip).replace(/\.local$/, '').replace(/[^a-zA-Z0-9 ]/g, ""),
         host: this.config.device.host || this.config.device.ip,
-        port: this.config.device.port,
+        port: this.config.device.port || 23,
         source: 'pluginConfig'
-      });
+      };
+
+      if (this.config.device.minVolume) {
+          addDevice.minVolume = this.config.device.minVolume;
+      }
+
+      if (this.config.device.maxVolume) {
+          addDevice.maxVolume = this.config.device.maxVolume;
+      }
+
+      devicesFound.push(addDevice);
+
       this.log.debug('Using manually configured device:', devicesFound);
-    } else if (this.config && this.config.name && (this.config.host || this.config.ip) && String(this.config.host || this.config.ip).length > 0 && this.config.port) {
-      devicesFound.push({
-        name: this.config.name,
-        origName: this.config.name,
-        host: this.config.host || this.config.ip,
-        port: this.config.port,
-        source: 'pluginConfig'
-      });
+    } else if (this.config && (this.config.host || this.config.ip) && String(this.config.host || this.config.ip).length > 0) {
+      let addDevice: Device = {
+          name: this.config.name || String(this.config.host || this.config.ip).replace(/\.local$/, '').replace(/[^a-zA-Z0-9 ]/g, ""),
+          origName: this.config.name || String(this.config.host || this.config.ip).replace(/\.local$/, '').replace(/[^a-zA-Z0-9 ]/g, ""),
+          host: this.config.host || this.config.ip,
+          port: this.config.port || 23,
+          source: 'pluginConfig'
+      };
+
+      devicesFound.push(addDevice);
       this.log.debug('Using manually configured device:', devicesFound);
     } else {
       const homebridgeConfigPath = path.join(this.api.user.storagePath(), 'config.json');
@@ -122,13 +179,24 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         }
 
         if (pioneerAccessory && pioneerAccessory.name && pioneerAccessory.host && pioneerAccessory.port) {
-          devicesFound.push({
+
+          let addDevice: Device = {
             name: pioneerAccessory.name,
             origName: pioneerAccessory.name,
             host: pioneerAccessory.host,
             port: pioneerAccessory.port,
             source: 'pioneerAccessory'
-          });
+          };
+
+          if (pioneerAccessory.minVolume) {
+              addDevice.minVolume = pioneerAccessory.minVolume;
+          }
+
+          if (pioneerAccessory.maxVolume) {
+              addDevice.maxVolume = pioneerAccessory.maxVolume;
+          }
+
+          devicesFound.push(addDevice);
           this.log.debug('Found pioneerAvrAccessory in config.json.', devicesFound);
 
           // Ensure the platforms array exists
@@ -153,13 +221,13 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
           needsRestart = true;
         }
 
-        if (pioneerAccessory && pioneerAccessory.maxVolumeSet) {
-          pioneerPlatform.maxVolumeSet = pioneerAccessory.maxVolumeSet;
+        if (pioneerAccessory && pioneerAccessory.maxVolume) {
+          pioneerPlatform.maxVolume = pioneerAccessory.maxVolume;
           needsRestart = true;
         }
 
-        if (pioneerAccessory && pioneerAccessory.minVolumeSet) {
-          pioneerPlatform.minVolumeSet = pioneerAccessory.minVolumeSet;
+        if (pioneerAccessory && pioneerAccessory.minVolume) {
+          pioneerPlatform.minVolume = pioneerAccessory.minVolume;
           needsRestart = true;
         }
 
@@ -202,13 +270,13 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
         // If devices are found, add them to devicesFound and exit loop
         if (discoveredDevices.length > 0) {
-          for (const dDevive of discoveredDevices) {
+          for (const dDevice of discoveredDevices) {
               devicesFound.push({
-                name: dDevive.name,
-                origName: dDevive.origName,
-                host: dDevive.host,
-                port: dDevive.port,
-                source: dDevive.source
+                name: dDevice.name,
+                origName: dDevice.origName,
+                host: dDevice.host,
+                port: dDevice.port,
+                source: dDevice.source
               });
           }
           this.log.debug('Discovered devices:', devicesFound);

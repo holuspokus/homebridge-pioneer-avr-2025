@@ -11,9 +11,12 @@ import * as path from 'path'; // For resolving the correct path to config.schema
 
 type Device = {
     name: string;
+    origName: string;
     host: string;
     port: number;
     source: string;
+    maxVolume?: number;
+    minVolume?: number;
 };
 
 export interface AVState {
@@ -39,8 +42,8 @@ class PioneerAvr extends InitializeMixin(
                 public host!: string;
                 public port!: number;
                 public platform!: any;
-                public maxVolumeSet: number = 80; // Default max volume
-                public minVolumeSet: number = 20; // Default min volume
+                public maxVolume: number = 80; // Default max volume
+                public minVolume: number = 20; // Default min volume
                 public state!: AVState;
                 public pioneerAvrClassCallback: any;
                 public characteristic!: Characteristic;
@@ -63,18 +66,18 @@ class PioneerAvr extends InitializeMixin(
                     this.characteristic = platform.characteristic;
 
                     // Set maximum and minimum volume, using defaults if not provided
-                    this.maxVolumeSet = platform.config.maxVolumeSet || this.maxVolumeSet;
-                    this.minVolumeSet = platform.config.minVolumeSet || this.minVolumeSet;
+                    this.maxVolume = this.device.maxVolume || platform.config.maxVolume || this.maxVolume;
+                    this.minVolume = this.device.minVolume || platform.config.minVolume || this.minVolume;
 
-                    if (this.maxVolumeSet > 100) this.maxVolumeSet = 100;
-                    if (this.maxVolumeSet < 20) this.maxVolumeSet = 20;
+                    if (this.maxVolume > 100) this.maxVolume = 100;
+                    if (this.maxVolume < 20) this.maxVolume = 20;
 
-                    if (this.minVolumeSet > this.maxVolumeSet) this.minVolumeSet = this.maxVolumeSet - 20;
-                    if (this.minVolumeSet < 0) this.minVolumeSet = 0;
+                    if (this.minVolume > this.maxVolume) this.minVolume = this.maxVolume - 20;
+                    if (this.minVolume < 0) this.minVolume = 0;
 
-                    while (this.maxVolumeSet - this.minVolumeSet < 20 ) {
-                        if(this.maxVolumeSet+1 < 100) this.maxVolumeSet++;
-                        if(this.minVolumeSet-1 > 0) this.minVolumeSet--;
+                    while (this.maxVolume - this.minVolume < 20 ) {
+                        if(this.maxVolume+1 < 100) this.maxVolume++;
+                        if(this.minVolume-1 > 0) this.minVolume--;
                     }
 
                     // Initialize the default state object for the AVR
@@ -91,8 +94,8 @@ class PioneerAvr extends InitializeMixin(
                     // Log initialization
                     this.log.debug('Initializing Pioneer AVR with accessory:', accessory.name);
 
-                    // Write min/max volume to config.schema.json
-                    this.updateConfigSchema();
+                    // // Write min/max volume to config.schema.json
+                    // this.updateConfigSchema();
 
                     // Set default callback if none is provided
                     if (typeof pioneerAvrClassCallback !== "function") {
@@ -150,64 +153,64 @@ class PioneerAvr extends InitializeMixin(
                              placeholder: 'pioneerAvr2025',
                              required: true
                          };
-
-                         // Update the minVolumeSet property in the schema
-                         schema.schema.properties.minVolumeSet = {
-                             type: 'integer',
-                             title: 'Minimum Volume',
-                             description: 'The minimum volume level allowed for the AVR.',
-                             default: this.minVolumeSet,
-                             minimum: 0,
-                             maximum: 100,
-                         };
-
-                         // Update the maxVolumeSet property in the schema
-                         schema.schema.properties.maxVolumeSet = {
-                             type: 'integer',
-                             title: 'Maximum Volume',
-                             description: 'The maximum volume level allowed for the AVR.',
-                             default: this.maxVolumeSet,
-                             minimum: 0,
-                             maximum: 100,
-                         };
-
-                         schema.schema.properties.device.properties.port = {
-                             type: 'integer',
-                             title: 'Device Port',
-                             description: `Enter the port number for the device connection (e.g., 23 or 8102). To open the port, visit: http://${this.platform?.config?.host || this.device.host || 'vsx-923.local'}/1000/port_number.asp`,
-                             placeholder: this.device.source === 'bonjour' ? this.device.port : this.platform?.config?.port || this.device.port || '23'
-                         };
-
-                         if (this.device.source === 'bonjour' || this.platform?.config?.port || this.device.port){
-                              schema.schema.properties.device.properties.port.default = this.device.source === 'bonjour' ? this.device.port : this.platform?.config?.port || this.device.port;
-                         } else {
-                              delete schema.schema.properties.device.properties.port.default;
-                         }
-
-                         schema.schema.properties.device.properties.name = {
-                             type: 'string',
-                             title: 'Device Name',
-                             description: 'Enter the name of the device visible in HomeKit.',
-                             default: this.device.source === 'bonjour' ? '' : this.platform?.config?.name || this.device.name || '',
-                             placeholder: this.platform?.config?.device?.name || this.device.name || 'VSX923',
-                             condition: {
-                               "functionBody": "return !model.device.name || model.device.name !== '';"
-                             }
-                         };
-
-                         schema.schema.properties.device.properties.host = {
-                             type: 'string',
-                             title: 'Device IP Address',
-                             description: 'Enter the IP address or the DNS name of the device (e.g., VSX-923.local).',
-                             default: this.device.source === 'bonjour' ? '' : this.platform?.config?.host || this.device.host || '',
-                             placeholder: this.platform?.config?.host || this.device.host || '192.168.1.99',
-                             condition: {
-                               "functionBody": "return !model.device.name || model.device.name !== '';"
-                             }
-                         };
+                         //
+                         // // Update the minVolume property in the schema
+                         // schema.schema.properties.minVolume = {
+                         //     type: 'integer',
+                         //     title: 'Minimum Volume',
+                         //     description: 'The minimum volume level allowed for the AVR.',
+                         //     default: this.minVolume,
+                         //     minimum: 0,
+                         //     maximum: 100,
+                         // };
+                         //
+                         // // Update the maxVolume property in the schema
+                         // schema.schema.properties.maxVolume = {
+                         //     type: 'integer',
+                         //     title: 'Maximum Volume',
+                         //     description: 'The maximum volume level allowed for the AVR.',
+                         //     default: this.maxVolume,
+                         //     minimum: 0,
+                         //     maximum: 100,
+                         // };
+                         //
+                         // schema.schema.properties.device.properties.port = {
+                         //     type: 'integer',
+                         //     title: 'Device Port',
+                         //     description: `Enter the port number for the device connection (e.g., 23 or 8102). To open the port, visit: http://${this.platform?.config?.host || this.device.host || 'vsx-922.local'}/1000/port_number.asp`,
+                         //     placeholder: this.device.source === 'bonjour' ? this.device.port : this.platform?.config?.port || this.device.port || '23'
+                         // };
+                         //
+                         // if (this.device.source === 'bonjour' || this.platform?.config?.port || this.device.port){
+                         //      schema.schema.properties.device.properties.port.default = this.device.source === 'bonjour' ? this.device.port : this.platform?.config?.port || this.device.port;
+                         // } else {
+                         //      delete schema.schema.properties.device.properties.port.default;
+                         // }
+                         //
+                         // schema.schema.properties.device.properties.name = {
+                         //     type: 'string',
+                         //     title: 'Device Name',
+                         //     description: 'Enter the name of the device visible in HomeKit.',
+                         //     default: this.device.source === 'bonjour' ? '' : this.platform?.config?.name || this.device.name || '',
+                         //     placeholder: this.platform?.config?.device?.name || this.device.name || 'VSX922',
+                         //     condition: {
+                         //       "functionBody": "return !model.device.name || model.device.name !== '';"
+                         //     }
+                         // };
+                         //
+                         // schema.schema.properties.device.properties.host = {
+                         //     type: 'string',
+                         //     title: 'Device IP Address',
+                         //     description: 'Enter the IP address or the DNS name of the device (e.g., VSX-922.local).',
+                         //     default: this.device.source === 'bonjour' ? '' : this.platform?.config?.host || this.device.host || '',
+                         //     placeholder: this.platform?.config?.host || this.device.host || '192.168.1.99',
+                         //     condition: {
+                         //       "functionBody": "return !model.device.name || model.device.name !== '';"
+                         //     }
+                         // };
 
                          // Add or update the headerDisplay dynamically
-                         const dynamicHost = this.platform?.config?.host || this.device.host || 'vsx-923.local';
+                         const dynamicHost = this.platform?.config?.host || this.device.host || 'vsx-922.local';
                          const dynamicHeaderLink = `To open a telnet port on the receiver or set Network Standby, click here: [http://${dynamicHost}/1000/port_number.asp](http://${dynamicHost}/1000/port_number.asp).`;
 
                          if (!schema.headerDisplay) {

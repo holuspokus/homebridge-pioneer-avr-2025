@@ -8,10 +8,6 @@ export function onDataHandler(pioneerThis: PioneerAvr) {
         pioneerThis.initCount = 0;
     }
 
-    if (!pioneerThis.volumeUpdateTimeout) {
-        pioneerThis.volumeUpdateTimeout = null;
-    }
-
     return function (error: any, data: string, callback: Function = () => {}) {
         // Log the received data if needed
         // pioneerThis.log.debug("Receive data: %s", data);
@@ -138,17 +134,6 @@ function handleVolumeStatus(data: string, pioneerThis: PioneerAvr, callback: Fun
 
     if (vol.length === 3 && !isNaN(volPctF)) {
         pioneerThis.state.volume = Math.floor(volPctF);
-
-        // Clear any existing timeout to prevent multiple executions
-        if (pioneerThis.volumeUpdateTimeout) {
-            clearTimeout(pioneerThis.volumeUpdateTimeout);
-        }
-
-        // // Set a new timeout to execute functionSetLightbulbVolume after 5 seconds
-        // pioneerThis.volumeUpdateTimeout = setTimeout(() => {
-        //     pioneerThis.functionSetLightbulbVolume(pioneerThis.state.volume);
-        //     pioneerThis.log.debug("functionSetLightbulbVolume executed for volume %s (%s%%)", vol, volPctF);
-        // }, 5000);
     }
 
     pioneerThis.log.debug("Volume is %s (%s%%)", vol, volPctF);
@@ -169,9 +154,9 @@ function handleVolumeStatus(data: string, pioneerThis: PioneerAvr, callback: Fun
  */
 function calculateVolumePercentage(vol: string, pioneerThis: PioneerAvr) {
     let volPctF = 0;
-    if (pioneerThis.maxVolumeSet > pioneerThis.minVolumeSet) {
-        const minVolumeIn185 = (pioneerThis.minVolumeSet / 100) * 185;
-        const maxVolumeIn185 = (pioneerThis.maxVolumeSet / 100) * 185;
+    if (pioneerThis.maxVolume > pioneerThis.minVolume) {
+        const minVolumeIn185 = (pioneerThis.minVolume / 100) * 185;
+        const maxVolumeIn185 = (pioneerThis.maxVolume / 100) * 185;
         const parsedVol = parseInt(vol, 10);
         const adjustedVol = Math.min(Math.max(parsedVol, minVolumeIn185), maxVolumeIn185);
         volPctF = Math.floor(((adjustedVol - minVolumeIn185) / (maxVolumeIn185 - minVolumeIn185)) * 100);

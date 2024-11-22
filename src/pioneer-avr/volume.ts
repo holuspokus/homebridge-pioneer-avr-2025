@@ -17,13 +17,12 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
     lastUserInteraction: number;
     telnetAvr: TelnetAvr;
     isReady: boolean;
-    maxVolumeSet: number;
-    minVolumeSet: number;
+    maxVolume: number;
+    minVolume: number;
 }>(Base: TBase) {
     return class extends Base {
         public telnetAvr!: TelnetAvr;
         public updateVolumeTimeout: NodeJS.Timeout | null = null;
-        public volumeUpdateTimeout: NodeJS.Timeout | null = null;
 
 
         constructor(...args: any[]) {
@@ -124,9 +123,9 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
 
             let vsxVol = 0;
 
-            if (this.maxVolumeSet > 0) {
-                const minVolumeIn185 = (this.minVolumeSet / 100) * 185;
-                const maxVolumeIn185 = (this.maxVolumeSet / 100) * 185;
+            if (this.maxVolume > 0) {
+                const minVolumeIn185 = (this.minVolume / 100) * 185;
+                const maxVolumeIn185 = (this.maxVolume / 100) * 185;
                 vsxVol = ((targetVolume / 100) * (maxVolumeIn185 - minVolumeIn185)) + minVolumeIn185;
             } else {
                 vsxVol = (targetVolume * 185) / 100;
@@ -178,10 +177,10 @@ export function VolumeManagementMixin<TBase extends new (...args: any[]) => {
 
             // Function to execute each step with a delay
             const executeStep = (step) => {
-                this.log.debug('>>step', step)
+                // this.log.debug('>>step', step)
                 if (step > 0) {
                     this.telnetAvr.sendMessage("VD", "VOL", () => {
-                        this.log.debug('>>callback step', step)
+                        // this.log.debug('>>callback step', step)
                         setTimeout(() => {
                             executeStep(step - 1);
                         }, delay);

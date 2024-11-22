@@ -78,8 +78,8 @@ Below is a sample configuration for your accessory:
         "host": "VSX-922.local",
         "port": 23,
         "name": "VSX-922",
-        "maxVolumeSet": 65,
-        "minVolumeSet": 30,
+        "maxVolume": 65,
+        "minVolume": 30,
         "_bridge": {
             "username": "0E:D6:86:BA:AM:69",
             "port": 35337
@@ -94,8 +94,8 @@ Below is a sample configuration for your accessory:
 |         name | Custom input, can remain      |
 |         host | needs to be accurate or empty |
 |         port | needs to be accurate          |
-| maxVolumeSet | Optional input, can remain    |
-| minVolumeSet | Optional input, can remain    |
+| maxVolume | Optional input, can remain    |
+| minVolume | Optional input, can remain    |
 
 > **host:**
 > To use the network scan (Multicast), leave `host` field empty in the plugin configuration.
@@ -108,7 +108,7 @@ Below is a sample configuration for your accessory:
 > `http://192.168.178.99/1000/port_number.asp`  
 > ... to find the port number.
 
-> **maxVolumeSet:**  
+> **maxVolume:**  
 > A number between 0 and 100; for example, 60 means 60% of the max volume.  
 > 100 = -0dB (i.e., 185 = No Limit),  
 > 60 = -16dB,  
@@ -116,13 +116,13 @@ Below is a sample configuration for your accessory:
 > Defaults to 80 if undefined.  
 > A value of 60 has worked well for me.  
 
-> **Note:** The difference between `maxVolumeSet` and `minVolumeSet` should be at least 20.  
+> **Note:** The difference between `maxVolume` and `minVolume` should be at least 20.  
 > Both only affects the volume as a brightness feature, not the remote.
 
-> **minVolumeSet:**  
+> **minVolume:**  
 > A number between 0 and 100; for example, 30 means 30% of the max volume.  
 > Defaults to 20 if undefined.  
-> This setting is only active in combination with `maxVolumeSet`.  
+> This setting is only active in combination with `maxVolume`.  
 > A value of 35 has worked well for me.  
 
 <br><br><br><br>

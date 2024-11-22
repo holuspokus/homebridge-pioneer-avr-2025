@@ -8,9 +8,12 @@ import type { AVState } from './pioneerAvr'; // Imports AVState type from Pionee
 
 type Device = {
     name: string;
+    origName: string;
     host: string;
     port: number;
     source: string;
+    maxVolume?: number;
+    minVolume?: number;
 };
 
 /**
