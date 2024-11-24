@@ -714,6 +714,23 @@ class PioneerAvrAccessory {
     }
 
 
+    public updateSwitchStates(activeInputId: string): void {
+        // Iterate through all accessories
+        this.platform.accessories.forEach((accessory) => {
+            const service = accessory.getService(this.platform.service.Switch);
+            if (service) {
+                // Check if the current accessory corresponds to the active input
+                const isActive = accessory.context.inputId === activeInputId;
+
+                // Update the switch state
+                service.getCharacteristic(this.platform.characteristic.On).updateValue(isActive);
+            }
+        });
+
+        this.log.debug(`Switch states updated. Active input ID: ${activeInputId}`);
+    }
+
+
     public addInputSwitch(host: string, inputSwitches: string[]): void {
         const cachedInputs = this.platform.cachedReceivers.get(host)?.inputs || [];
         if (cachedInputs.length === 0) {
@@ -795,15 +812,8 @@ class PioneerAvrAccessory {
                         await this.avr.setInput(input.id);
                         this.log.debug(`Input set to ${input.name} (${input.id})`);
 
-                        // Turn off all other switches
-                        this.platform.accessories.forEach((accessory) => {
-                            const service = accessory.getService(this.platform.service.Switch);
-                            if (service && accessory.context.inputId !== input.id) {
-                                service
-                                    .getCharacteristic(this.platform.characteristic.On)
-                                    .updateValue(false);
-                            }
-                        });
+                        // Update all switch states
+                        this.updateSwitchStates(input.id);
                     } else {
                         this.log.debug(`Switch for ${switchName} turned off.`);
                         // // Wait before validating the state

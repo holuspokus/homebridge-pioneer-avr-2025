@@ -239,6 +239,7 @@ function handleInputStatus(
     pioneerThis.state.input = inputIndex;
 
     pioneerThis.functionSetActiveIdentifier(pioneerThis.state.input);
+    pioneerThis.accessory.updateSwitchStates(inputId);
 
     try {
         callback(null, inputIndex);
