@@ -143,6 +143,8 @@ export function InputManagementMixin<
 
                         this.isReady = true;
 
+                        this.platform.updateConfigSchema(this.platform.devicesFound, this.device.host, this.inputs);
+
                         if (callback) {
                             callback();
                         }
@@ -232,6 +234,11 @@ export function InputManagementMixin<
                 } catch (err) {
                     this.log.error("Failed to cache inputs:", err);
                 }
+
+
+
+
+                this.platform.updateConfigSchema(this.platform.devicesFound, this.device.host, this.inputs);
             }
 
             if (callback) {
