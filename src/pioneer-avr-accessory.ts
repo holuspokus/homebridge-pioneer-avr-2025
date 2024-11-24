@@ -116,6 +116,14 @@ class PioneerAvrAccessory {
         }
     }
 
+    public async handleInputSwitches() {
+        if (this.device.inputSwitches && Array.isArray(this.device.inputSwitches) && this.device.inputSwitches.length > 0) {
+            await this.addInputSwitch(this.device.host, this.device.inputSwitches);
+        }
+    }
+
+
+
     private initializeVisibilityFile() {
         try {
             if (!fs.existsSync(this.prefsDir)) {
@@ -704,6 +712,134 @@ class PioneerAvrAccessory {
                 break;
         }
     }
+
+
+    public addInputSwitch(host: string, inputSwitches: string[]): void {
+        const cachedInputs = this.platform.cachedReceivers.get(host)?.inputs || [];
+        if (cachedInputs.length === 0) {
+            this.log.warn(`No cached inputs found for host: ${host}`);
+            return;
+        }
+
+        const validAccessories: string[] = []; // Track valid accessory UUIDs
+
+        inputSwitches.forEach((inputId) => {
+            const input = cachedInputs.find((input) => input.id === inputId);
+
+            if (!input) {
+                this.log.warn(`Input ID ${inputId} not found for host: ${host}`);
+                return;
+            }
+
+            let switchName = `${input.name} ${this.name}`;
+            switchName = switchName.replace(/[^a-zA-Z0-9 ']/g, "");
+            switchName = switchName
+                .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, "")
+                .trim();
+
+            this.log.debug(`Creating switch accessory: ${switchName} for host: ${host}`);
+
+            const uuid = this.platform.api.hap.uuid.generate(`${host}-${inputId}`);
+            validAccessories.push(uuid); // Mark this accessory as valid
+
+            // Check if accessory already exists
+            let accessory = this.platform.accessories.find(
+                (existing) => existing.UUID === uuid
+            );
+
+            if (!accessory) {
+                accessory = new this.platform.api.platformAccessory(switchName, uuid);
+                accessory.context = {
+                    host,
+                    inputId: input.id,
+                    inputName: input.name,
+                };
+
+                this.platform.accessories.push(accessory);
+                this.platform.api.registerPlatformAccessories(
+                    this.platform.pluginName,
+                    this.platform.platformName,
+                    [accessory]
+                );
+            }
+
+            // Add or update Switch service
+            const switchService =
+                accessory.getService(this.platform.service.Switch) ||
+                accessory.addService(
+                    this.platform.service.Switch,
+                    switchName,
+                    input.id
+                );
+
+            const inputIndex = this.avr.inputs.findIndex(
+                (findInput) => findInput.id === input.id
+            );
+
+            // Configure "On" characteristic
+            switchService
+                .getCharacteristic(this.platform.characteristic.On)
+                .onGet(async () => {
+                    const isOn = this.avr.state.on && inputIndex === this.avr.state.input;
+                    return isOn;
+                })
+                .onSet(async (value) => {
+                    if (value) {
+                        // Turn on the receiver if it is off
+                        if (!this.avr.state.on) {
+                            await this.avr.powerOn();
+                            this.log.info(`Receiver is powering on. Waiting...`);
+                            await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait 10 seconds
+                        }
+
+                        // Set the desired input
+                        await this.avr.setInput(input.id);
+                        this.log.debug(`Input set to ${input.name} (${input.id})`);
+                    } else {
+                        this.log.debug(`Switch for ${switchName} turned off.`);
+                        // Wait before validating the state
+                        await new Promise((resolve) => setTimeout(resolve, 10000));
+
+                        // Check if the receiver is still on and the input matches
+                        if (this.avr.state.on && this.avr.state.input === inputIndex) {
+                            this.log.debug(
+                                `Receiver is still on and input ${input.name} (${input.id}) is active. Re-enabling the switch.`
+                            );
+
+                            // Re-enable the switch since the input is still active
+                            switchService
+                                .getCharacteristic(this.platform.characteristic.On)
+                                .updateValue(true);
+                        }
+                    }
+                });
+
+            this.log.info(
+                `Switch accessory created for input: ${input.name} (${input.id}) on host: ${host}`
+            );
+        });
+
+        // Cleanup invalid accessories
+        const validAccessoryUUIDs = new Set(validAccessories);
+        this.platform.accessories = this.platform.accessories.filter((accessory) => {
+            const isValid = validAccessoryUUIDs.has(accessory.UUID);
+
+            if (!isValid && accessory.context.host === host) {
+                this.log.info(
+                    `Removing accessory: ${accessory.displayName} (no longer valid)`
+                );
+                this.platform.api.unregisterPlatformAccessories(
+                    this.platform.pluginName,
+                    this.platform.platformName,
+                    [accessory]
+                );
+            }
+
+            return isValid || accessory.context.host !== host;
+        });
+    }
+
+
 }
 
 export default PioneerAvrAccessory;

@@ -33,13 +33,20 @@ The receiver is detected automatically over the network.
 Manual configuration is also available, and previous configurations from older Versions or from the [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr) plugin will be imported automatically if present. You may also configure settings via the Config-UI interface.
 
 ### Preparing the Receiver and Network
+
 To ensure proper connectivity for the plugin, connect the receiver to the network. The simplest way to verify that the receiver is accessible is to check if an iPhone can establish an AirPlay connection to the receiver. If this works, the receiver is ready. Otherwise, ensure the following:
 
-1.  The receiver and Homebridge server must be connected to the same network and subnet to enable compatibility with Bonjour/Multicast discovery. This configuration is typically standard for home networks.
+1. **Ensure Network Compatibility**  
+   The receiver and Homebridge server must be connected to the same network and subnet to enable compatibility with Bonjour/Multicast discovery. This configuration is typically standard for home networks.
 
-2.  If the router lacks a built-in DHCP server, a manual network setup on the receiver will be necessary.
+2. **Enable DHCP and DNS**  
+   For local hostname resolution (e.g., `vsx-922.local`), configure the Homebridge server to use DHCP and ensure the router is set as the DNS server. This allows proper name resolution for devices on the local network without requiring manual IP entries.
 
-3.  Enable “Network Standby” in the receiver’s network settings to ensure it remains accessible on the network (see the receiver’s manual for details).
+3. **Set Up the Receiver’s Network**  
+   If the router lacks a built-in DHCP server, you will need to configure the receiver’s network settings manually.
+
+4. **Enable “Network Standby”**  
+   Enable “Network Standby” in the receiver’s network settings to ensure it remains accessible on the network, even when not actively in use. Refer to the receiver’s manual for specific instructions.
 
 After confirming the network connection, restart the plugin to enable communication with the receiver.
 <br><br>

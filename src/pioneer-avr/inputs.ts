@@ -36,6 +36,7 @@ export function InputManagementMixin<
     },
 >(Base: TBase) {
     return class extends Base {
+        public accessory: any;
         public prefsDir: string = "";
         public inputCacheFile: string = "";
         public inputBeingAdded: string | boolean = false;
@@ -143,7 +144,8 @@ export function InputManagementMixin<
 
                         this.isReady = true;
 
-                        this.platform.updateConfigSchema(this.platform.devicesFound, this.device.host, this.inputs);
+                        await this.platform.updateConfigSchema(this.platform.devicesFound, this.device.host, this.inputs);
+                        this.accessory.handleInputSwitches();
 
                         if (callback) {
                             callback();
@@ -238,7 +240,8 @@ export function InputManagementMixin<
 
 
 
-                this.platform.updateConfigSchema(this.platform.devicesFound, this.device.host, this.inputs);
+                await this.platform.updateConfigSchema(this.platform.devicesFound, this.device.host, this.inputs);
+                this.accessory.handleInputSwitches();
             }
 
             if (callback) {
