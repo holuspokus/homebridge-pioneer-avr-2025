@@ -20,6 +20,7 @@ This plugin allows you to control various aspects of your Pioneer AVR directly f
 * Using the iOS Remote's "Play/Pause" button to toggle between EXTENDED STEREO and PRO LOGIC 2 MOVIE modes
 * Automatic input discovery for seamless setup
 * Automatic receiver discovery for effortless integration
+* Easily switch between inputs using HomeKit switches for direct control and enhanced automation capabilities
 <br>
 <br>
 
