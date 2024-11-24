@@ -32,6 +32,7 @@ export default [
             ecmaVersion: 2018,
             sourceType: "module",
             parserOptions: {
+                warnOnUnsupportedTypeScriptVersion: false,
                 project: "tsconfig.json",
             },
         },

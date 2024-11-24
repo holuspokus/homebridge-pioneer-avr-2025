@@ -26,6 +26,7 @@ async function findDevices(
         source: string;
         maxVolume?: number;
         minVolume?: number;
+        inputSwitches?: string[];
     }[] = [];
     const bonjourService = bonjour();
     log.debug("Searching for Pioneer Receivers via Bonjour...");
@@ -55,6 +56,7 @@ async function discoverBonjourDevices(
         source: string;
         maxVolume?: number;
         minVolume?: number;
+        inputSwitches?: string[];
     }[],
     telnetPorts: number[],
     log: any,
@@ -185,6 +187,7 @@ async function discoverBonjourDevices(
                     service.host ||
                     service.fqdn ||
                     host;
+
 
                 if (hostsFound.indexOf(host) === -1) {
                     hostsFound.push(host);

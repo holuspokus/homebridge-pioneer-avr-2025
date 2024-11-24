@@ -14,6 +14,7 @@ type Device = {
     source: string;
     maxVolume?: number;
     minVolume?: number;
+    inputSwitches?: string[];
 };
 
 /**
@@ -30,7 +31,7 @@ export function InputManagementMixin<
         lastUserInteraction: number;
         telnetAvr: TelnetAvr;
         isReady: boolean;
-        platform: any; // Optional, in case platform is not always available
+        platform: any;
         device: Device;
     },
 >(Base: TBase) {
@@ -278,110 +279,6 @@ export function InputManagementMixin<
 
             this.telnetAvr.sendMessage(`${id}FN`);
         }
-
-        // /**
-        //  * Loads all available inputs and sends them to the AVR.
-        //  * @param callback - Optional callback function to run after loading inputs.
-        //  */
-        // public async loadInputs(callback?: () => void) {
-        //     if(this.isReady){
-        //         if (callback) {
-        //             try {
-        //                 callback();
-        //             } catch (e) {
-        //                 this.log.debug("loadInputs already isReady callback", e);
-        //             }
-        //         }
-        //         return;
-        //     }
-        //
-        //
-        //     for (let i = 1; i <= 60; i++) {
-        //         const key = i.toString().padStart(2, '0');
-        //         let value = 0;
-        //
-        //         // Map specific input numbers to corresponding types
-        //         if ([2, 18, 38].includes(i)) value = 2;
-        //         else if ([19, 20, 21, 22, 23, 24, 25, 26, 31, 5, 6, 15].includes(i)) value = 3;
-        //         else if (i === 10) value = 4;
-        //         else if (i === 14) value = 6;
-        //         else if (i === 17) value = 9;
-        //         else if (i === 26) value = 10;
-        //         else if (i === 46) value = 8;
-        //
-        //         this.inputToType[key] = value;
-        //
-        //         if (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
-        //             await new Promise(resolve => setTimeout(resolve, 10));
-        //             this.inputBeingAddedWaitCount = 0;
-        //
-        //             while (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
-        //                 await new Promise(resolve => setTimeout(resolve, 150));
-        //             }
-        //         }
-        //
-        //         this.inputBeingAdded = String(key);
-        //
-        //         let index = -1;
-        //         for (const i in this.inputMissing) {
-        //             if (this.inputMissing[i].indexOf(key) > -1) {
-        //                 index = parseInt(i, 10);
-        //                 break;
-        //             }
-        //         }
-        //
-        //         if (index === -1) {
-        //             this.inputMissing.push([key]);
-        //         }
-        //
-        //         await this.telnetAvr.sendMessage(`?RGB${key}`, `RGB${key}`, this.addInputSourceService.bind(this));
-        //         await new Promise(resolve => setTimeout(resolve, 150));
-        //     }
-        //
-        //     if (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
-        //         await new Promise(resolve => setTimeout(resolve, 10));
-        //         this.inputBeingAddedWaitCount = 0;
-        //
-        //         while (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
-        //             await new Promise(resolve => setTimeout(resolve, 500));
-        //         }
-        //     }
-        //
-        //     let inputMissingWhileMax = 0;
-        //     while (this.inputMissing.length > 0 && inputMissingWhileMax++ < 3) {
-        //         for (const thiskey in this.inputMissing) {
-        //             let key = this.inputMissing[thiskey][0];
-        //
-        //             if (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
-        //                 await new Promise(resolve => setTimeout(resolve, 10));
-        //                 this.inputBeingAddedWaitCount = 0;
-        //
-        //                 while (typeof this.inputBeingAdded === 'string' && this.inputBeingAddedWaitCount++ < 30) {
-        //                     await new Promise(resolve => setTimeout(resolve, 500));
-        //                 }
-        //             }
-        //
-        //             key = String(key);
-        //             this.inputBeingAdded = key;
-        //
-        //             // this.log.debug('inputMissing called key', key, this.inputMissing);
-        //
-        //             await this.telnetAvr.sendMessage(`?RGB${key}`, `RGB${key}`, this.addInputSourceService.bind(this));
-        //             await new Promise(resolve => setTimeout(resolve, 500));
-        //         }
-        //
-        //         await new Promise(resolve => setTimeout(resolve, 5000));
-        //     }
-        //
-        //     if (this.inputMissing.length === 0 && Object.keys(this.inputToType).length > 0) {
-        //         // this.log.debug('set isReady to true');
-        //         this.isReady = true;
-        //     }
-        //
-        //     if (callback) {
-        //         callback();
-        //     }
-        // }
 
         /**
          * Renames an existing input on the AVR.

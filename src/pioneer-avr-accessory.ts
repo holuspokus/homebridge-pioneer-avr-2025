@@ -20,6 +20,7 @@ type Device = {
     source: string;
     maxVolume?: number;
     minVolume?: number;
+    inputSwitches?: string[];
 };
 
 class PioneerAvrAccessory {

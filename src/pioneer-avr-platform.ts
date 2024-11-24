@@ -23,6 +23,13 @@ type Device = {
     source: string;
     maxVolume?: number;
     minVolume?: number;
+    inputSwitches?: string[];
+};
+
+type Input = {
+    id: string;
+    name: string;
+    type: number;
 };
 
 /**
@@ -44,6 +51,13 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     private readonly TARGET_NAME = "VSX";
     private readonly MAX_ATTEMPTS = 1000;
     private readonly RETRY_DELAY = 10000; // 10 seconds in milliseconds
+
+    /**
+     * Cache for storing discovered receivers and their inputs.
+     * The structure maps each host to its corresponding input data.
+     */
+    private cachedReceivers: Map<string, { inputs: { id: string; name: string }[] }> = new Map();
+
 
     constructor(
         public readonly log: Logging,
@@ -102,8 +116,59 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         // Register for the 'didFinishLaunching' event to start device discovery after Homebridge startup
         this.api.on("didFinishLaunching", () => {
             this.discoverDevices();
+
         });
     }
+
+
+    /**
+     * Cleans up old or invalid cached accessories from Homebridge.
+     * Filters cached accessories to remove those no longer managed by the current plugin,
+     * identified by matching their plugin name against expected identifiers (e.g., 'homebridge-pioneer-avr', 'vsx').
+     * Ensures the cache remains accurate and prevents stale accessories from being loaded.
+     */
+    public cleanCachedAccessories() {
+        const cachedAccessoriesPath = path.join(this.api.user.storagePath(), 'accessories/cachedAccessories');
+
+        // Check if the cachedAccessories file exists
+        if (fs.existsSync(cachedAccessoriesPath)) {
+            this.log.debug('Found cached accessories file, starting cleanup.');
+
+            // Read and parse the cached accessories JSON file
+            const cachedAccessories = JSON.parse(fs.readFileSync(cachedAccessoriesPath, 'utf-8'));
+
+            // Filter accessories to retain only those not related to homebridge-pioneer-avr
+            const filteredAccessories = cachedAccessories.filter((accessory: any) => {
+                // Convert to lowercase and check for 'homebridge-pioneer-avr' or 'vsx'
+                const pluginName = accessory.plugin?.toLowerCase() || '';
+                return !(pluginName.includes('homebridge-pioneer-avr') || pluginName.includes('vsx') || pluginName.includes('pioneer'));
+            });
+
+            // Check if any accessories were removed
+            if (filteredAccessories.length !== cachedAccessories.length) {
+                // Write the filtered accessories back to the cachedAccessories file
+                fs.writeFileSync(cachedAccessoriesPath, JSON.stringify(filteredAccessories, null, 4), 'utf-8');
+                this.log.info(
+                    `Removed ${cachedAccessories.length - filteredAccessories.length} cached accessories related to homebridge-pioneer-avr.`
+                );
+            } else {
+                this.log.debug('No cached accessories related to homebridge-pioneer-avr found to remove.');
+            }
+        } else {
+            this.log.debug('Cached accessories file not found, skipping cleanup.');
+        }
+    }
+
+    /**
+     * Retrieves the cached receiver data for a specific host.
+     * @param host The host to retrieve inputs for.
+     * @returns The cached inputs, or undefined if the host is not found.
+     */
+    public getCachedInputsForHost(host: string): { id: string; name: string }[] | undefined {
+        return this.cachedReceivers.get(host)?.inputs;
+    }
+
+
 
     /**
      * Invoked when Homebridge restores cached accessories from disk at startup.
@@ -159,6 +224,10 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                         addDevice.maxVolume = device.maxVolume;
                     }
 
+                    if (device.inputSwitches) {
+                        addDevice.inputSwitches = device.inputSwitches;
+                    }
+
                     devicesFound.push(addDevice);
                 }
             }
@@ -194,6 +263,10 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
             if (this.config.device.maxVolume) {
                 addDevice.maxVolume = this.config.device.maxVolume;
+            }
+
+            if (this.config.device.inputSwitches) {
+                addDevice.inputSwitches = this.config.device.inputSwitches;
             }
 
             devicesFound.push(addDevice);
@@ -354,6 +427,8 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 this.log.debug("Saved updated config.json.");
 
                 if (needsRestart) {
+                    this.cleanCachedAccessories();
+
                     console.log(JSON.stringify(homebridgeConfig, null, 2));
                     console.error("PLEASE RESTART HOMEBRIDGE");
                     console.error("PLEASE RESTART HOMEBRIDGE");
@@ -390,6 +465,9 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                             host: dDevice.host,
                             port: dDevice.port,
                             source: dDevice.source,
+                            inputSwitches: this.config.discoveredDevices?.find(
+                                (device: any) => device.host === dDevice.host
+                            )?.inputSwitches || [],
                         });
                     }
                     this.log.debug("Discovered devices:", devicesFound);
@@ -425,7 +503,16 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     /**
      * Updates the config.schema.json file with the current min and max volume settings.
      */
-    updateConfigSchema(foundDevices: any[]) {
+    public updateConfigSchema(public updateConfigSchema(
+        foundDevices: any[],
+        host?: string,
+        inputs?: { id: string; name: string }[]
+    ): void {
+        // Cache inputs if both host and inputs are provided
+        if (host && inputs) {
+            this.cachedReceivers.set(host, { inputs });
+        }
+
         if (foundDevices.length === 0) return;
 
         try {
@@ -474,6 +561,8 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     },
                 };
             }
+
+            schema.schema.properties.devices.default = []; // Initialize as an empty array
 
             let firstDevice = foundDevices[0];
 
@@ -545,33 +634,159 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     parseInt(firstDevice.maxVolume, 10);
             }
 
-            schema.schema.properties.devices.default = []; // Initialize as an empty array
 
+            let bonjourCounter = 0;
             for (const foundDevice of foundDevices) {
-                if (foundDevice.source !== "bonjour") {
-                    let addDevice: {
-                        name: any;
-                        host: any;
-                        port: any;
-                        maxVolume?: any;
-                        minVolume?: any;
-                    } = {
+                if (foundDevice.source === "bonjour") {
+                    bonjourCounter++;
+                }
+            }
+
+            if (bonjourCounter > 0) {
+
+                schema.schema.properties.discoveredDevices = {
+                    type: "array",
+                    title: "Discovered Devices",
+                    items: {
+                        type: "object",
+                        properties: {
+                            name: {
+                                type: "string",
+                                title: "Device Name",
+                                readOnly: true,
+                            },
+                            host: {
+                                type: "string",
+                                title: "Host (IP or DNS Name)",
+                                readOnly: true,
+                            },
+                            port: {
+                                type: "number",
+                                title: "Port",
+                                readOnly: true,
+                                default: 23,
+                            },
+                            maxVolume: {
+                                type: "integer",
+                                title: "Maximum Volume",
+                                default: 100,
+                            },
+                            minVolume: {
+                                type: "integer",
+                                title: "Minimum Volume",
+                                default: 0,
+                            },
+                        },
+                        required: ["name", "host", "port"],
+                    },
+                    default: [],
+                };
+
+                // schema.schema.properties.discoveredDevices.default = []; // Initialize as empty
+
+
+                if (inputs && inputs.length > 0) {
+                    schema.schema.properties.discoveredDevices.properties.inputSwitches = {
+                        type: "array",
+                        title: "Input Switches to Expose",
+                        description: "Select up to 5 inputs to expose as switches in HomeKit.",
+                        items: {
+                            type: "string",
+                            enum: inputs.map((input: { id: string }) => input.id),
+                            enumNames: inputs.map(
+                                (input: { id: string; name: string }) => `${input.name} (${input.id})`
+                            ),
+                        },
+                        maxItems: 5,
+                        default: (
+                            // Use existing inputSwitches from the config, or fallback to the first 5 inputs
+                            this.config.discoveredDevices?.find(
+                                (device: any) => device.host === foundDevice.host
+                            )?.inputSwitches || inputs.slice(0, 5).map((input: { id: string }) => input.id)
+                        ),
+                    };
+                } else {
+                    // Fallback when no inputs are available
+                    schema.schema.properties.discoveredDevices.properties.inputSwitches = {
+                        type: "array",
+                        title: "Input Switches to Expose",
+                        description: "Inputs not discovered until yet.",
+                        items: {
+                            type: "string",
+                            enum: [],
+                            enumNames: [],
+                        },
+                        maxItems: 5,
+                        default: (
+                            this.config.discoveredDevices?.find(
+                                (device: any) => device.host === foundDevice.host
+                            )?.inputSwitches || []
+                        ),
+                    };
+                }
+
+
+
+                for (const foundDevice of foundDevices) {
+                    const addDevice: any = {
                         name: foundDevice.name,
                         host: foundDevice.host,
                         port: foundDevice.port,
+                        maxVolume: foundDevice.maxVolume ? parseInt(foundDevice.maxVolume, 10) : undefined,
+                        minVolume: foundDevice.minVolume ? parseInt(foundDevice.minVolume, 10) : undefined,
+                        inputSwitches: Array.isArray(inputs)
+                            ? inputs.map((input: { id: string }) => input.id)
+                            : this.config.discoveredDevices?.find(
+                                  (device: any) => device.host === foundDevice.host
+                              )?.inputSwitches || [],
                     };
-                    if (foundDevice.maxVolume) {
-                        addDevice.maxVolume = parseInt(
-                            foundDevice.maxVolume,
-                            10,
-                        );
+
+                    if (foundDevice.source === "bonjour") {
+                        schema.schema.properties.discoveredDevices.default.push(addDevice);
+                    } else {
+                        schema.schema.properties.devices.default.push(addDevice);
                     }
-                    if (foundDevice.minVolume) {
-                        addDevice.minVolume = parseInt(
-                            foundDevice.minVolume,
-                            10,
-                        );
-                    }
+                }
+            }
+
+            for (const foundDevice of foundDevices) {
+
+                let addDevice: {
+                    name: any;
+                    host: any;
+                    port: any;
+                    maxVolume?: any;
+                    minVolume?: any;
+                    inputSwitches?: string[]
+                } = {
+                    name: foundDevice.name,
+                    host: foundDevice.host,
+                    port: foundDevice.port,
+                };
+                if (foundDevice.maxVolume) {
+                    addDevice.maxVolume = parseInt(
+                        foundDevice.maxVolume,
+                        10,
+                    );
+                }
+                if (foundDevice.minVolume) {
+                    addDevice.minVolume = parseInt(
+                        foundDevice.minVolume,
+                        10,
+                    );
+                }
+
+                if (inputs && host === foundDevice.host) {
+                    addDevice.inputSwitches = inputs.map((input) => input.id);
+                } else {
+                    addDevice.inputSwitches = this.config.discoveredDevices?.find(
+                        (device: any) => device.host === foundDevice.host
+                    )?.inputSwitches || [];
+                }
+
+                if (foundDevice.source === "bonjour") {
+                    schema.schema.properties.discoveredDevices.default.push(addDevice);
+                } else {
                     schema.schema.properties.devices.default.push(addDevice);
                 }
             }
