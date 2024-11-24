@@ -723,7 +723,7 @@ class PioneerAvrAccessory {
 
         const validAccessories: string[] = []; // Track valid accessory UUIDs
 
-        inputSwitches.forEach((inputId) => {
+        inputSwitches.slice(0, 5).forEach((inputId) => {
             const input = cachedInputs.find((input) => input.id === inputId);
 
             if (!input) {
