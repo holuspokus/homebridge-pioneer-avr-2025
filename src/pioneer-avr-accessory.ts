@@ -788,7 +788,6 @@ class PioneerAvrAccessory {
                         // Turn on the receiver if it is off
                         if (!this.avr.state.on) {
                             await this.avr.powerOn();
-                            this.log.info(`Receiver is powering on. Waiting...`);
                             await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
                         }
 
@@ -807,14 +806,14 @@ class PioneerAvrAccessory {
                         });
                     } else {
                         this.log.debug(`Switch for ${switchName} turned off.`);
-                        // Wait before validating the state
-                        await new Promise((resolve) => setTimeout(resolve, 10000));
+                        // // Wait before validating the state
+                        // await new Promise((resolve) => setTimeout(resolve, 10000));
 
                         // Check if the receiver is still on and the input matches
                         if (this.avr.state.on && this.avr.state.input === inputIndex) {
-                            this.log.debug(
-                                `Receiver is still on and input ${input.name} (${input.id}) is active. Re-enabling the switch.`
-                            );
+                            // this.log.debug(
+                            //     `Receiver is still on and input ${input.name} (${input.id}) is active. Re-enabling the switch.`
+                            // );
 
                             // Re-enable the switch since the input is still active
                             // switchService
