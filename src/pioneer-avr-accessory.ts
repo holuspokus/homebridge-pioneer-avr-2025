@@ -789,12 +789,22 @@ class PioneerAvrAccessory {
                         if (!this.avr.state.on) {
                             await this.avr.powerOn();
                             this.log.info(`Receiver is powering on. Waiting...`);
-                            await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait 10 seconds
+                            await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
                         }
 
                         // Set the desired input
                         await this.avr.setInput(input.id);
                         this.log.debug(`Input set to ${input.name} (${input.id})`);
+
+                        // Turn off all other switches
+                        this.platform.accessories.forEach((accessory) => {
+                            const service = accessory.getService(this.platform.service.Switch);
+                            if (service && accessory.context.inputId !== input.id) {
+                                service
+                                    .getCharacteristic(this.platform.characteristic.On)
+                                    .updateValue(false);
+                            }
+                        });
                     } else {
                         this.log.debug(`Switch for ${switchName} turned off.`);
                         // Wait before validating the state
@@ -807,12 +817,15 @@ class PioneerAvrAccessory {
                             );
 
                             // Re-enable the switch since the input is still active
-                            switchService
-                                .getCharacteristic(this.platform.characteristic.On)
-                                .updateValue(true);
+                            // switchService
+                            //     .getCharacteristic(this.platform.characteristic.On)
+                            //     .updateValue(true);
+
+                            await this.avr.powerOff();
                         }
                     }
                 });
+
 
             this.log.info(
                 `Switch accessory created for input: ${input.name} (${input.id}) on host: ${host}`
