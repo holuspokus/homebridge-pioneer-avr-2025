@@ -189,6 +189,12 @@ async function discoverBonjourDevices(
                     host;
 
 
+                // name = name.replace(/[^a-zA-Z0-9 ']/g, "");
+                // name = name
+                //     .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, "")
+                //     .trim();
+
+
                 if (hostsFound.indexOf(host) === -1) {
                     hostsFound.push(host);
                     checkPorts(

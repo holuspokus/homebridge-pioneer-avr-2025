@@ -79,7 +79,7 @@ export function InitializeMixin<
             }
 
             this.log.debug(
-                "Waiting until Telnet is connected",
+                "Waiting until Telnet is connected to",
                 this.host,
                 this.port,
             );

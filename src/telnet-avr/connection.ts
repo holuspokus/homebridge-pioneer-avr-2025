@@ -80,7 +80,7 @@ export class Connection {
             return;
         }
 
-        this.log.debug("connect() called");
+        // this.log.debug("connect() called");
 
         if (this.socket) {
             if (
@@ -105,7 +105,7 @@ export class Connection {
     }
 
     private initializeSocket(callback: () => void) {
-        this.log.debug("initializeSocket() called");
+        // this.log.debug("initializeSocket() called");
         this.isConnecting = Date.now();
         this.socket = new net.Socket();
         this.socket.setTimeout(30 * 1000);
