@@ -33,8 +33,10 @@ The receiver is detected automatically over the network.
 
 Manual configuration is also available, and previous configurations from older Versions or from the [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr) plugin will be imported automatically if present. You may also configure settings via the Config-UI interface.
 
-### Preparing the Receiver and Network
+### Adding Input Switches
+Once the receiver's inputs are loaded, you can select up to five inputs through the plugin settings in Config-UI. These selected inputs will appear in HomeKit as individual switches, allowing direct selection, use in automations, or integration with physical switches.
 
+### Preparing the Receiver and Network
 To ensure proper connectivity for the plugin, connect the receiver to the network. The simplest way to verify that the receiver is accessible is to check if an iPhone can establish an AirPlay connection to the receiver. If this works, the receiver is ready. Otherwise, ensure the following:
 
 1. **Ensure Network Compatibility**  
@@ -62,7 +64,7 @@ After confirming the network connection, restart the plugin to enable communicat
 
 3. **Install **homebridge-pioneer-avr-2025**:**
    ```bash
-   hb-service; hb-service add homebridge-pioneer-avr-2025
+   sudo hb-service add homebridge-pioneer-avr-2025
       or
    npm install -g homebridge-pioneer-avr-2025
    ```
@@ -85,13 +87,8 @@ Below is a sample configuration for your accessory:
         "name": "pioneerAvr2025",
         "host": "VSX-922.local",
         "port": 23,
-        "name": "VSX-922",
         "maxVolume": 65,
-        "minVolume": 30,
-        "_bridge": {
-            "username": "0E:D6:86:BA:AM:69",
-            "port": 35337
-        }
+        "minVolume": 30
     }
 ]
 ```
