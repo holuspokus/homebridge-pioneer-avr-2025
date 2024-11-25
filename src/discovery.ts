@@ -203,7 +203,7 @@ async function discoverBonjourDevices(
                             device &&
                             !devices.some(
                                 (d) =>
-                                    d.host === device.host &&
+                                    d.host.toLowerCase() === device.host.toLowerCase() &&
                                     d.port === device.port,
                             )
                         ) {

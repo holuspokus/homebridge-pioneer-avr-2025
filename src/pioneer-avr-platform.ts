@@ -459,8 +459,14 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                             host: dDevice.host,
                             port: dDevice.port,
                             source: dDevice.source,
+                            minVolume: this.config.discoveredDevices?.find(
+                                (device: any) => device.host.toLowerCase() === dDevice.host.toLowerCase()
+                            )?.minVolume || undefined,
+                            maxVolume: this.config.discoveredDevices?.find(
+                                (device: any) => device.host.toLowerCase() === dDevice.host.toLowerCase()
+                            )?.maxVolume || undefined,
                             inputSwitches: this.config.discoveredDevices?.find(
-                                (device: any) => device.host === dDevice.host
+                                (device: any) => device.host.toLowerCase() === dDevice.host.toLowerCase()
                             )?.inputSwitches || [],
                         });
                     }
@@ -761,14 +767,14 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 const cachedInputs =
                     this.cachedReceivers.get(foundDevice.host)?.inputs || [];
                 const deviceInputs =
-                    inputs && host === foundDevice.host ? inputs : cachedInputs;
+                    inputs && host && foundDevice.host && host.toLowerCase() === foundDevice.host.toLowerCase() ? inputs : cachedInputs;
                 // const inputSwitches = deviceInputs.map((input) => input.id);
                 // const inputSwitchesEnumNames = deviceInputs.map(
                 //     (input) => `${input.name} (${input.id})`
                 // );
                 let existingConfigInputSwitches =
                     this.config.discoveredDevices?.find(
-                        (device: any) => device.host === foundDevice.host
+                        (device: any) => device.host.toLowerCase() === foundDevice.host.toLowerCase()
                     )?.inputSwitches || []; //inputSwitches.slice(0, 3);
 
                 // Validate inputSwitches only if deviceInputs is not empty
@@ -883,7 +889,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
                     // Avoid duplicates by checking for existing devices in config.json
                     updatedDiscoveredDevices.forEach((newDevice) => {
-                        if (!config.discoveredDevices.some((device: { host: string }) => device.host === newDevice.host)) {
+                        if (!config.discoveredDevices.some((device: { host: string }) => device.host.toLowerCase() === newDevice.host.toLowerCase())) {
                             config.discoveredDevices.push(newDevice);
                         }
                     });

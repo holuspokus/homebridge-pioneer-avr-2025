@@ -846,7 +846,7 @@ class PioneerAvrAccessory {
         this.platform.accessories = this.platform.accessories.filter((accessory) => {
             const isValid = validAccessoryUUIDs.has(accessory.UUID);
 
-            if (!isValid && accessory.context.host === host) {
+            if (!isValid && accessory.context.host && host && accessory.context.host.toLowerCase() === host.toLowerCase()) {
                 this.log.info(
                     `Removing accessory: ${accessory.displayName} (no longer valid)`
                 );
