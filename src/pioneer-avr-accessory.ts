@@ -235,6 +235,8 @@ class PioneerAvrAccessory {
             );
         }, this);
 
+
+
         this.tvService
             .getCharacteristic(this.platform.characteristic.Active)
             .onGet(this.getPowerOn.bind(this))
@@ -727,7 +729,7 @@ class PioneerAvrAccessory {
             }
         });
 
-        this.log.debug(`Switch states updated. Active input ID: ${activeInputId}`);
+        // this.log.debug(`Switch states updated. Active input ID: ${activeInputId}`);
     }
 
 
@@ -834,6 +836,10 @@ class PioneerAvrAccessory {
                         }
                     }
                 });
+
+            addExitHandler(() => {
+                this.updateSwitchStates('-9999');
+            }, this);
 
 
             this.log.info(
