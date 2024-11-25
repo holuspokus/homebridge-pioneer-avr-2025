@@ -21,7 +21,13 @@
                 {
                     "host": "VSX-922.local",
                     "port": 23,
-                    "name": "VSX922"
+                    "name": "VSX922",
+                    "inputSwitches": [
+                        "20",
+                        "25",
+                        "01",
+                        "04"
+                    ]
                 },
                 {
                     "ip": "196.168.1.2",

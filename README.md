@@ -60,7 +60,7 @@ After confirming the network connection, restart the plugin to enable communicat
    npm install -g homebridge
    ```
 
-2. **Update your configuration file:** Use the example below or check `sample-config.json` in this repository for a sample. Create or edit the `config.json` file in the Homebridge directory (typically `~/.homebridge/`) with the appropriate configuration for your Pioneer AVR.
+2. **Update your configuration file:** Use the example below or check `sample-config.json` in this repository for a sample. Create or edit the `config.json` file in the Homebridge directory (typically `~/.homebridge/` or `/var/lib/homebridge/`) with the appropriate configuration for your Pioneer AVR.
 
 3. **Install **homebridge-pioneer-avr-2025**:**
    ```bash

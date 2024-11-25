@@ -313,7 +313,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 // If not found, create the platform entry
                 if (!pioneerPlatform) {
                     pioneerPlatform = {
-                        name: this.platformName,
+                        name: this.platformName.replace(/[^a-zA-Z0-9 ]/g, ""),
                         platform: this.platformName,
                     };
                     homebridgeConfig.platforms.push(pioneerPlatform);
@@ -326,7 +326,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     pioneerAccessory.port
                 ) {
                     let addDevice: Device = {
-                        name: pioneerAccessory.name,
+                        name: pioneerAccessory.name.replace(/[^a-zA-Z0-9 ]/g, ""),
                         origName: pioneerAccessory.name,
                         host: pioneerAccessory.host,
                         port: pioneerAccessory.port,
@@ -364,7 +364,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                         pioneerPlatform.device = {
                             host: pioneerAccessory.host,
                             port: pioneerAccessory.port,
-                            name: pioneerAccessory.name,
+                            name: pioneerAccessory.name.replace(/[^a-zA-Z0-9 ]/g, ""),
                         };
                         needsRestart = true;
                     }
