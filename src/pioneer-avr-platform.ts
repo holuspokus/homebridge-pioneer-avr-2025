@@ -497,7 +497,6 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         // Process each device found or manually configured
         // await this.loopDevices(this.devicesFound);
         this.loopDevices(this.devicesFound);
-
         this.updateConfigSchema(this.devicesFound);
     }
 
@@ -505,7 +504,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
      * Updates the config.schema.json file with the current device settings and inputs.
      */
     public updateConfigSchema(
-        foundDevices: any[],
+        foundDevicesin: any[],
         host?: string,
         inputs?: { id: string; name: string; type: number }[]
 
@@ -517,7 +516,9 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
         // this.log.debug('updateConfigSchema() called', host, inputs);
 
-        if (foundDevices.length === 0) return;
+        if (foundDevicesin.length === 0) return;
+
+        let foundDevices = JSON.parse(JSON.stringify(foundDevicesin));
 
         try {
             const schemaPath = path.resolve(__dirname, "../config.schema.json");
@@ -636,6 +637,13 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     parseInt(firstDevice.maxVolume, 10);
             }
 
+            let bonjourCounter = 0;
+            for (const foundDevice of foundDevices) {
+                if (foundDevice.source === "bonjour") {
+                    bonjourCounter++;
+                }
+            }
+
 
 
 
@@ -674,37 +682,33 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             const enums = uniqueInputs.map((input) => input.id);
             const enumNames = uniqueInputs.map((input) => input.name);
 
+            if (bonjourCounter !== foundDevices.length) {
+                schema.schema.properties.devices.items.properties.inputSwitches = {
+                    type: "array",
+                    title: "Input Switches to Expose",
+                    description:
+                        "Select up to 5 inputs to expose as switches in HomeKit.",
+                    items: {
+                        type: "string"
+                    },
+                    uniqueItems: true,
+                    maxItems: 5,
+                    minItems: 0,
+                    default: [],
+                }
 
-            schema.schema.properties.devices.items.properties.inputSwitches = {
-                type: "array",
-                title: "Input Switches to Expose",
-                description:
-                    "Select up to 5 inputs to expose as switches in HomeKit.",
-                items: {
-                    type: "string"
-                },
-                uniqueItems: true,
-                maxItems: 5,
-                minItems: 0,
-                default: [],
-            }
-
-            if (enums.length > 0) {
-                schema.schema.properties.devices.items.properties.inputSwitches.items.enum =
-                    enums;
-                schema.schema.properties.devices.items.properties.inputSwitches.items.enumNames =
-                    enumNames;
+                if (enums.length > 0) {
+                    schema.schema.properties.devices.items.properties.inputSwitches.items.enum =
+                        enums;
+                    schema.schema.properties.devices.items.properties.inputSwitches.items.enumNames =
+                        enumNames;
+                } else if (schema.schema.properties.devices.items.properties.inputSwitches) {
+                    delete schema.schema.properties.devices.items.properties.inputSwitches;
+                }
             } else if (schema.schema.properties.devices.items.properties.inputSwitches) {
                 delete schema.schema.properties.devices.items.properties.inputSwitches;
             }
 
-
-            let bonjourCounter = 0;
-            for (const foundDevice of foundDevices) {
-                if (foundDevice.source === "bonjour") {
-                    bonjourCounter++;
-                }
-            }
 
             if (bonjourCounter > 0) {
                 schema.schema.properties.discoveredDevices = {
@@ -752,13 +756,15 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     },
                     default: [],
                 };
-            }
 
-            if (enums.length > 0) {
-                schema.schema.properties.discoveredDevices.items.properties.inputSwitches.items.enum =
-                    enums;
-                schema.schema.properties.discoveredDevices.items.properties.inputSwitches.items.enumNames =
-                    enumNames;
+                if (enums.length > 0) {
+                    schema.schema.properties.discoveredDevices.items.properties.inputSwitches.items.enum =
+                        enums;
+                    schema.schema.properties.discoveredDevices.items.properties.inputSwitches.items.enumNames =
+                        enumNames;
+                } else if (schema.schema.properties.discoveredDevices && schema.schema.properties.discoveredDevices.items.properties.inputSwitches) {
+                    delete schema.schema.properties.discoveredDevices.items.properties.inputSwitches;
+                }
             } else if (schema.schema.properties.discoveredDevices && schema.schema.properties.discoveredDevices.items.properties.inputSwitches) {
                 delete schema.schema.properties.discoveredDevices.items.properties.inputSwitches;
             }
@@ -967,8 +973,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     this.log.debug(
                         "Adding new accessory:",
                         uniqueName,
-                        foundDevice.host,
-                        foundDevice.port,
+                        foundDevice,
                     );
 
                     // Initialize a new accessory instance with the unique name and set device context

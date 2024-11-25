@@ -52,6 +52,8 @@ export function InputManagementMixin<
         constructor(...args: any[]) {
             super(...args);
 
+            this.log.info('inputs.ts handleInputSwitches: ', this.device);
+
             // Set `prefsDir` and `inputCacheFile`
             this.prefsDir =
                 this.platform?.config?.prefsDir ||

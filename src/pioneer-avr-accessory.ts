@@ -733,7 +733,7 @@ class PioneerAvrAccessory {
     }
 
 
-    public addInputSwitch(host: string, inputSwitches: string[]): void {
+    public addInputSwitch(host: string, inputToSwitches: string[]): void {
         const cachedInputs = this.platform.cachedReceivers.get(host)?.inputs || [];
         if (cachedInputs.length === 0) {
             this.log.warn(`No cached inputs found for host: ${host}`);
@@ -742,7 +742,7 @@ class PioneerAvrAccessory {
 
         const validAccessories: string[] = []; // Track valid accessory UUIDs
 
-        inputSwitches.slice(0, 5).forEach((inputId) => {
+        inputToSwitches.slice(0, 5).forEach((inputId) => {
             const input = cachedInputs.find((input) => input.id === inputId);
 
             if (!input) {

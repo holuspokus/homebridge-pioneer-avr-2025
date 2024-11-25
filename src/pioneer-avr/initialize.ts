@@ -4,6 +4,8 @@ import { onDataHandler } from "./onDataHandler";
 import type { Logging } from "homebridge";
 import type { AVState } from "./pioneerAvr";
 import { TelnetAvr } from "../telnet-avr/telnetAvr";
+import { addExitHandler } from "../exitHandler";
+
 
 type Device = {
     name: string;
@@ -45,6 +47,13 @@ export function InitializeMixin<
         constructor(...args: any[]) {
             super(...args);
             // this.setupTelnetConnection();
+
+
+            addExitHandler(() => {
+                clearInterval(this.allInterval);
+            }, this);
+
+
         }
 
         /**
