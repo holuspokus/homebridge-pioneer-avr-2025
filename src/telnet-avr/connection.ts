@@ -184,7 +184,7 @@ export class Connection {
     private tryReconnect() {
         if (onExitCalled) return;
 
-        this.log.debug("tryReconnect() called");
+        // this.log.debug("tryReconnect() called");
 
         this.reconnectCounter++;
         const delay = this.reconnectCounter > 30 ? 60 : 15;
@@ -206,7 +206,7 @@ export class Connection {
             }
         }
 
-        this.log.debug("reconnect() called");
+        // this.log.debug("reconnect() called");
 
         if (
             this.reconnectCounter >= this.maxReconnectAttempts &&
@@ -255,7 +255,7 @@ export class Connection {
     }
 
     disconnect() {
-        this.log.debug("disconnect() called");
+        // this.log.debug("disconnect() called");
         this.setConnectionReady(false);
         this.onDisconnect();
 

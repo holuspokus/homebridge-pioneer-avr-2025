@@ -271,15 +271,21 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             (this.config.host || this.config.ip) &&
             String(this.config.host || this.config.ip).length > 0
         ) {
+
+
+            let name = String(this.config.host || this.config.ip)
+            const ip = name.match(
+                /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/,
+            );
+
+            if (ip && this.config.name) {
+                name = this.config.name;
+            }
+
             let addDevice: Device = {
-                name: String(this.config.host || this.config.ip)
-                    .replace(/\.local$/, "")
+                name: name.replace(/\.local$/, "")
                     .replace(/[^a-zA-Z0-9 ]/g, ""),
-                origName:
-                    this.config.name ||
-                    String(this.config.host || this.config.ip)
-                        .replace(/\.local$/, "")
-                        .replace(/[^a-zA-Z0-9 ]/g, ""),
+                origName: name,
                 host: this.config.host || this.config.ip,
                 port: this.config.port || 23,
                 source: "pluginConfig",
@@ -322,13 +328,19 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 if (
                     pioneerAccessory &&
                     pioneerAccessory.name &&
-                    pioneerAccessory.host &&
+                    (pioneerAccessory.host || pioneerAccessory.ip || pioneerAccessory.address) &&
                     pioneerAccessory.port
                 ) {
+                    let name = pioneerAccessory.name;
+
+                    if (pioneerAccessory.model && String(pioneerAccessory.model).length > 2){
+                        name = pioneerAccessory.model;
+                    }
+
                     let addDevice: Device = {
-                        name: pioneerAccessory.name.replace(/[^a-zA-Z0-9 ]/g, ""),
-                        origName: pioneerAccessory.name,
-                        host: pioneerAccessory.host,
+                        name: name.replace(/[^a-zA-Z0-9 ]/g, ""),
+                        origName: name,
+                        host: pioneerAccessory.host || pioneerAccessory.ip || pioneerAccessory.address,
                         port: pioneerAccessory.port,
                         source: "pioneerAccessory",
                     };
@@ -361,11 +373,11 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                         !pioneerPlatform.device.name ||
                         !pioneerPlatform.device.host
                     ) {
-                        pioneerPlatform.device = {
-                            host: pioneerAccessory.host,
-                            port: pioneerAccessory.port,
-                            name: pioneerAccessory.name.replace(/[^a-zA-Z0-9 ]/g, ""),
-                        };
+                        pioneerPlatform.devices = [{
+                            host: addDevice.host,
+                            port: addDevice.port,
+                            name: addDevice.name,
+                        }];
                         needsRestart = true;
                     }
 

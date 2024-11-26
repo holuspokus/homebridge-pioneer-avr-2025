@@ -80,6 +80,17 @@ After confirming the network connection, restart the plugin to enable communicat
 
 Below is a sample configuration for your accessory:
 
+#### Discovery
+```json
+"platforms": [
+    {
+        "platform": "pioneerAvr2025",
+        "name": "pioneerAvr2025"
+    }
+]
+```
+
+#### minimalistic Setup
 ```json
 "platforms": [
     {
@@ -99,8 +110,12 @@ Below is a sample configuration for your accessory:
 |         name | Custom input, can remain      |
 |         host | needs to be accurate or empty |
 |         port | needs to be accurate          |
-| maxVolume | Optional input, can remain    |
-| minVolume | Optional input, can remain    |
+|    maxVolume | Optional input, can remain    |
+|    minVolume | Optional input, can remain    |
+
+> **name:**
+> In the example above, the "name" field refers to the platform and is used to define the name of the platform in Homebridge, for example, as visible in the logs. The device name, in this case, is derived from the hostname unless the hostname is an IP address, in which case the platform name is used instead.
+> Characters that could cause issues are automatically removed.
 
 > **host:**
 > To use the network scan (Multicast), leave `host` field empty in the plugin configuration.
@@ -130,6 +145,90 @@ Below is a sample configuration for your accessory:
 > This setting is only active in combination with `maxVolume`.  
 > A value of 35 has worked well for me.  
 
+> **inputSwitches:**
+> Set up to 5 inputs to expose as switches in HomeKit
+
+> **name:**
+> In the example below, "name" under "devices" refers to the name as it appears in HomeKit.
+> Characters that could cause issues are automatically removed.
+
+#### Over-the-top unrealistic setup
+```json
+"platforms": [
+    {
+        "platform": "pioneerAvr2025",
+        "name": "pioneerAvr2025",
+        "devices": [
+            {
+                "host": "VSX-922.local",
+                "port": 23,
+                "name": "VSX922",
+                "inputSwitches": [
+                    "20",
+                    "25",
+                    "01",
+                    "04"
+                ]
+            },
+            {
+                "ip": "196.168.1.2",
+                "port": 23,
+                "name": "VSX923",
+                "maxVolume": 75,
+                "minVolume": 20
+            },
+            {
+                "ip": "196.168.3.19",
+                "port": 8102,
+                "name": "VSX924",
+                "maxVolume": 100,
+                "minVolume": 20,
+                "inputSwitches": [
+                    "02",
+                    "03",
+                    "04",
+                    "05",
+                    "25"
+                ]
+            },
+            {
+                "ip": "VSX-1120.local",
+                "port": 24,
+                "name": "VSX1120"
+            }
+        ],
+        "maxVolume": 65,
+        "minVolume": 30,
+        "_bridge": {
+            "username": "0E:D6:86:BA:AM:69",
+            "port": 35337
+        }
+    }
+]
+```
+
+#### After Discovery
+Set Input switches for discovered Devices
+```json
+"platforms": [
+    {
+        "platform": "pioneerAvr2025",
+        "name": "pioneerAvr2025",
+        "discoveredDevices": [
+            {
+                "host": "VSX-922.local",
+                "inputSwitches": [
+                    "20",
+                    "25",
+                    "01",
+                    "04"
+                ]
+            }
+        ]
+    }
+]
+```
+
 <br><br><br><br>
 
 ## Links
@@ -148,7 +247,7 @@ Below is a sample configuration for your accessory:
 <br>
 
 ## Release Notes Platform Version
-- **v0.2.0**: Rewritten as a platform plugin in TypeScript for enhanced future-proofing and extensibility.
+- **v0.2.0**: Rewritten as a platform plugin in TypeScript for enhanced future-proofing and extensibility. Added switches.
 
 ## Release Notes Accessory Version
 - **v0.1.6**: Fixes a bug where the receiver would start when the plugin started. Preparations for the transition of the plugin from Accessory to Platform. To ensure a smooth transition, this version should be installed before version 0.2.0.
