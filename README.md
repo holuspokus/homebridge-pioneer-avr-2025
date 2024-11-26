@@ -1,92 +1,124 @@
+
 # homebridge-pioneer-avr-2025
 
-A [Homebridge](https://github.com/nfarina/homebridge) plugin that allows you to declare your Pioneer AVR as a TV in HomeKit. This project is ready for Node 22 or lower, Homebridge 2 or lower and is forked from [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr).  
+A [Homebridge](https://github.com/nfarina/homebridge) plugin that integrates your Pioneer AVR as a TV accessory in HomeKit. This project is compatible with Node 22 and below, as well as Homebridge 2 or earlier versions. It is written in TypeScript and leverages the latest Homebridge methods and practices, ensuring a streamlined setup with optional manual configuration. The plugin automatically detects your receiver for a more reliable user experience.
 
-> This plugin is specifically designed for Pioneer models that utilize the PRONTO protocol (e.g., VSX-922). It is not intended for newer models that use the ISCP protocol (e.g., VSX-LX304). For those newer models, we recommend using the [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer) plugin or checking the "Alternatively" section below.
-
+> **Note**: This plugin is specifically designed for Pioneer models released before 2017 that use Pioneer Telnet Commands (e.g., VSX-922). It may not be compatible with newer models that use the ISCP protocol (e.g., VSX-LX304). For newer models, please consider using the [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer) plugin or see the "Alternatives" section below.
 
 ![npm](https://img.shields.io/npm/v/homebridge-pioneer-avr-2025) ![license](https://img.shields.io/badge/license-MIT-blue) ![PRs](https://img.shields.io/github/issues-pr/holuspokus/homebridge-pioneer-avr-2025) ![Issues](https://img.shields.io/github/issues/holuspokus/homebridge-pioneer-avr-2025)
-
-
-
+<br>
 
 ## Features
+This plugin allows you to control various aspects of your Pioneer AVR directly from your Home app, including:
 
-This plugin enables various controls for your AVR, including:
-
-* Turn AVR On/Off
-* Select active input in Home app
-* Change Volume (as Lightbulb) in Home app
-* Save visibility status for inputs in Home app
-* Rename inputs in Home app
-* Control AVR with Remote on iOS
-* Remote-Key "Play/Pause" (iOS) to toggle between EXTENDED STEREO and PRO LOGIC 2 MOVIE
-* Auto discover inputs
-
-
-> No code changes are needed for the plugin to work properly. Just give it a try!
-
-
-
-> When switching from the homebridge-pioneer-avr plugin to homebridge-pioneer-avr-2025, it is recommended to remove the "homebridge-pioneer-avr" plugin and the existing accessories under "Accessories" in the Homebridge settings, or reset Homebridge entirely, as well as to reboot the iOS devices.
+* Power On/Off control
+* Input selection with ease
+* Volume adjustment (presented as a Lightbulb control in the Home app)
+* Customizing the visibility of inputs
+* Renaming inputs for easier identification
+* Remote control functionality on iOS devices
+* Using the iOS Remote's "Play/Pause" button to toggle between EXTENDED STEREO and PRO LOGIC 2 MOVIE modes
+* Automatic input discovery for seamless setup
+* Automatic receiver discovery for effortless integration
+* Easily switch between inputs using HomeKit switches for direct control and enhanced automation capabilities
+<br>
+<br>
 
 ## Installation
+1. **Install Homebridge**: Follow the [Homebridge Installation Guide](https://github.com/homebridge/homebridge/wiki).
+2. **Install the Plugin**: Use the Homebridge Web Interface (Config-UI) to install **homebridge-pioneer-avr-2025**.
 
-1. **Install Homebridge:** See the [Homebridge Installation Guide](https://github.com/homebridge/homebridge/wiki).  
-2. **Add the configuration:** Use the example below or refer to `sample-config.json`, adjusting the IP address and port as needed.  
-3. **Install the plugin:** Use the Homebridge UI to install **homebridge-pioneer-avr-2025**.
+## Accessory Configuration
+The receiver is detected automatically over the network.
 
-Alternatively:
+Manual configuration is also available, and previous configurations from older Versions or from the [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr) plugin will be imported automatically if present. You may also configure settings via the Config-UI interface.
 
+### Adding Input Switches
+Once the receiver's inputs are loaded, you can select up to five inputs through the plugin settings in Config-UI. These selected inputs will appear in HomeKit as individual switches, allowing direct selection, use in automations, or integration with physical switches.
+
+### Preparing the Receiver and Network
+To ensure proper connectivity for the plugin, connect the receiver to the network. The simplest way to verify that the receiver is accessible is to check if an iPhone can establish an AirPlay connection to the receiver. If this works, the receiver is ready. Otherwise, ensure the following:
+
+1. **Ensure Network Compatibility**  
+   The receiver and Homebridge server must be connected to the same network and subnet to enable compatibility with Bonjour/Multicast discovery. This configuration is typically standard for home networks.
+
+2. **Enable DHCP and DNS**  
+   For local hostname resolution (e.g., `vsx-922.local`), configure the Homebridge server to use DHCP and ensure the router is set as the DNS server. This allows proper name resolution for devices on the local network without requiring manual IP entries.
+
+3. **Set Up the Receiver’s Network**  
+   If the router lacks a built-in DHCP server, you will need to configure the receiver’s network settings manually.
+
+4. **Enable “Network Standby”**  
+   Enable “Network Standby” in the receiver’s network settings to ensure it remains accessible on the network, even when not actively in use. Refer to the receiver’s manual for specific instructions.
+
+After confirming the network connection, restart the plugin to enable communication with the receiver.
+<br><br>
+
+## Manual installation:
 1. **Install the Homebridge framework:**
    ```bash
    npm install -g homebridge
    ```
 
-2. **Update your configuration file:** Use the example below or check `sample-config.json` in this repository for a sample. Create or edit the `config.json` file in the Homebridge directory (typically `~/.homebridge/`) with the appropriate configuration for your Pioneer AVR.
+2. **Update your configuration file:** Use the example below or check `sample-config.json` in this repository for a sample. Create or edit the `config.json` file in the Homebridge directory (typically `~/.homebridge/` or `/var/lib/homebridge/`) with the appropriate configuration for your Pioneer AVR.
 
 3. **Install **homebridge-pioneer-avr-2025**:**
    ```bash
+   sudo hb-service add homebridge-pioneer-avr-2025
+      or
    npm install -g homebridge-pioneer-avr-2025
    ```
 
 4. **Start Homebridge:**
    ```bash
+   sudo hb-service restart
+      or
    homebridge
    ```
 
-
-
-
-
-## Accessory Configuration Example
+### Accessory Configuration Example
 
 Below is a sample configuration for your accessory:
 
+#### Discovery
 ```json
-"accessories": [
+"platforms": [
     {
-        "accessory": "pioneerAvrAccessory",
-        "model": "VSX-922",
-        "name": "MyAVR",
-        "description": "AV Receiver",
-        "maxVolumeSet": 70,
-        "host": "192.168.178.99",
-        "port": 23
+        "platform": "pioneerAvr2025",
+        "name": "pioneerAvr2025"
     }
 ]
 ```
 
-|          Key | Value                      |
-| -----------: | :------------------------- |
-|    accessory | don't change               |
-|        model | Custom input, can remain   |
-|         name | Custom input, can remain   |
-|  description | Custom input, can remain   |
-| maxVolumeSet | Optional input, can remain |
-| minVolumeSet | Optional input, can remain |
-|         host | needs to be accurate       |
-|         port | needs to be accurate       |
+#### minimalistic Setup
+```json
+"platforms": [
+    {
+        "platform": "pioneerAvr2025",
+        "name": "pioneerAvr2025",
+        "host": "VSX-922.local",
+        "port": 23,
+        "maxVolume": 65,
+        "minVolume": 30
+    }
+]
+```
+
+|          Key | Value                         |
+| -----------: | :---------------------------- |
+|     platform | don't change                  |
+|         name | Custom input, can remain      |
+|         host | needs to be accurate or empty |
+|         port | needs to be accurate          |
+|    maxVolume | Optional input, can remain    |
+|    minVolume | Optional input, can remain    |
+
+> **name:**
+> In the example above, the "name" field refers to the platform and is used to define the name of the platform in Homebridge, for example, as visible in the logs. The device name, in this case, is derived from the hostname unless the hostname is an IP address, in which case the platform name is used instead.
+> Characters that could cause issues are automatically removed.
+
+> **host:**
+> To use the network scan (Multicast), leave `host` field empty in the plugin configuration.
 
 > **port:**  
 > The port used for Telnet to connect to your receiver.  
@@ -96,7 +128,7 @@ Below is a sample configuration for your accessory:
 > `http://192.168.178.99/1000/port_number.asp`  
 > ... to find the port number.
 
-> **maxVolumeSet:**  
+> **maxVolume:**  
 > A number between 0 and 100; for example, 60 means 60% of the max volume.  
 > 100 = -0dB (i.e., 185 = No Limit),  
 > 60 = -16dB,  
@@ -104,41 +136,120 @@ Below is a sample configuration for your accessory:
 > Defaults to 80 if undefined.  
 > A value of 60 has worked well for me.  
 
-> **Note:** The difference between `maxVolumeSet` and `minVolumeSet` should be at least 20.  
+> **Note:** The difference between `maxVolume` and `minVolume` should be at least 20.  
 > Both only affects the volume as a brightness feature, not the remote.
 
-> **minVolumeSet:**  
+> **minVolume:**  
 > A number between 0 and 100; for example, 30 means 30% of the max volume.  
 > Defaults to 20 if undefined.  
-> This setting is only active in combination with `maxVolumeSet`.  
+> This setting is only active in combination with `maxVolume`.  
 > A value of 35 has worked well for me.  
 
+> **inputSwitches:**
+> Set up to 5 inputs to expose as switches in HomeKit
 
+> **name:**
+> In the example below, "name" under "devices" refers to the name as it appears in HomeKit.
+> Characters that could cause issues are automatically removed.
 
+#### Over-the-top unrealistic setup
+```json
+"platforms": [
+    {
+        "platform": "pioneerAvr2025",
+        "name": "pioneerAvr2025",
+        "devices": [
+            {
+                "host": "VSX-922.local",
+                "port": 23,
+                "name": "VSX922",
+                "inputSwitches": [
+                    "20",
+                    "25",
+                    "01",
+                    "04"
+                ]
+            },
+            {
+                "ip": "196.168.1.2",
+                "port": 23,
+                "name": "VSX923",
+                "maxVolume": 75,
+                "minVolume": 20
+            },
+            {
+                "ip": "196.168.3.19",
+                "port": 8102,
+                "name": "VSX924",
+                "maxVolume": 100,
+                "minVolume": 20,
+                "inputSwitches": [
+                    "02",
+                    "03",
+                    "04",
+                    "05",
+                    "25"
+                ]
+            },
+            {
+                "ip": "VSX-1120.local",
+                "port": 24,
+                "name": "VSX1120"
+            }
+        ],
+        "maxVolume": 65,
+        "minVolume": 30,
+        "_bridge": {
+            "username": "0E:D6:86:BA:AM:69",
+            "port": 35337
+        }
+    }
+]
+```
+
+#### After Discovery
+Set Input switches for discovered Devices
+```json
+"platforms": [
+    {
+        "platform": "pioneerAvr2025",
+        "name": "pioneerAvr2025",
+        "discoveredDevices": [
+            {
+                "host": "VSX-922.local",
+                "inputSwitches": [
+                    "20",
+                    "25",
+                    "01",
+                    "04"
+                ]
+            }
+        ]
+    }
+]
+```
+
+<br><br><br><br>
 
 ## Links
-
 - [homebridge](https://github.com/nfarina/homebridge)
 - [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr)
 - [pioneer-receiver-notes](https://github.com/rwifall/pioneer-receiver-notes)
 - [homebridge-webos-tv](https://github.com/merdok/homebridge-webos-tv)
 - [homebridge-vsx](https://github.com/TG908/homebridge-vsx)
-
-
-
+<br>
 
 ## Alternatives
-
 - [homebridge-onkyo-pioneer](https://www.npmjs.com/package/homebridge-onkyo-pioneer)
 - [homebridge-onkyo](https://www.npmjs.com/package/homebridge-onkyo)
 - [home-assistant](https://www.home-assistant.io/integrations/pioneer/)
 - [openhab.org](https://www.openhab.org/addons/bindings/pioneeravr/)
+<br>
 
+## Release Notes Platform Version
+- **v0.2.0**: Rewritten as a platform plugin in TypeScript for enhanced future-proofing and extensibility. Added switches.
 
-
-
-## Release Notes
-
+## Release Notes Accessory Version
 - **v0.1.6**: Fixes a bug where the receiver would start when the plugin started. Preparations for the transition of the plugin from Accessory to Platform. To ensure a smooth transition, this version should be installed before version 0.2.0.
 - **v0.1.5**: Withdrawn.
 - **v0.1.4**: Little fixes
@@ -156,3 +267,4 @@ Below is a sample configuration for your accessory:
 - **v0.0.2**: Fixes.
 - **v0.0.1**: Enhanced performance and responsiveness of the Pioneer AVR receiver.
 - **v0.0.0**: Forked homebridge-pioneer-avr.
+<br>

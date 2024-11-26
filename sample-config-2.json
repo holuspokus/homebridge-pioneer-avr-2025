@@ -1,0 +1,53 @@
+{
+    "bridge": {
+        "name": "HomebridgePi",
+        "username": "0E:2F:38:1D:33:7A",
+        "port": 51919,
+        "pin": "646-31-061",
+        "advertiser": "avahi"
+    },
+    "accessories": [],
+    "platforms": [
+        {
+            "name": "Config",
+            "port": 8581,
+            "platform": "config",
+            "theme": "deep-purple"
+        },
+        {
+            "platform": "pioneerAvr2025",
+            "name": "pioneerAvr2025",
+            "devices": [
+                {
+                    "host": "VSX-922.local",
+                    "port": 23,
+                    "name": "VSX922",
+                    "inputSwitches": [
+                        "20",
+                        "25",
+                        "01",
+                        "04"
+                    ]
+                },
+                {
+                    "ip": "196.168.1.2",
+                    "port": 23,
+                    "name": "VSX923",
+                    "maxVolume": 75,
+                    "minVolume": 20
+                },
+                {
+                    "ip": "VSX-1120.local",
+                    "port": 24,
+                    "name": "VSX1120"
+                }
+            ],
+            "maxVolume": 65,
+            "minVolume": 30,
+            "_bridge": {
+                "username": "0E:D6:86:BA:AM:69",
+                "port": 35337
+            }
+        }
+    ]
+}

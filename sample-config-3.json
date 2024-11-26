@@ -17,6 +17,20 @@
         {
             "platform": "pioneerAvr2025",
             "name": "pioneerAvr2025",
+            "device": {
+                "port": 23
+            },
+            "discoveredDevices": [
+                {
+                    "host": "VSX-922.local",
+                    "inputSwitches": [
+                        "20",
+                        "25",
+                        "01",
+                        "04"
+                    ]
+                }
+            ],
             "maxVolume": 65,
             "minVolume": 30,
             "_bridge": {
