@@ -686,7 +686,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                         name: `${input.name} (${input.id}) ${input.host}`,
                     }));
                 }
-            });
+            }).sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
 
 
 
