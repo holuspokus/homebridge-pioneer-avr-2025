@@ -796,7 +796,7 @@ class PioneerAvrAccessory {
                         if (!this.avr.state.on) {
                             await this.avr.powerOn();
                             await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
-                        }
+                        } else
 
                         if (this.avr.state.on && this.avr.state.input === inputIndex) {
                             await this.avr.powerOff();
