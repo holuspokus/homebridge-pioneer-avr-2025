@@ -7,7 +7,9 @@ import {
     PlatformAccessory,
     CharacteristicValue,
 } from "homebridge";
-import * as fs from "fs";
+import fs from "fs"; // For file system operations
+import path from "path"; // For handling file paths
+
 import packageJson from "../package.json";
 import { PioneerAvrPlatform } from "./pioneer-avr-platform";
 import { addExitHandler } from "./exitHandler";
@@ -36,8 +38,8 @@ class PioneerAvrAccessory {
     private host: string;
     private maxVolume: number;
     private prefsDir: string;
-    private inputVisibilityFile: string;
-    private savedVisibility: Record<string, any> = {};
+    private inputCacheFile: string = "";
+    private inputCache: Record<string, any> = {};
     private log: Logging;
     public platform: PioneerAvrPlatform;
     public accessory: PlatformAccessory;
@@ -62,6 +64,11 @@ class PioneerAvrAccessory {
         this.prefsDir =
             this.platform.config.prefsDir ||
             this.platform.api.user.storagePath() + "/pioneerAvr/";
+        this.inputCacheFile = path.join(
+            this.prefsDir,
+            `inputCache_${this.host}.json`,
+        );
+
         this.version = packageJson.version;
 
         this.name = this.name.replace(/[^a-zA-Z0-9 ']/g, "");
@@ -73,12 +80,6 @@ class PioneerAvrAccessory {
             `Creating accessory ${this.name} for: ${this.device.origName} at ${this.device.host}:${this.device.port}`,
         );
 
-        this.inputVisibilityFile =
-            `${this.prefsDir}/inputsVisibility_${this.host}`.replace(
-                /\/{2,}/g,
-                "/",
-            );
-        this.initializeVisibilityFile();
 
         try {
             this.avr = new PioneerAvr(
@@ -129,53 +130,6 @@ class PioneerAvrAccessory {
         }
     }
 
-
-
-    private initializeVisibilityFile() {
-        try {
-            if (!fs.existsSync(this.prefsDir)) {
-                fs.mkdirSync(this.prefsDir, { recursive: true });
-            }
-
-            fs.access(this.inputVisibilityFile, fs.constants.F_OK, (err) => {
-                if (err) {
-                    fs.writeFile(this.inputVisibilityFile, "{}", (err) => {
-                        if (err) {
-                            this.log.error(
-                                "Error creating the Input visibility file:",
-                                err,
-                            );
-                        } else {
-                            this.log.debug(
-                                "Input visibility file successfully created.",
-                            );
-                            this.loadSavedVisibility();
-                        }
-                    });
-                } else {
-                    this.log.debug(
-                        "The Input visibility file already exists:",
-                        this.inputVisibilityFile,
-                    );
-                    this.loadSavedVisibility();
-                }
-            });
-        } catch (err) {
-            this.log.debug("Input visibility file could not be created:", err);
-        }
-    }
-
-    private loadSavedVisibility() {
-        try {
-            const fileData = fs.readFileSync(this.inputVisibilityFile, "utf-8");
-            this.savedVisibility = JSON.parse(fileData);
-        } catch (err) {
-            this.log.debug(
-                "Input visibility file does not exist or JSON parsing failed:",
-                err,
-            );
-        }
-    }
 
     /**
      * Prepares the accessory's information service.
@@ -466,6 +420,10 @@ class PioneerAvrAccessory {
             await new Promise((resolve) => setTimeout(resolve, 180));
         }
 
+        if (!(key in this.avr.inputs)) {
+            this.log.error('addInputSourceService() input key not found.', key, this.avr.inputs);
+            return;
+        }
 
 
         try {
@@ -497,7 +455,7 @@ class PioneerAvrAccessory {
                 )
                 .setCharacteristic(
                     this.platform.characteristic.CurrentVisibilityState,
-                    this.savedVisibility[input.id] ?? input.visible ??
+                    input.visible ??
                         this.platform.characteristic.CurrentVisibilityState
                             .SHOWN,
                 );
@@ -507,9 +465,10 @@ class PioneerAvrAccessory {
                     this.platform.characteristic.TargetVisibilityState,
                 )
                 .onSet((state) => {
-                    this.savedVisibility[input.id] = state;
 
-                    this.avr.inputs[key].visible = this.savedVisibility[this.avr.inputs[key].id];
+
+                    this.avr.inputs[key].visible = state;
+
 
                     if (this.writeVisbilityTimeout) {
                         clearTimeout(this.writeVisbilityTimeout);
@@ -522,10 +481,15 @@ class PioneerAvrAccessory {
                                 state,
                             );
 
+                            if (!this.inputCache) {
+                                this.inputCache = {};
+                            }
+
+                            this.inputCache.inputs = this.avr.inputs;
 
                             fs.writeFile(
-                                this.inputVisibilityFile,
-                                JSON.stringify(this.savedVisibility),
+                                this.inputCacheFile,
+                                JSON.stringify(this.inputCache),
                                 () => {
                                     this.log.debug(
                                         "saved visibility:"

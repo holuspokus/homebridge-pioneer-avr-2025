@@ -48,6 +48,7 @@ export function InputManagementMixin<
         public inputToType: { [key: string]: number } = {};
         public pioneerAvrClassCallbackCalled: boolean = false;
         public initCount: number = 0;
+        public oldInputVisibilityFile: string;
 
         constructor(...args: any[]) {
             super(...args);
@@ -61,6 +62,13 @@ export function InputManagementMixin<
                 this.prefsDir,
                 `inputCache_${this.device.host}.json`,
             );
+
+            this.oldInputVisibilityFile =
+                `${this.prefsDir}/inputsVisibility_${this.device.host}`.replace(
+                    /\/{2,}/g,
+                    "/",
+                );
+
             this.inputs = [];
 
             // Ensure the preferences directory exists
@@ -163,6 +171,26 @@ export function InputManagementMixin<
             for (let i = 1; i <= 60; i++) {
                 const key = i.toString().padStart(2, "0");
 
+                // This line maps input IDs (keyed by `i`) to their corresponding `Characteristic.InputSourceType` values.
+                // The mapping was intentionally compressed to save space, even though it sacrifices readability.
+                // Previously, the mapping was more explicit, resembling a structured list, such as:
+                // inputToTypeList = [['25', 3], ['04', 0], ...].
+                // However, since the `Characteristic.InputSourceType.*` values are not visible in the Home app,
+                // this simplified and compact version was deemed sufficient.
+                //
+                // Explanation of the compact logic:
+                // - Input IDs [2, 18, 38] are mapped to type `2` (e.g., Tuner or NETRADIO).
+                // - Input IDs [19, 20, 21, ..., 15] are mapped to type `3` (e.g., HDMI).
+                // - Specific individual mappings:
+                //   - ID `10` -> type `4` (Composite Video)
+                //   - ID `14` -> type `6` (Component Video)
+                //   - ID `17` -> type `9` (USB/iPod)
+                //   - ID `26` -> type `10` (Application)
+                //   - ID `46` -> type `8` (Airplay)
+                // - Any input ID not listed defaults to type `0` (Other).
+                //
+                // While this compact approach minimizes code size, it retains functionality and ensures that each
+                // input ID is correctly assigned a `Characteristic.InputSourceType` value.
                 this.inputToType[key] = [2,18,38].includes(i)?2:[19,20,21,22,23,24,25,26,31,5,6,15].includes(i)?3:i==10?4:i==14?6:i==17?9:i==26?10:i==46?8:0;
 
                 if (
@@ -209,14 +237,34 @@ export function InputManagementMixin<
                 Object.keys(this.inputToType).length > 0
             ) {
                 this.inputs = this.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
-                this.isReady = true;
 
-                for (const [index, input] of this.inputs.entries()) {
-                    if (this.accessory.savedVisibility && input.id in this.accessory.savedVisibility) {
-                        this.inputs[index].visible = this.accessory.savedVisibility[input.id];
-                    } else {
-                        this.inputs[index].visible = true;
-                    }
+                try {
+                    fs.access(this.oldInputVisibilityFile, fs.constants.F_OK, (err) => {
+                        if (!err) {
+                            const fileData = fs.readFileSync(this.oldInputVisibilityFile, "utf-8");
+                            const savedVisibility = JSON.parse(fileData);
+
+                            for (const [index, input] of this.inputs.entries()) {
+                                if (this.inputs[index].visible === undefined) {
+                                    if (savedVisibility && input.id in savedVisibility) {
+                                        this.inputs[index].visible = savedVisibility[input.id];
+                                    } else {
+                                        this.inputs[index].visible = true;
+                                    }
+                                }
+                            }
+
+                            fs.unlink(this.oldInputVisibilityFile, (unlinkErr) => {
+                                if (unlinkErr) {
+                                    console.error(`Error deleting file: ${this.oldInputVisibilityFile}`, unlinkErr);
+                                } else {
+                                    console.log(`File deleted: ${this.oldInputVisibilityFile}`);
+                                }
+                            });
+                        }
+                    });
+                } catch (error) {
+                    this.log.debug("Error processing input visibility file:", error);
                 }
 
                 // Save inputs to cache
@@ -234,7 +282,7 @@ export function InputManagementMixin<
                 }
 
 
-
+                this.isReady = true;
 
                 await this.platform.updateConfigSchema(this.platform.devicesFound, this.device.host, this.inputs);
                 this.accessory.handleInputSwitches();
