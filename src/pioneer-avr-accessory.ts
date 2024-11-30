@@ -413,6 +413,13 @@ class PioneerAvrAccessory {
             return;
         }
 
+        while (
+            !this.tvService ||
+            !this.enabledServices.includes(this.tvService)
+        ) {
+            await new Promise((resolve) => setTimeout(resolve, 180));
+        }
+
         if (!(key in this.avr.inputs)) {
             this.log.error('addInputSourceService() input key not found.', key, this.avr.inputs);
             return;
@@ -444,7 +451,7 @@ class PioneerAvrAccessory {
                 )
                 .setCharacteristic(
                     this.platform.characteristic.InputSourceType,
-                    input.type,
+                    input.type ?? 0,
                 )
                 .setCharacteristic(
                     this.platform.characteristic.CurrentVisibilityState,
@@ -789,6 +796,11 @@ class PioneerAvrAccessory {
                         if (!this.avr.state.on) {
                             await this.avr.powerOn();
                             await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
+                        }
+
+                        if (this.avr.state.on && this.avr.state.input === inputIndex) {
+                            await this.avr.powerOff();
+                            return;
                         }
 
                         // Set the desired input

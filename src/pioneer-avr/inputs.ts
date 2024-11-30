@@ -149,7 +149,7 @@ export function InputManagementMixin<
                         now.getTime() - cacheTimestamp.getTime() <=
                         30 * 60 * 1000
                     ) {
-                        this.inputs = cache.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));;
+                        this.inputs = cache.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
                         this.log.info("Load inputs from cache.");
 
                         setTimeout(async () => {
@@ -157,16 +157,16 @@ export function InputManagementMixin<
                                 !this.accessory.tvService ||
                                 !this.accessory.enabledServices.includes(this.accessory.tvService)
                             ) {
-                                await new Promise((resolve) => setTimeout(resolve, 180));
+                                await new Promise((resolve) => setTimeout(resolve, 50));
                             }
 
                             // Iterate over cached inputs and call addInputSourceService
-                            for (const [index, input] of this.inputs.entries()) {
+                            for (const [index, input] of this.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10)).entries()) {
                                 this.inputToType[input.id] = input.type;
                                 // this.log.info(`Input [${input.name}] from cache`);
                                 this.addInputSourceService(null, index);
                             }
-                        }, 10);
+                        }, 100);
 
 
                         this.isReady = true;
@@ -278,8 +278,13 @@ export function InputManagementMixin<
                         });
                     }
 
-                    // Set visibility for each input
-                    for (const [index, input] of this.inputs.entries()) {
+                    for (const [index, input] of this.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10)).entries()) {
+
+                        // Only set type if it hasn't been already defined
+                        if (this.inputs[index].type === undefined) {
+                            this.inputs[index].type = this.inputToType[input.id] || 0;
+                        }
+
                         // Only set visibility if it hasn't been already defined
                         if (this.inputs[index].visible === undefined) {
                             this.inputs[index].visible =
@@ -289,29 +294,20 @@ export function InputManagementMixin<
                         }
                     }
 
-                    // while (
-                    //     !this.tvService ||
-                    //     !this.enabledServices.includes(this.tvService)
-                    // ) {
-                    //     await new Promise((resolve) => setTimeout(resolve, 180));
-                    // }
-
                     setTimeout(async () => {
                         while (
                             !this.accessory.tvService ||
                             !this.accessory.enabledServices.includes(this.accessory.tvService)
                         ) {
-                            this.log.debug('waiting for this.accessory.tvService');
-                            await new Promise((resolve) => setTimeout(resolve, 180));
+                            await new Promise((resolve) => setTimeout(resolve, 50));
                         }
 
                         // Iterate over cached inputs and call addInputSourceService
-                        for (const [index, input] of this.inputs.entries()) {
-                            this.inputToType[input.id] = input.type;
+                        for (const [index, _input] of this.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10)).entries()) {
                             // this.log.info(`Input [${input.name}] from cache`);
                             this.addInputSourceService(null, index);
                         }
-                    }, 10);
+                    }, 100);
 
 
                     // Save inputs to the cache file
