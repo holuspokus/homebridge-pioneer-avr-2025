@@ -455,9 +455,9 @@ class PioneerAvrAccessory {
                 )
                 .setCharacteristic(
                     this.platform.characteristic.CurrentVisibilityState,
-                    input.visible ??
-                        this.platform.characteristic.CurrentVisibilityState
-                            .SHOWN,
+                    this.avr.booleanToVisibilityState(
+                        input.visible ?? this.platform.characteristic.CurrentVisibilityState.SHOWN === 0
+                    )
                 );
 
             tmpInput
@@ -466,8 +466,20 @@ class PioneerAvrAccessory {
                 )
                 .onSet((state) => {
 
+                  // const state = this.avr.booleanToVisibilityState(true); // 0
+                  // const isVisible = this.avr.visibilityStateToBoolean(1); // false
 
-                    this.avr.inputs[key].visible = state;
+                    this.avr.inputs[key].visible = this.avr.visibilityStateToBoolean( parseInt(String(state), 10) );
+
+
+                    setTimeout(() => {
+                        tmpInput.updateCharacteristic(
+                            this.platform.characteristic
+                                .CurrentVisibilityState,
+                            state,
+                        );
+                    }, key * 233);
+
 
 
                     if (this.writeVisbilityTimeout) {
@@ -475,11 +487,13 @@ class PioneerAvrAccessory {
                     }
                     this.writeVisbilityTimeout = setTimeout(() => {
                         try {
-                            tmpInput.updateCharacteristic(
-                                this.platform.characteristic
-                                    .CurrentVisibilityState,
-                                state,
-                            );
+
+
+                            if (fs.existsSync(this.inputCacheFile)) {
+                                  this.inputCache = JSON.parse(
+                                      fs.readFileSync(this.inputCacheFile, "utf-8"),
+                                  );
+                            }
 
                             if (!this.inputCache) {
                                 this.inputCache = {};
@@ -499,7 +513,7 @@ class PioneerAvrAccessory {
                         } catch (error) {
                             this.log.error("set visibility Error", error);
                         }
-                    }, 1000);
+                    }, 15000);
                 });
 
             tmpInput

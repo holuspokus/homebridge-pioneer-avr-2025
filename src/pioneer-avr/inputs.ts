@@ -49,6 +49,8 @@ export function InputManagementMixin<
         public pioneerAvrClassCallbackCalled: boolean = false;
         public initCount: number = 0;
         public oldInputVisibilityFile: string;
+        public booleanToVisibilityState: (visible: boolean) => number;
+        public visibilityStateToBoolean: (state: number) => boolean;
 
         constructor(...args: any[]) {
             super(...args);
@@ -75,6 +77,13 @@ export function InputManagementMixin<
             if (!fs.existsSync(this.prefsDir)) {
                 fs.mkdirSync(this.prefsDir, { recursive: true });
             }
+
+            // Map boolean -> HomeKit visibility state
+            this.booleanToVisibilityState = (visible: boolean): number => visible ? 0 : 1;
+
+            // Map HomeKit visibility state -> boolean
+            this.visibilityStateToBoolean = (state: number): boolean => state === 0;
+
 
             // Add a callback to manage inputs when the Telnet connection is established
             this.telnetAvr.addOnConnectCallback(async () => {
@@ -146,7 +155,7 @@ export function InputManagementMixin<
                         // Iterate over cached inputs and call addInputSourceService
                         for (const [index, input] of this.inputs.entries()) {
                             this.inputToType[input.id] = input.type;
-                            this.log.info(`Input [${input.name}] from cache`);
+                            // this.log.info(`Input [${input.name}] from cache`);
                             this.addInputSourceService(null, index);
                         }
 
@@ -195,17 +204,17 @@ export function InputManagementMixin<
 
                 if (
                     typeof this.inputBeingAdded === "string" &&
-                    this.inputBeingAddedWaitCount++ < 30
+                    this.inputBeingAddedWaitCount++ < 90
                 ) {
                     await new Promise((resolve) => setTimeout(resolve, 10));
                     this.inputBeingAddedWaitCount = 0;
 
                     while (
                         typeof this.inputBeingAdded === "string" &&
-                        this.inputBeingAddedWaitCount++ < 30
+                        this.inputBeingAddedWaitCount++ < 90
                     ) {
                         await new Promise((resolve) =>
-                            setTimeout(resolve, 150),
+                            setTimeout(resolve, 50),
                         );
                     }
                 }
@@ -227,9 +236,11 @@ export function InputManagementMixin<
                 await this.telnetAvr.sendMessage(
                     `?RGB${key}`,
                     `RGB${key}`,
-                    this.addInputSourceService.bind(this),
+                    ()=>{
+
+                    },
                 );
-                await new Promise((resolve) => setTimeout(resolve, 150));
+                await new Promise((resolve) => setTimeout(resolve, 55));
             }
 
             if (
@@ -239,47 +250,57 @@ export function InputManagementMixin<
                 this.inputs = this.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
 
                 try {
-                    fs.access(this.oldInputVisibilityFile, fs.constants.F_OK, (err) => {
-                        if (!err) {
-                            const fileData = fs.readFileSync(this.oldInputVisibilityFile, "utf-8");
-                            const savedVisibility = JSON.parse(fileData);
+                    let savedVisibility: Record<string, number> = {};
 
-                            for (const [index, input] of this.inputs.entries()) {
-                                if (this.inputs[index].visible === undefined) {
-                                    if (savedVisibility && input.id in savedVisibility) {
-                                        this.inputs[index].visible = savedVisibility[input.id];
-                                    } else {
-                                        this.inputs[index].visible = true;
-                                    }
-                                }
+                    // Check if the old visibility file exists
+                    if (fs.existsSync(this.oldInputVisibilityFile)) {
+                        // File exists: read and parse its content
+                        const fileData = fs.readFileSync(this.oldInputVisibilityFile, "utf-8");
+                        savedVisibility = JSON.parse(fileData);
+
+                        // Delete the old file after reading it
+                        fs.unlink(this.oldInputVisibilityFile, (unlinkErr) => {
+                            if (unlinkErr) {
+                                console.error(`Error deleting file: ${this.oldInputVisibilityFile}`, unlinkErr);
+                            } else {
+                                console.log(`File deleted: ${this.oldInputVisibilityFile}`);
                             }
+                        });
+                    }
 
-                            fs.unlink(this.oldInputVisibilityFile, (unlinkErr) => {
-                                if (unlinkErr) {
-                                    console.error(`Error deleting file: ${this.oldInputVisibilityFile}`, unlinkErr);
-                                } else {
-                                    console.log(`File deleted: ${this.oldInputVisibilityFile}`);
-                                }
-                            });
+                    // Set visibility for each input
+                    for (const [index, input] of this.inputs.entries()) {
+                        // Only set visibility if it hasn't been already defined
+                        if (this.inputs[index].visible === undefined) {
+                            this.inputs[index].visible =
+                                savedVisibility && input.id in savedVisibility
+                                    ? this.visibilityStateToBoolean(savedVisibility[input.id]) // Use saved visibility state
+                                    : true; // Default to visible
                         }
-                    });
-                } catch (error) {
-                    this.log.debug("Error processing input visibility file:", error);
-                }
+                    }
 
-                // Save inputs to cache
-                try {
+                    // Iterate over inputs and call addInputSourceService
+                    for (const [index, input] of this.inputs.entries()) {
+                        this.inputToType[input.id] = input.type;
+                        // this.log.info(`Input [${input.name}] added`);
+                        this.addInputSourceService(null, index);
+                    }
+
+
+                    // Save inputs to the cache file
                     fs.writeFileSync(
                         this.inputCacheFile,
                         JSON.stringify({
-                            timestamp: new Date().toISOString(),
-                            inputs: this.inputs,
+                            timestamp: new Date().toISOString(), // Add a timestamp for tracking
+                            inputs: this.inputs, // Save the current inputs
                         }),
                     );
                     this.log.info("Inputs cached successfully.");
-                } catch (err) {
-                    this.log.error("Failed to cache inputs:", err);
+                } catch (error) {
+                    // Catch and log any unexpected errors during processing
+                    this.log.debug("Error processing input visibility file:", error);
                 }
+
 
 
                 this.isReady = true;
