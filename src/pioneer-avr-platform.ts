@@ -786,10 +786,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     this.cachedReceivers.get(foundDevice.host)?.inputs || [];
                 const deviceInputs =
                     inputs && host && foundDevice.host && host.toLowerCase() === foundDevice.host.toLowerCase() ? inputs : cachedInputs;
-                // const inputSwitches = deviceInputs.map((input) => input.id);
-                // const inputSwitchesEnumNames = deviceInputs.map(
-                //     (input) => `${input.name} (${input.id})`
-                // );
+
                 let existingConfigInputSwitches =
                     this.config.discoveredDevices?.find(
                         (device: any) => device.host.toLowerCase() === foundDevice.host.toLowerCase()
@@ -879,13 +876,6 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
 
             if (schema.schema.properties.discoveredDevices && schema.schema.properties.discoveredDevices.default.length > 0) {
-
-                // for (const device of schema.schema.properties.discoveredDevices.default) {
-                //     if (device.inputSwitches && Array.isArray(device.inputSwitches) && device.inputSwitches.length > 0) {
-                //         this.addInputSwitch(device.host, device.inputSwitches);
-                //     }
-                // }
-
 
                 const configPath = path.resolve(__dirname, "../config.json");
 
