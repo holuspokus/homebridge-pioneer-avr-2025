@@ -247,6 +247,7 @@ Set Input switches for discovered Devices
 <br>
 
 ## Release Notes Platform Version
+- **v0.2.1**: Optimized saving of input visibility and improved ordering of inputs in the Config-UI.
 - **v0.2.0**: Rewritten as a platform plugin in TypeScript for enhanced future-proofing and extensibility. Added switches.
 
 ## Release Notes Accessory Version

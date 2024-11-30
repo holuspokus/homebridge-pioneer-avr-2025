@@ -42,6 +42,7 @@ class PioneerAvrAccessory {
     public platform: PioneerAvrPlatform;
     public accessory: PlatformAccessory;
     private version: string;
+    private writeVisbilityTimeout: NodeJS.Timeout | null = null;
 
     constructor(
         private device: Device,
@@ -114,6 +115,12 @@ class PioneerAvrAccessory {
         } catch (err) {
             this.log.debug("Error initializing AVR:", err);
         }
+
+        // addExitHandler(() => {
+        //     if (this.writeVisbilityTimeout) {
+        //         clearTimeout(this.writeVisbilityTimeout);
+        //     }
+        // }, this);
     }
 
     public async handleInputSwitches() {
@@ -256,7 +263,6 @@ class PioneerAvrAccessory {
         this.avr.functionSetPowerState = (set: boolean) => {
             try {
                 let boolToNum = set ? 1 : 0;
-                // console.log('functionSetPowerState called', typeof(this.tvService.getCharacteristic(this.platform.characteristic.Active).value), this.tvService.getCharacteristic(this.platform.characteristic.Active).value, boolToNum)
                 if (
                     this.tvService.getCharacteristic(
                         this.platform.characteristic.Active,
@@ -280,7 +286,6 @@ class PioneerAvrAccessory {
         this.avr.functionSetPowerState(this.avr.state.on);
 
         this.avr.functionSetActiveIdentifier = (set: number) => {
-            // console.log('functionSetActiveIdentifier called', this.tvService.getCharacteristic(this.platform.characteristic.ActiveIdentifier).value, set)
             if (
                 this.tvService.getCharacteristic(
                     this.platform.characteristic.ActiveIdentifier,
@@ -451,7 +456,6 @@ class PioneerAvrAccessory {
      */
     private async addInputSourceService(error: any, key: any) {
         if (error) {
-            // console.log('in addInputSourceService ERROR> ' + String(error),  String(key))
             return;
         }
 
@@ -462,8 +466,9 @@ class PioneerAvrAccessory {
             await new Promise((resolve) => setTimeout(resolve, 180));
         }
 
+
+
         try {
-            // console.log('in addInputSourceService> ' + String(key), this.avr.inputs)
             const input = this.avr.inputs[key];
             const tmpInput =
                 this.accessory.getServiceById(
@@ -492,7 +497,7 @@ class PioneerAvrAccessory {
                 )
                 .setCharacteristic(
                     this.platform.characteristic.CurrentVisibilityState,
-                    this.savedVisibility[input.id] ||
+                    this.savedVisibility[input.id] ?? input.visible ??
                         this.platform.characteristic.CurrentVisibilityState
                             .SHOWN,
                 );
@@ -502,30 +507,35 @@ class PioneerAvrAccessory {
                     this.platform.characteristic.TargetVisibilityState,
                 )
                 .onSet((state) => {
-                    setTimeout(() => {
+                    this.savedVisibility[input.id] = state;
+
+                    this.avr.inputs[key].visible = this.savedVisibility[this.avr.inputs[key].id];
+
+                    if (this.writeVisbilityTimeout) {
+                        clearTimeout(this.writeVisbilityTimeout);
+                    }
+                    this.writeVisbilityTimeout = setTimeout(() => {
                         try {
                             tmpInput.updateCharacteristic(
                                 this.platform.characteristic
                                     .CurrentVisibilityState,
                                 state,
                             );
-                            this.savedVisibility[input.id] = state;
-                            // this.log.debug('set visibility:', input.name, state)
+
+
                             fs.writeFile(
                                 this.inputVisibilityFile,
                                 JSON.stringify(this.savedVisibility),
                                 () => {
                                     this.log.debug(
-                                        "saved visibility:",
-                                        input.name,
-                                        state,
+                                        "saved visibility:"
                                     );
                                 },
                             );
                         } catch (error) {
                             this.log.error("set visibility Error", error);
                         }
-                    }, 10);
+                    }, 1000);
                 });
 
             tmpInput
@@ -742,7 +752,7 @@ class PioneerAvrAccessory {
 
         const validAccessories: string[] = []; // Track valid accessory UUIDs
 
-        inputToSwitches.slice(0, 5).forEach((inputId) => {
+        inputToSwitches.slice(0, 5).sort((a, b) => parseInt(a, 10) - parseInt(b, 10)).forEach((inputId) => {
             const input = cachedInputs.find((input) => input.id === inputId);
 
             if (!input) {

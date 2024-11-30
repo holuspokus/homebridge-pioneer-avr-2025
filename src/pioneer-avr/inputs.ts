@@ -132,7 +132,7 @@ export function InputManagementMixin<
                         now.getTime() - cacheTimestamp.getTime() <=
                         30 * 60 * 1000
                     ) {
-                        this.inputs = cache.inputs;
+                        this.inputs = cache.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));;
                         this.log.info("Load inputs from cache.");
 
                         // Iterate over cached inputs and call addInputSourceService
@@ -162,21 +162,8 @@ export function InputManagementMixin<
             this.inputs = [];
             for (let i = 1; i <= 60; i++) {
                 const key = i.toString().padStart(2, "0");
-                let value = 0;
 
-                // Map specific input numbers to corresponding types
-                if ([2, 18, 38].includes(i)) value = 2;
-                else if (
-                    [19, 20, 21, 22, 23, 24, 25, 26, 31, 5, 6, 15].includes(i)
-                )
-                    value = 3;
-                else if (i === 10) value = 4;
-                else if (i === 14) value = 6;
-                else if (i === 17) value = 9;
-                else if (i === 26) value = 10;
-                else if (i === 46) value = 8;
-
-                this.inputToType[key] = value;
+                this.inputToType[key] = [2,18,38].includes(i)?2:[19,20,21,22,23,24,25,26,31,5,6,15].includes(i)?3:i==10?4:i==14?6:i==17?9:i==26?10:i==46?8:0;
 
                 if (
                     typeof this.inputBeingAdded === "string" &&
@@ -221,7 +208,16 @@ export function InputManagementMixin<
                 this.inputMissing.length === 0 &&
                 Object.keys(this.inputToType).length > 0
             ) {
+                this.inputs = this.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
                 this.isReady = true;
+
+                for (const [index, input] of this.inputs.entries()) {
+                    if (this.accessory.savedVisibility && input.id in this.accessory.savedVisibility) {
+                        this.inputs[index].visible = this.accessory.savedVisibility[input.id];
+                    } else {
+                        this.inputs[index].visible = true;
+                    }
+                }
 
                 // Save inputs to cache
                 try {
