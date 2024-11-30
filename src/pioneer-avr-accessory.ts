@@ -27,10 +27,10 @@ type Device = {
 
 class PioneerAvrAccessory {
     private informationService!: Service;
-    private tvService!: Service;
+    public tvService!: Service;
     private volumeServiceLightbulb!: Service;
     private tvSpeakerService!: Service;
-    private enabledServices: Service[] = [];
+    public enabledServices: Service[] = [];
     public avr!: PioneerAvr;
     private name: string;
     private manufacturer: string;
@@ -411,13 +411,6 @@ class PioneerAvrAccessory {
     private async addInputSourceService(error: any, key: any) {
         if (error) {
             return;
-        }
-
-        while (
-            !this.tvService ||
-            !this.enabledServices.includes(this.tvService)
-        ) {
-            await new Promise((resolve) => setTimeout(resolve, 180));
         }
 
         if (!(key in this.avr.inputs)) {

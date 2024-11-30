@@ -152,12 +152,22 @@ export function InputManagementMixin<
                         this.inputs = cache.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));;
                         this.log.info("Load inputs from cache.");
 
-                        // Iterate over cached inputs and call addInputSourceService
-                        for (const [index, input] of this.inputs.entries()) {
-                            this.inputToType[input.id] = input.type;
-                            // this.log.info(`Input [${input.name}] from cache`);
-                            this.addInputSourceService(null, index);
-                        }
+                        setTimeout(async () => {
+                            while (
+                                !this.accessory.tvService ||
+                                !this.accessory.enabledServices.includes(this.accessory.tvService)
+                            ) {
+                                await new Promise((resolve) => setTimeout(resolve, 180));
+                            }
+
+                            // Iterate over cached inputs and call addInputSourceService
+                            for (const [index, input] of this.inputs.entries()) {
+                                this.inputToType[input.id] = input.type;
+                                // this.log.info(`Input [${input.name}] from cache`);
+                                this.addInputSourceService(null, index);
+                            }
+                        }, 10);
+
 
                         this.isReady = true;
 
@@ -279,12 +289,29 @@ export function InputManagementMixin<
                         }
                     }
 
-                    // Iterate over inputs and call addInputSourceService
-                    for (const [index, input] of this.inputs.entries()) {
-                        this.inputToType[input.id] = input.type;
-                        // this.log.info(`Input [${input.name}] added`);
-                        this.addInputSourceService(null, index);
-                    }
+                    // while (
+                    //     !this.tvService ||
+                    //     !this.enabledServices.includes(this.tvService)
+                    // ) {
+                    //     await new Promise((resolve) => setTimeout(resolve, 180));
+                    // }
+
+                    setTimeout(async () => {
+                        while (
+                            !this.accessory.tvService ||
+                            !this.accessory.enabledServices.includes(this.accessory.tvService)
+                        ) {
+                            this.log.debug('waiting for this.accessory.tvService');
+                            await new Promise((resolve) => setTimeout(resolve, 180));
+                        }
+
+                        // Iterate over cached inputs and call addInputSourceService
+                        for (const [index, input] of this.inputs.entries()) {
+                            this.inputToType[input.id] = input.type;
+                            // this.log.info(`Input [${input.name}] from cache`);
+                            this.addInputSourceService(null, index);
+                        }
+                    }, 10);
 
 
                     // Save inputs to the cache file
