@@ -1,11 +1,11 @@
 // src/pioneer-avr/pioneerAvr.ts
 
-import type { API, Characteristic, Service, Logging } from "homebridge";
-import { InitializeMixin } from "./initialize";
-import { InputManagementMixin } from "./inputs";
-import { PowerManagementMixin } from "./power";
-import { VolumeManagementMixin } from "./volume";
-import { TelnetAvr } from "../telnet-avr/telnetAvr";
+import type { API, Characteristic, Service, Logging } from 'homebridge';
+import { InitializeMixin } from './initialize';
+import { InputManagementMixin } from './inputs';
+import { PowerManagementMixin } from './power';
+import { VolumeManagementMixin } from './volume';
+import { TelnetAvr } from '../telnet-avr/telnetAvr';
 
 type Device = {
     name: string;
@@ -104,14 +104,14 @@ class PioneerAvr extends InitializeMixin(
 
                         // Log initialization
                         this.log.debug(
-                            "Initializing Pioneer AVR with accessory:",
+                            'Initializing Pioneer AVR with accessory:',
                             accessory.name,
                         );
 
                         // Set default callback if none is provided
-                        if (typeof pioneerAvrClassCallback !== "function") {
+                        if (typeof pioneerAvrClassCallback !== 'function') {
                             pioneerAvrClassCallback = async () => {
-                                this.log.debug("PioneerAvr() connection ready");
+                                this.log.debug('PioneerAvr() connection ready');
                             };
                         }
                         this.pioneerAvrClassCallback = pioneerAvrClassCallback;
@@ -119,12 +119,12 @@ class PioneerAvr extends InitializeMixin(
                         // Call setupTelnetConnection to initialize Telnet connection
                         if (
                             typeof (this as any).setupTelnetConnection ===
-                            "function"
+                            'function'
                         ) {
                             (this as any).setupTelnetConnection();
                         } else {
                             this.log.debug(
-                                "setupTelnetConnection function is missing.",
+                                'setupTelnetConnection function is missing.',
                             );
                         }
                     }

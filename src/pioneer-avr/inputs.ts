@@ -1,10 +1,10 @@
 // src/pioneer-avr/inputs.ts
 
-import type { Service, Logging } from "homebridge"; // Imports Logging type
-import fs from "fs"; // For file system operations
-import path from "path"; // For handling file paths
-import { TelnetAvr } from "../telnet-avr/telnetAvr";
-import type { AVState } from "./pioneerAvr"; // Imports AVState type from PioneerAvr
+import type { Service, Logging } from 'homebridge'; // Imports Logging type
+import fs from 'fs'; // For file system operations
+import path from 'path'; // For handling file paths
+import { TelnetAvr } from '../telnet-avr/telnetAvr';
+import type { AVState } from './pioneerAvr'; // Imports AVState type from PioneerAvr
 
 type Device = {
     name: string;
@@ -37,8 +37,8 @@ export function InputManagementMixin<
 >(Base: TBase) {
     return class extends Base {
         public accessory: any;
-        public prefsDir: string = "";
-        public inputCacheFile: string = "";
+        public prefsDir: string = '';
+        public inputCacheFile: string = '';
         public inputBeingAdded: string | boolean = false;
         public inputBeingAddedWaitCount: number = 0;
         public inputMissing: string[][] = [];
@@ -58,8 +58,8 @@ export function InputManagementMixin<
             // Set `prefsDir` and `inputCacheFile`
             this.prefsDir =
                 this.platform?.config?.prefsDir ||
-                this.platform?.api?.user?.storagePath() + "/pioneerAvr/" ||
-                "";
+                this.platform?.api?.user?.storagePath() + '/pioneerAvr/' ||
+                '';
             this.inputCacheFile = path.join(
                 this.prefsDir,
                 `inputCache_${this.device.host}.json`,
@@ -68,7 +68,7 @@ export function InputManagementMixin<
             this.oldInputVisibilityFile =
                 `${this.prefsDir}/inputsVisibility_${this.device.host}`.replace(
                     /\/{2,}/g,
-                    "/",
+                    '/',
                 );
 
             this.inputs = [];
@@ -102,7 +102,7 @@ export function InputManagementMixin<
                                 }
                             } catch (e) {
                                 this.log.debug(
-                                    "pioneerAvrClassCallback() inputs.ts Error",
+                                    'pioneerAvrClassCallback() inputs.ts Error',
                                     e,
                                 );
                             }
@@ -127,7 +127,7 @@ export function InputManagementMixin<
                         callback();
                     } catch (e) {
                         this.log.debug(
-                            "loadInputs already isReady callback",
+                            'loadInputs already isReady callback',
                             e,
                         );
                     }
@@ -141,7 +141,7 @@ export function InputManagementMixin<
             if (fs.existsSync(this.inputCacheFile)) {
                 try {
                     const cache = JSON.parse(
-                        fs.readFileSync(this.inputCacheFile, "utf-8"),
+                        fs.readFileSync(this.inputCacheFile, 'utf-8'),
                     );
 
                     let cacheTimestamp: Date | null = null;
@@ -167,7 +167,7 @@ export function InputManagementMixin<
                         30 * 60 * 1000
                     ) {
                         this.inputs = cache.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
-                        this.log.info("Load inputs from cache.");
+                        this.log.info('Load inputs from cache.');
 
                         setTimeout(async () => {
                             while (
@@ -210,15 +210,15 @@ export function InputManagementMixin<
                         return;
                     }
                 } catch (err) {
-                    this.log.debug("Failed to load cached inputs:", err);
+                    this.log.debug('Failed to load cached inputs:', err);
                 }
             }
 
             // Refresh inputs if no valid cache is available
-            this.log.info("Refreshing inputs...");
+            this.log.info('Refreshing inputs...');
             this.inputs = [];
             for (let i = 1; i <= 60; i++) {
-                const key = i.toString().padStart(2, "0");
+                const key = i.toString().padStart(2, '0');
 
                 // This line maps input IDs (keyed by `i`) to their corresponding `Characteristic.InputSourceType` values.
                 // The mapping was intentionally compressed to save space, even though it sacrifices readability.
@@ -243,14 +243,14 @@ export function InputManagementMixin<
                 this.inputToType[key] = [2,18,38].includes(i)?2:[19,20,21,22,23,24,25,26,31,5,6,15].includes(i)?3:i==10?4:i==14?6:i==17?9:i==26?10:i==46?8:0;
 
                 if (
-                    typeof this.inputBeingAdded === "string" &&
+                    typeof this.inputBeingAdded === 'string' &&
                     this.inputBeingAddedWaitCount++ < 90
                 ) {
                     await new Promise((resolve) => setTimeout(resolve, 10));
                     this.inputBeingAddedWaitCount = 0;
 
                     while (
-                        typeof this.inputBeingAdded === "string" &&
+                        typeof this.inputBeingAdded === 'string' &&
                         this.inputBeingAddedWaitCount++ < 90
                     ) {
                         await new Promise((resolve) =>
@@ -295,7 +295,7 @@ export function InputManagementMixin<
                     // Check if the old visibility file exists
                     if (fs.existsSync(this.oldInputVisibilityFile)) {
                         // File exists: read and parse its content
-                        const fileData = fs.readFileSync(this.oldInputVisibilityFile, "utf-8");
+                        const fileData = fs.readFileSync(this.oldInputVisibilityFile, 'utf-8');
                         importedFromOldInputVisibilityFile = JSON.parse(fileData);
 
                         // Delete the old file after reading it
@@ -361,10 +361,10 @@ export function InputManagementMixin<
                             inputs: this.inputs, // Save the current inputs
                         }),
                     );
-                    this.log.info("Inputs cached successfully.");
+                    this.log.info('Inputs cached successfully.');
                 } catch (error) {
                     // Catch and log any unexpected errors during processing
-                    this.log.debug("Error processing input visibility file:", error);
+                    this.log.debug('Error processing input visibility file:', error);
                 }
 
 
@@ -395,11 +395,11 @@ export function InputManagementMixin<
                 return;
             }
 
-            // this.log.debug("inputStatus updated %s", this.state.input);
+            // this.log.debug('inputStatus updated %s', this.state.input);
             try {
                 callback(null, this.state.input);
             } catch (e) {
-                this.log.debug("inputStatus callback error", e);
+                this.log.debug('inputStatus callback error', e);
             }
         }
 
@@ -440,7 +440,7 @@ export function InputManagementMixin<
                 return;
 
             const shrinkName = newName
-                .replace(/[^\p{L}\p{N} /:._-]/gu, "")
+                .replace(/[^\p{L}\p{N} /:._-]/gu, '')
                 .substring(0, 14);
             this.telnetAvr.sendMessage(`${shrinkName}1RGB${id}`);
         }
@@ -465,7 +465,7 @@ export function InputManagementMixin<
          * @param callback - The callback function to execute after updating.
          */
         public async __updateInput(callback: () => void) {
-            this.telnetAvr.sendMessage("?F", "FN", callback);
+            this.telnetAvr.sendMessage('?F', 'FN', callback);
         }
     };
 }

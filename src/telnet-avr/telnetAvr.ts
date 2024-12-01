@@ -1,7 +1,7 @@
 // src/telnet-avr/telnetAvr.ts
 
-import { Connection } from "./connection";
-import PioneerAvr from "../pioneer-avr/pioneerAvr";
+import { Connection } from './connection';
+import PioneerAvr from '../pioneer-avr/pioneerAvr';
 
 export class TelnetAvr {
     public readonly connection: Connection;
@@ -14,6 +14,8 @@ export class TelnetAvr {
     public port: number;
     public log: any;
     public avr: PioneerAvr;
+    public device: any;
+    public platform: any;
 
     constructor(pioneerAvr: any) {
         // Use the properties from the passed-in PioneerAvr instance
@@ -21,12 +23,14 @@ export class TelnetAvr {
         this.port = pioneerAvr.port;
         this.log = pioneerAvr.log;
         this.avr = pioneerAvr;
+        this.device = pioneerAvr.device;
+        this.platform = pioneerAvr.platform;
 
         this.connection = new Connection(this);
 
         this.connection.onDisconnect = () => {
             this.connectionReady = false;
-            this.log.debug("Running onDisconnect callbacks...");
+            this.log.debug('Running onDisconnect callbacks...');
             for (const callback of this.onDisconnectCallbacks) {
                 callback();
             }
@@ -67,7 +71,7 @@ export class TelnetAvr {
     }
 
     public displayChanged(message: string) {
-        this.log.debug("[DISPLAY] " + message);
+        this.log.debug('[DISPLAY] ' + message);
     }
 
     public fallbackOnData(error: any, message: string, callback?: Function) {

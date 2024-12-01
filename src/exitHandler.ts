@@ -23,7 +23,7 @@ function runHandlers() {
         try {
             handler.call(context);
         } catch (e) {
-            console.error("Error executing exit handler:", e);
+            console.error('Error executing exit handler:', e);
         }
     });
 }
@@ -32,7 +32,7 @@ function runHandlers() {
 process.stdin.resume();
 
 // Bind the exit handler to various termination signals
-process.on("exit", runHandlers);
-process.on("SIGINT", runHandlers);
-process.on("SIGUSR1", runHandlers);
-process.on("SIGUSR2", runHandlers);
+process.on('exit', runHandlers);
+process.on('SIGINT', runHandlers);
+process.on('SIGUSR1', runHandlers);
+process.on('SIGUSR2', runHandlers);

@@ -1,7 +1,7 @@
 // src/discovery.ts
 
-import * as net from "net";
-import bonjour from "bonjour"; // Bonjour for mDNS discovery
+import * as net from 'net';
+import bonjour from 'bonjour'; // Bonjour for mDNS discovery
 
 // Main function to discover devices using mDNS (Bonjour) only
 async function findDevices(
@@ -29,7 +29,7 @@ async function findDevices(
         inputSwitches?: string[];
     }[] = [];
     const bonjourService = bonjour();
-    log.debug("Searching for Pioneer Receivers via Bonjour...");
+    log.debug('Searching for Pioneer Receivers via Bonjour...');
 
     // Discover Bonjour devices with a dynamic stop condition
     await discoverBonjourDevices(
@@ -65,7 +65,7 @@ async function discoverBonjourDevices(
 ) {
     let hostsFound: string[] = [];
     return new Promise<void>((resolve) => {
-        bonjourService.find({ type: "raop" }, (service) => {
+        bonjourService.find({ type: 'raop' }, (service) => {
             // {
             //     addresses: [ '192.168.1.99' ],
             //     name: '746E1B312D68@VSX-923',
@@ -96,17 +96,17 @@ async function discoverBonjourDevices(
             //       }
             //   }
 
-            let origName = "";
+            let origName = '';
 
             if (service.name) {
                 origName = String(service.name);
             }
 
-            let serviceString = "oops!";
+            let serviceString = 'oops!';
             try {
                 serviceString = JSON.stringify(service, null, 2);
             } catch (error) {
-                log.debug("Failed to convert object to string:", error);
+                log.debug('Failed to convert object to string:', error);
                 if (service.name) {
                     serviceString = service.name;
                 }
@@ -121,9 +121,9 @@ async function discoverBonjourDevices(
                 }
 
                 if (service.name) {
-                    service.name = service.name.replace(/\.local$/, "");
-                    service.name = service.name.includes("@")
-                        ? service.name.split("@")[1]
+                    service.name = service.name.replace(/\.local$/, '');
+                    service.name = service.name.includes('@')
+                        ? service.name.split('@')[1]
                         : service.name;
                 }
 
@@ -131,7 +131,7 @@ async function discoverBonjourDevices(
                 function findIp(service: any): string | null {
                     for (const key in service) {
                         if (
-                            typeof service[key] === "string" &&
+                            typeof service[key] === 'string' &&
                             service[key].match(
                                 /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/,
                             )
@@ -154,21 +154,21 @@ async function discoverBonjourDevices(
                 function findName(service: any): string | null {
                     for (const key in service) {
                         if (
-                            key.toLowerCase() === "name" &&
-                            typeof service[key] === "string"
+                            key.toLowerCase() === 'name' &&
+                            typeof service[key] === 'string'
                         ) {
                             const name = service[key];
                             // Check if '@' is in the name, and return the part after it if present
-                            return name.includes("@")
-                                ? name.split("@")[1]
+                            return name.includes('@')
+                                ? name.split('@')[1]
                                 : name;
                         }
                     }
 
                     // Fallback to 'host' if 'name' is not present or doesn't contain '@'
-                    if (service.host && typeof service.host === "string") {
+                    if (service.host && typeof service.host === 'string') {
                         // Remove '.local' from the host name if present
-                        return service.host.replace(/\.local$/, "");
+                        return service.host.replace(/\.local$/, '');
                     }
 
                     return null;
@@ -189,9 +189,9 @@ async function discoverBonjourDevices(
                     host;
 
 
-                // name = name.replace(/[^a-zA-Z0-9 ']/g, "");
+                // name = name.replace(/[^a-zA-Z0-9 ']/g, '');
                 // name = name
-                //     .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, "")
+                //     .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '')
                 //     .trim();
 
 
@@ -202,7 +202,7 @@ async function discoverBonjourDevices(
                         name,
                         origName,
                         telnetPorts,
-                        "bonjour",
+                        'bonjour',
                         log,
                     ).then((device) => {
                         if (
@@ -300,12 +300,12 @@ async function isPortOpen(
         });
 
         // Event: Successful connection and closure
-        socket.on("close", () => {
+        socket.on('close', () => {
             resolve(isConnectionOpen);
         });
 
         // Event: Error in connection attempt (port likely closed)
-        socket.on("error", (err) => {
+        socket.on('error', (err) => {
             log.debug(
                 `Error accessing port ${port} on Host ${host}: ${err.message}`,
             );
@@ -313,7 +313,7 @@ async function isPortOpen(
         });
 
         // Event: Connection timed out
-        socket.on("timeout", () => {
+        socket.on('timeout', () => {
             log.debug(
                 `Timeout reached when checking port ${port} on Host ${host}`,
             );

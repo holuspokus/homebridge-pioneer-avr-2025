@@ -8,12 +8,12 @@ import type {
     PlatformAccessory,
     PlatformConfig,
     Service,
-} from "homebridge";
-import { findDevices } from "./discovery";
-import PioneerAvrAccessory from "./pioneer-avr-accessory.js";
-import * as fs from "fs";
-import * as path from "path";
-import packageJson from "../package.json"; // Import package.json
+} from 'homebridge';
+import { findDevices } from './discovery';
+import PioneerAvrAccessory from './pioneer-avr-accessory.js';
+import * as fs from 'fs';
+import * as path from 'path';
+import packageJson from '../package.json'; // Import package.json
 
 type Device = {
     name: string;
@@ -42,7 +42,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
     // Configuration constants as instance variables
     private readonly TELNET_PORTS = [23, 24, 8102];
-    private readonly TARGET_NAME = "VSX";
+    private readonly TARGET_NAME = 'VSX';
     private readonly MAX_ATTEMPTS = 1000;
     private readonly RETRY_DELAY = 10000; // 10 seconds in milliseconds
 
@@ -62,22 +62,22 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         this.service = this.api.hap.Service;
         this.characteristic = this.api.hap.Characteristic;
 
-        let platformName = packageJson.platformName || "pioneerAvr2025";
-        platformName = platformName.replace(/[^a-zA-Z0-9 ']/g, "");
+        let platformName = packageJson.platformName || 'pioneerAvr2025';
+        platformName = platformName.replace(/[^a-zA-Z0-9 ']/g, '');
         platformName = platformName
-            .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, "")
+            .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '')
             .trim();
 
-        let pluginName = packageJson.name || "homebridge-pioneer-avr-2025";
-        pluginName = pluginName.replace(/[^a-zA-Z0-9 \-']/g, "");
+        let pluginName = packageJson.name || 'homebridge-pioneer-avr-2025';
+        pluginName = pluginName.replace(/[^a-zA-Z0-9 \-']/g, '');
         pluginName = pluginName
-            .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, "")
+            .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '')
             .trim();
 
-        this.platformName = platformName || "pioneerAvr2025";
-        this.pluginName = pluginName || "homebridge-pioneer-avr-2025";
+        this.platformName = platformName || 'pioneerAvr2025';
+        this.pluginName = pluginName || 'homebridge-pioneer-avr-2025';
 
-        this.log.debug("Platform started:", this.platformName, this.pluginName);
+        this.log.debug('Platform started:', this.platformName, this.pluginName);
 
         if (
             config.device?.port &&
@@ -109,7 +109,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         }
 
         // Register for the 'didFinishLaunching' event to start device discovery after Homebridge startup
-        this.api.on("didFinishLaunching", () => {
+        this.api.on('didFinishLaunching', () => {
             this.discoverDevices();
 
         });
@@ -170,7 +170,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
      * Sets up event handlers for each cached accessory.
      */
     configureAccessory(accessory: PlatformAccessory) {
-        this.log.info("Loading accessory from cache:", accessory.displayName);
+        this.log.info('Loading accessory from cache:', accessory.displayName);
         this.accessories.push(accessory);
     }
 
@@ -198,16 +198,16 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                         name:
                             device.name ||
                             String(device.host || device.ip)
-                                .replace(/\.local$/, "")
-                                .replace(/[^a-zA-Z0-9 ]/g, ""),
+                                .replace(/\.local$/, '')
+                                .replace(/[^a-zA-Z0-9 ]/g, ''),
                         origName:
                             device.name ||
                             String(device.host || device.ip)
-                                .replace(/\.local$/, "")
-                                .replace(/[^a-zA-Z0-9 ]/g, ""),
+                                .replace(/\.local$/, '')
+                                .replace(/[^a-zA-Z0-9 ]/g, ''),
                         host: device.host || device.ip,
                         port: device.port || 23,
-                        source: "pluginConfig",
+                        source: 'pluginConfig',
                     };
 
                     if (device.minVolume) {
@@ -226,7 +226,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 }
             }
 
-            this.log.debug("Using manually configured devices:", this.devicesFound);
+            this.log.debug('Using manually configured devices:', this.devicesFound);
         } else if (
             this.config &&
             this.config?.device &&
@@ -239,16 +239,16 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 name:
                     this.config.device.name ||
                     String(this.config.device.host || this.config.device.ip)
-                        .replace(/\.local$/, "")
-                        .replace(/[^a-zA-Z0-9 ]/g, ""),
+                        .replace(/\.local$/, '')
+                        .replace(/[^a-zA-Z0-9 ]/g, ''),
                 origName:
                     this.config.device.name ||
                     String(this.config.device.host || this.config.device.ip)
-                        .replace(/\.local$/, "")
-                        .replace(/[^a-zA-Z0-9 ]/g, ""),
+                        .replace(/\.local$/, '')
+                        .replace(/[^a-zA-Z0-9 ]/g, ''),
                 host: this.config.device.host || this.config.device.ip,
                 port: this.config.device.port || 23,
-                source: "pluginConfig",
+                source: 'pluginConfig',
             };
 
             if (this.config.device.minVolume) {
@@ -265,7 +265,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
             this.devicesFound.push(addDevice);
 
-            this.log.debug("Using manually configured device:", this.devicesFound);
+            this.log.debug('Using manually configured device:', this.devicesFound);
         } else if (
             this.config &&
             (this.config.host || this.config.ip) &&
@@ -283,35 +283,35 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             }
 
             let addDevice: Device = {
-                name: name.replace(/\.local$/, "")
-                    .replace(/[^a-zA-Z0-9 ]/g, ""),
+                name: name.replace(/\.local$/, '')
+                    .replace(/[^a-zA-Z0-9 ]/g, ''),
                 origName: name,
                 host: this.config.host || this.config.ip,
                 port: this.config.port || 23,
-                source: "pluginConfig",
+                source: 'pluginConfig',
             };
 
             this.devicesFound.push(addDevice);
-            this.log.debug("Using manually configured device:", this.devicesFound);
+            this.log.debug('Using manually configured device:', this.devicesFound);
         } else {
             const homebridgeConfigPath = path.join(
                 this.api.user.storagePath(),
-                "config.json",
+                'config.json',
             );
 
             try {
                 // Load the config.json file
                 const homebridgeConfig: any = JSON.parse(
-                    fs.readFileSync(homebridgeConfigPath, "utf8"),
+                    fs.readFileSync(homebridgeConfigPath, 'utf8'),
                 );
 
-                // Check if "pioneerAvrAccessory" exists in accessories
+                // Check if 'pioneerAvrAccessory' exists in accessories
                 const pioneerAccessory = homebridgeConfig.accessories?.find(
                     (accessory: any) =>
-                        accessory.accessory === "pioneerAvrAccessory",
+                        accessory.accessory === 'pioneerAvrAccessory',
                 );
 
-                // Check if "pioneerAvr2025" platform already exists
+                // Check if 'pioneerAvr2025' platform already exists
                 let pioneerPlatform = homebridgeConfig.platforms.find(
                     (platform: any) => platform.name === this.platformName,
                 );
@@ -319,7 +319,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 // If not found, create the platform entry
                 if (!pioneerPlatform) {
                     pioneerPlatform = {
-                        name: this.platformName.replace(/[^a-zA-Z0-9 ]/g, ""),
+                        name: this.platformName.replace(/[^a-zA-Z0-9 ]/g, ''),
                         platform: this.platformName,
                     };
                     homebridgeConfig.platforms.push(pioneerPlatform);
@@ -338,11 +338,11 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     }
 
                     let addDevice: Device = {
-                        name: name.replace(/[^a-zA-Z0-9 ]/g, ""),
+                        name: name.replace(/[^a-zA-Z0-9 ]/g, ''),
                         origName: name,
                         host: pioneerAccessory.host || pioneerAccessory.ip || pioneerAccessory.address,
                         port: pioneerAccessory.port,
-                        source: "pioneerAccessory",
+                        source: 'pioneerAccessory',
                     };
 
                     if (pioneerAccessory.minVolume) {
@@ -359,7 +359,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
                     this.devicesFound.push(addDevice);
                     this.log.debug(
-                        "Found pioneerAvrAccessory in config.json.",
+                        'Found pioneerAvrAccessory in config.json.',
                         this.devicesFound,
                     );
 
@@ -367,7 +367,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     homebridgeConfig.platforms =
                         homebridgeConfig.platforms || [];
 
-                    // Add the "device" entry
+                    // Add the 'device' entry
                     if (
                         !pioneerPlatform.device ||
                         !pioneerPlatform.device.name ||
@@ -382,9 +382,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     }
 
                     this.log.info(
-                        'Updated "' +
-                            this.platformName +
-                            '" platform in config.json with device info from "pioneerAvrAccessory".',
+                        `Updated '${this.platformName}' platform in config.json with device info from 'pioneerAvrAccessory'.`
                     );
                 }
 
@@ -405,20 +403,20 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     needsRestart = true;
                 }
 
-                // Remove all "pioneerAvrAccessory" entries from accessories
+                // Remove all 'pioneerAvrAccessory' entries from accessories
                 if (Array.isArray(homebridgeConfig.accessories)) {
                     const originalLength = homebridgeConfig.accessories.length;
                     homebridgeConfig.accessories =
                         homebridgeConfig.accessories.filter(
                             (accessory: any) =>
-                                accessory.accessory !== "pioneerAvrAccessory",
+                                accessory.accessory !== 'pioneerAvrAccessory',
                         );
 
                     if (
                         homebridgeConfig.accessories.length !== originalLength
                     ) {
                         this.log.debug(
-                            'Removed "pioneerAvrAccessory" entries from config.json.',
+                            `Removed 'pioneerAvrAccessory' entries from config.json.`
                         );
                         needsRestart = true;
                     }
@@ -428,23 +426,23 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 fs.writeFileSync(
                     homebridgeConfigPath,
                     JSON.stringify(homebridgeConfig, null, 2),
-                    "utf8",
+                    'utf8',
                 );
-                this.log.debug("Saved updated config.json.");
+                this.log.debug('Saved updated config.json.');
 
                 if (needsRestart) {
                     this.cleanCachedAccessories();
 
                     console.log(JSON.stringify(homebridgeConfig, null, 2));
-                    console.error("PLEASE RESTART HOMEBRIDGE");
-                    console.error("PLEASE RESTART HOMEBRIDGE");
-                    console.error("PLEASE RESTART HOMEBRIDGE");
+                    console.error('PLEASE RESTART HOMEBRIDGE');
+                    console.error('PLEASE RESTART HOMEBRIDGE');
+                    console.error('PLEASE RESTART HOMEBRIDGE');
                     process.exit();
                     return;
                 }
             } catch (error) {
                 this.log.error(
-                    "Error updating config.json for pioneerAvrAccessory:",
+                    'Error updating config.json for pioneerAvrAccessory:',
                     error,
                 );
             }
@@ -482,7 +480,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                             )?.inputSwitches || [],
                         });
                     }
-                    this.log.debug("Discovered devices:", this.devicesFound);
+                    this.log.debug('Discovered devices:', this.devicesFound);
                     break;
                 }
 
@@ -500,7 +498,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             // Log error if all attempts failed and no devices were found
             if (this.devicesFound.length === 0) {
                 this.log.error(
-                    "No devices found after maximum retry attempts. Please configure manually.",
+                    'No devices found after maximum retry attempts. Please configure manually.',
                 );
                 return;
             }
@@ -533,7 +531,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         let foundDevices = JSON.parse(JSON.stringify(foundDevicesin));
 
         try {
-            const schemaPath = path.resolve(__dirname, "../config.schema.json");
+            const schemaPath = path.resolve(__dirname, '../config.schema.json');
 
             if (!fs.existsSync(schemaPath)) {
                 this.log.error(
@@ -542,32 +540,32 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 return;
             }
 
-            const rawSchema = fs.readFileSync(schemaPath, "utf8");
+            const rawSchema = fs.readFileSync(schemaPath, 'utf8');
             let schema;
 
             try {
                 schema = JSON.parse(rawSchema);
             } catch (error) {
-                this.log.debug("Failed to parse config.schema.json:", error);
+                this.log.debug('Failed to parse config.schema.json:', error);
                 return;
             }
 
             if (!schema.schema || !schema.schema.properties) {
                 this.log.debug(
-                    "Schema properties are missing in config.schema.json."
+                    'Schema properties are missing in config.schema.json.'
                 );
                 return;
             }
 
             if (!schema.schema.properties.devices) {
                 schema.schema.properties.devices = {
-                    type: "array", // array
-                    title: "Devices",
+                    type: 'array', // array
+                    title: 'Devices',
                     description:
-                        "Add multiple Pioneer AVR devices to your configuration.",
+                        'Add multiple Pioneer AVR devices to your configuration.',
                     items: {
-                        type: "object",
-                        title: "Device Configuration",
+                        type: 'object',
+                        title: 'Device Configuration',
 
                         properties: {},
                     },
@@ -580,78 +578,78 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             let firstDevice = foundDevices[0];
 
             schema.schema.properties.devices.items.properties.port = {
-                type: "integer",
-                title: "Device Port",
-                description: `Enter the port number for the device connection (e.g., 23 or 8102). To open the port, visit: http://${firstDevice.host || "vsx-922.local"}/1000/port_number.asp`,
-                placeholder: firstDevice.port || "23",
+                type: 'integer',
+                title: 'Device Port',
+                description: `Enter the port number for the device connection (e.g., 23 or 8102). To open the port, visit: http://${firstDevice.host || 'vsx-922.local'}/1000/port_number.asp`,
+                placeholder: firstDevice.port || '23',
             };
 
-            if (firstDevice.source !== "bonjour" && firstDevice.port) {
+            if (firstDevice.source !== 'bonjour' && firstDevice.port) {
                 schema.schema.properties.devices.items.properties.port.default =
                     firstDevice.port;
             }
 
             schema.schema.properties.devices.items.properties.name = {
-                type: "string",
-                title: "Device Name",
-                description: "Enter the name of the device visible in HomeKit.",
-                placeholder: String(firstDevice.name || "VSX922").replace(
+                type: 'string',
+                title: 'Device Name',
+                description: 'Enter the name of the device visible in HomeKit.',
+                placeholder: String(firstDevice.name || 'VSX922').replace(
                     /[^a-zA-Z0-9]/g,
-                    ""
+                    ''
                 ),
             };
 
-            if (firstDevice.source !== "bonjour" && firstDevice.name) {
+            if (firstDevice.source !== 'bonjour' && firstDevice.name) {
                 schema.schema.properties.devices.items.properties.name.default =
-                    firstDevice.name.replace(/[^a-zA-Z0-9 ]/g, "");
+                    firstDevice.name.replace(/[^a-zA-Z0-9 ]/g, '');
             }
 
             schema.schema.properties.devices.items.properties.host = {
-                type: "string",
-                title: "Device IP Address",
+                type: 'string',
+                title: 'Device IP Address',
                 description:
-                    "Enter the IP address or the DNS name of the device (e.g., VSX-922.local).",
-                placeholder: firstDevice.host || "192.168.1.99",
+                    'Enter the IP address or the DNS name of the device (e.g., VSX-922.local).',
+                placeholder: firstDevice.host || '192.168.1.99',
             };
 
-            if (firstDevice.source !== "bonjour" && firstDevice.host) {
+            if (firstDevice.source !== 'bonjour' && firstDevice.host) {
                 schema.schema.properties.devices.items.properties.host.default =
                     firstDevice.host;
             }
 
             schema.schema.properties.devices.items.properties.minVolume = {
-                type: "integer",
-                title: "Minimum Volume",
+                type: 'integer',
+                title: 'Minimum Volume',
                 description:
-                    "Set the minimum volume level (0-100). Overrides global setting.",
+                    'Set the minimum volume level (0-100). Overrides global setting.',
                 minimum: 0,
                 maximum: 100,
                 placeholder: this.config.minVolume || 30
             };
 
-            if (firstDevice.source !== "bonjour" && firstDevice.minVolume) {
+            if (firstDevice.source !== 'bonjour' && firstDevice.minVolume) {
                 schema.schema.properties.devices.items.properties.minVolume.default =
                     parseInt(firstDevice.minVolume, 10);
             }
 
             schema.schema.properties.devices.items.properties.maxVolume = {
-                type: "integer",
-                title: "Maximum Volume Setting (Lightbulb)",
+                type: 'integer',
+                title: 'Maximum Volume Setting (Lightbulb)',
                 description:
-                    "Set the maximum volume level (0-100). Overrides global setting.",
+                    'Set the maximum volume level (0-100). Overrides global setting.',
                 minimum: 0,
                 maximum: 100,
                 placeholder: this.config.maxVolume || 65
             };
 
-            if (firstDevice.source !== "bonjour" && firstDevice.maxVolume) {
+            if (firstDevice.source !== 'bonjour' && firstDevice.maxVolume) {
                 schema.schema.properties.devices.items.properties.maxVolume.default =
                     parseInt(firstDevice.maxVolume, 10);
             }
 
             let bonjourCounter = 0;
             for (const foundDevice of foundDevices) {
-                if (foundDevice.source === "bonjour") {
+                if (foundDevice.source === 'bonjour') {
                     bonjourCounter++;
                 }
             }
@@ -696,12 +694,12 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
             if (bonjourCounter !== foundDevices.length) {
                 schema.schema.properties.devices.items.properties.inputSwitches = {
-                    type: "array",
-                    title: "Input Switches to Expose",
+                    type: 'array',
+                    title: 'Input Switches to Expose',
                     description:
-                        "Select up to 5 inputs to expose as switches in HomeKit.",
+                        'Select up to 5 inputs to expose as switches in HomeKit.',
                     items: {
-                        type: "string"
+                        type: 'string'
                     },
                     uniqueItems: true,
                     maxItems: 5,
@@ -724,47 +722,47 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
             if (bonjourCounter > 0) {
                 schema.schema.properties.discoveredDevices = {
-                    type: "array",
-                    title: "Discovered Devices",
+                    type: 'array',
+                    title: 'Discovered Devices',
                     items: {
-                        type: "object",
+                        type: 'object',
                         properties: {
                             host: {
-                                type: "string",
-                                title: "Host (IP or DNS Name) Dont change.",
+                                type: 'string',
+                                title: 'Host (IP or DNS Name) Dont change.',
                                 readOnly: true,
                             },
                             maxVolume: {
-                                type: "integer",
-                                title: "Maximum Volume Setting (Lightbulb)",
+                                type: 'integer',
+                                title: 'Maximum Volume Setting (Lightbulb)',
                                 description:
-                                    "Set the maximum volume level (0-100). Overrides global setting.",
+                                    'Set the maximum volume level (0-100). Overrides global setting.',
                                 minimum: 0,
                                 maximum: 100
                             },
                             minVolume: {
-                                type: "integer",
-                                title: "Minimum Volume",
+                                type: 'integer',
+                                title: 'Minimum Volume',
                                 description:
-                                    "Set the minimum volume level (0-100). Overrides global setting.",
+                                    'Set the minimum volume level (0-100). Overrides global setting.',
                                 minimum: 0,
                                 maximum: 100,
                                 placeholder: this.config.minVolume || 30
                             },
                             inputSwitches: {
-                                type: "array",
-                                title: "Input Switches to Expose",
+                                type: 'array',
+                                title: 'Input Switches to Expose',
                                 description:
-                                    "Select up to 5 inputs to expose as switches in HomeKit.",
+                                    'Select up to 5 inputs to expose as switches in HomeKit.',
                                 items: {
-                                    type: "string"
+                                    type: 'string'
                                 },
                                 uniqueItems: true,
                                 maxItems: 5,
                                 default: [],
                             },
                         },
-                        required: ["host"],
+                        required: ['host'],
                     },
                     default: [],
                 };
@@ -824,7 +822,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
                 foundDevice.inputSwitches = existingConfigInputSwitches;
 
-                if (foundDevice.source === "bonjour") {
+                if (foundDevice.source === 'bonjour') {
                     schema.schema.properties.discoveredDevices.default.push(
                         addDevice
                     );
@@ -845,14 +843,14 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     discoveredDevices: schemaDiscoveredDevices,
                     ...Object.fromEntries(
                         Object.entries(schema.schema.properties).filter(
-                            ([key]) => key !== "discoveredDevices"
+                            ([key]) => key !== 'discoveredDevices'
                         )
                     ),
                 };
             }
 
 
-            const dynamicHost = firstDevice.host || "vsx-922.local";
+            const dynamicHost = firstDevice.host || 'vsx-922.local';
             const dynamicHeaderLink = `To open a telnet port on the receiver or set Network Standby, click here: [http://${dynamicHost}/1000/port_number.asp](http://${dynamicHost}/1000/port_number.asp).`;
 
             if (!schema.headerDisplay) {
@@ -861,7 +859,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 const regex =
                     /To open a telnet port on the receiver or set Network Standby, click here: \[http:\/\/.*?\/1000\/port_number\.asp\]\(http:\/\/.*?\/1000\/port_number\.asp\)\./;
                 schema.headerDisplay = schema.headerDisplay
-                    .replace(regex, "")
+                    .replace(regex, '')
                     .trim();
                 schema.headerDisplay += `\n\n${dynamicHeaderLink}`;
             }
@@ -869,19 +867,19 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             fs.writeFileSync(
                 schemaPath,
                 JSON.stringify(schema, null, 4),
-                "utf8"
+                'utf8'
             );
 
-            this.log.debug("Updated config.schema.json successfully.");
+            this.log.debug('Updated config.schema.json successfully.');
 
 
             if (schema.schema.properties.discoveredDevices && schema.schema.properties.discoveredDevices.default.length > 0) {
 
-                const configPath = path.resolve(__dirname, "../config.json");
+                const configPath = path.resolve(__dirname, '../config.json');
 
                 try {
                     // Read the existing config.json
-                    const rawConfig = fs.existsSync(configPath) ? fs.readFileSync(configPath, "utf8") : "{}";
+                    const rawConfig = fs.existsSync(configPath) ? fs.readFileSync(configPath, 'utf8') : '{}';
                     const config = JSON.parse(rawConfig);
 
                     // Ensure the discoveredDevices array exists in the config.json
@@ -903,16 +901,16 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     });
 
                     // Write back the updated config.json
-                    fs.writeFileSync(configPath, JSON.stringify(config, null, 4), "utf8");
+                    fs.writeFileSync(configPath, JSON.stringify(config, null, 4), 'utf8');
 
-                    this.log.debug("Successfully updated discoveredDevices in config.json.");
+                    this.log.debug('Successfully updated discoveredDevices in config.json.');
                 } catch (error) {
-                    this.log.error("Failed to update config.json with discoveredDevices:", error);
+                    this.log.error('Failed to update config.json with discoveredDevices:', error);
                 }
             }
 
         } catch (error) {
-            this.log.error("Failed to update config.schema.json: ", error);
+            this.log.error('Failed to update config.schema.json: ', error);
         }
 
     }
@@ -930,7 +928,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
             try {
                 // Generate a unique name to avoid duplicate accessory names in Homebridge
-                let uniqueName = foundDevice.name.replace(/[^a-zA-Z0-9]/g, "");
+                let uniqueName = foundDevice.name.replace(/[^a-zA-Z0-9]/g, '');
                 let counter = 1;
 
                 if (foundDevices.length > 1) {
@@ -943,10 +941,10 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
                 // Log the renaming if necessary
                 if (
-                    uniqueName !== foundDevice.name.replace(/[^a-zA-Z0-9]/g, "")
+                    uniqueName !== foundDevice.name.replace(/[^a-zA-Z0-9]/g, '')
                 ) {
                     this.log.warn(
-                        `Device with name "${foundDevice.name.replace(/[^a-zA-Z0-9]/g, "")}" already exists. Renaming to "${uniqueName}".`,
+                        `Device with name '${foundDevice.name.replace(/[^a-zA-Z0-9]/g, '')}' already exists. Renaming to '${uniqueName}'.`,
                     );
                 }
 
@@ -963,7 +961,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 if (existingAccessory) {
                     // Restore the existing accessory from cache
                     this.log.debug(
-                        "Restoring existing accessory from cache:",
+                        'Restoring existing accessory from cache:',
                         existingAccessory.displayName,
                     );
                     new PioneerAvrAccessory(
@@ -973,7 +971,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     );
                 } else {
                     this.log.debug(
-                        "Adding new accessory:",
+                        'Adding new accessory:',
                         uniqueName,
                         foundDevice,
                     );
@@ -999,7 +997,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     );
                 }
             } catch (e) {
-                this.log.debug("Error processing device in loopDevices:", e);
+                this.log.debug('Error processing device in loopDevices:', e);
             }
         }
     }

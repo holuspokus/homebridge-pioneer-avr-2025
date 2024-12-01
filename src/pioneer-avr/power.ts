@@ -1,9 +1,9 @@
 // src/pioneer-avr/power.ts
 
-import { TelnetAvr } from "../telnet-avr/telnetAvr";
-import { addExitHandler } from "../exitHandler";
-import type { Logging } from "homebridge";
-import type { AVState } from "./pioneerAvr";
+import { TelnetAvr } from '../telnet-avr/telnetAvr';
+import { addExitHandler } from '../exitHandler';
+import type { Logging } from 'homebridge';
+import type { AVState } from './pioneerAvr';
 
 /**
  * This mixin adds power management methods to a base class, including power control,
@@ -31,7 +31,7 @@ export function PowerManagementMixin<
                 try {
                     this.functionSetPowerState(this.state.on);
                 } catch (e) {
-                    this.log.debug("functionSetPowerState", e);
+                    this.log.debug('functionSetPowerState', e);
                 }
             });
 
@@ -40,7 +40,7 @@ export function PowerManagementMixin<
                 try {
                     this.functionSetPowerState(this.state.on);
                 } catch (e) {
-                    this.log.debug("functionSetPowerState", e);
+                    this.log.debug('functionSetPowerState', e);
                 }
             });
 
@@ -64,12 +64,12 @@ export function PowerManagementMixin<
          * @param callback - Function to run after updating power state.
          */
         public async __updatePower(callback: () => void) {
-            this.telnetAvr.sendMessage("?P", "PWR", () => {
+            this.telnetAvr.sendMessage('?P', 'PWR', () => {
                 this.state.lastGetPowerStatus = Date.now();
                 try {
                     callback();
                 } catch (e) {
-                    this.log.debug("__updatePower callback", e);
+                    this.log.debug('__updatePower callback', e);
                 }
             });
         }
@@ -85,7 +85,7 @@ export function PowerManagementMixin<
                 try {
                     callback(null, this.state.on);
                 } catch (e) {
-                    this.log.debug("powerStatus", e);
+                    this.log.debug('powerStatus', e);
                 }
                 return;
             }
@@ -95,7 +95,7 @@ export function PowerManagementMixin<
                 try {
                     callback(null, this.state.on);
                 } catch (e) {
-                    this.log.debug("powerStatus2", e);
+                    this.log.debug('powerStatus2', e);
                 }
             });
         }
@@ -104,9 +104,9 @@ export function PowerManagementMixin<
          * Sends a power-on command to the AVR and updates the power status.
          */
         public async powerOn() {
-            this.log.debug("Power on");
+            this.log.debug('Power on');
 
-            this.telnetAvr.sendMessage("PO");
+            this.telnetAvr.sendMessage('PO');
             this.lastUserInteraction = Date.now();
 
             // Allow some time for the command to take effect, then check status
@@ -119,9 +119,9 @@ export function PowerManagementMixin<
          * Sends a power-off command to the AVR and updates the power status.
          */
         public async powerOff() {
-            this.log.debug("Power off");
+            this.log.debug('Power off');
 
-            this.telnetAvr.sendMessage("PF");
+            this.telnetAvr.sendMessage('PF');
             this.lastUserInteraction = Date.now();
 
             // Allow some time for the command to take effect, then check status
