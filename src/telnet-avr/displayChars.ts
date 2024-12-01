@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention, @stylistic/ts/quote-props */
 const displayChars = {
     '00': ' ',
     '01': '[🔁🔀]',
@@ -258,3 +259,4 @@ const displayChars = {
 };
 
 export default displayChars;
+/* eslint-enable @typescript-eslint/naming-convention, @stylistic/ts/quote-props */
