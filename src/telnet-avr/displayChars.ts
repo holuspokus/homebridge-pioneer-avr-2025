@@ -33,7 +33,7 @@ const displayChars = {
     '1f': 'F',
     '20': ' ',
     '21': '!',
-    '22': '\'',
+    '22': '"',
     '23': '#',
     '24': '$',
     '25': '%',
@@ -254,7 +254,7 @@ const displayChars = {
     'fc': 'ü',
     'fd': 'ý',
     'fe': 'þ',
-    'ff': 'ÿ',
+    'ff': 'ÿ'
 };
 
 export default displayChars;
