@@ -27,6 +27,7 @@ export function VolumeManagementMixin<
         public updateVolumeTimeout: NodeJS.Timeout | null = null;
         public cancelVolumeDownSteps: boolean = false;
         public activeVolumeDownStepTimeouts: NodeJS.Timeout[] = []; // Array to track active timeouts
+        public lastSetVolume: String = '';
 
         constructor(...args: any[]) {
             super(...args);
@@ -127,16 +128,16 @@ export function VolumeManagementMixin<
             targetVolume = parseInt(targetVolume.toString(), 10);
 
             if (
-                callback &&
                 (isNaN(targetVolume) ||
                     Math.floor(targetVolume) === this.state.volume)
             ) {
-                try {
-                    callback(null, '');
-                } catch (e) {
-                    this.log.debug('', e);
+                if (callback) {
+                    try {
+                        callback(null, '');
+                    } catch (e) {
+                        this.log.debug('', e);
+                    }
                 }
-
                 return;
             }
 
@@ -155,8 +156,12 @@ export function VolumeManagementMixin<
             vsxVol = Math.floor(vsxVol);
             const vsxVolStr = vsxVol.toString().padStart(3, '0');
 
-            this.telnetAvr.sendMessage(`${vsxVolStr}VL`, undefined, callback);
-            this.lastUserInteraction = Date.now();
+            if (this.lastSetVolume !== vsxVolStr) {
+                this.lastSetVolume = vsxVolStr;
+
+                this.telnetAvr.sendMessage(`${vsxVolStr}VL`, undefined, callback);
+                this.lastUserInteraction = Date.now();
+            }
         }
 
         /**
