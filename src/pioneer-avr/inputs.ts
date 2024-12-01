@@ -135,18 +135,35 @@ export function InputManagementMixin<
                 return;
             }
 
+            let savedVisibility = {};
+
             // Check if cached inputs are valid
             if (fs.existsSync(this.inputCacheFile)) {
                 try {
                     const cache = JSON.parse(
                         fs.readFileSync(this.inputCacheFile, "utf-8"),
                     );
-                    const cacheTimestamp = new Date(cache.timestamp);
+
+                    let cacheTimestamp: Date | null = null;
+
                     const now = new Date();
+
+                    if (cache.timestamp) {
+                      cacheTimestamp = new Date(cache.timestamp);
+                    }
+
+
+                    if ('inputs' in cache && Array.isArray(cache.inputs) && cache.inputs.length > 0) {
+                        for (const [index, input] of cache.inputs.entries()) {
+                            if (input.visible !== undefined) {
+                                savedVisibility[input.id] = cache.inputs[index].visible === true;
+                            }
+                        }
+                    }
 
                     // Use cached inputs if they are less than 30 minutes old
                     if (
-                        now.getTime() - cacheTimestamp.getTime() <=
+                        cacheTimestamp !== null && cache.inputs.length > 0 && now.getTime() - cacheTimestamp.getTime() <=
                         30 * 60 * 1000
                     ) {
                         this.inputs = cache.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
@@ -160,12 +177,25 @@ export function InputManagementMixin<
                                 await new Promise((resolve) => setTimeout(resolve, 50));
                             }
 
-                            // Iterate over cached inputs and call addInputSourceService
-                            for (const [index, input] of this.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10)).entries()) {
-                                this.inputToType[input.id] = input.type;
-                                // this.log.info(`Input [${input.name}] from cache`);
-                                this.addInputSourceService(null, index);
+                            // Sort inputs by `id`, assign original index, reverse order, and iterate
+                            const sortedInputs = [...this.inputs]
+                              .sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10)) // Sort inputs numerically by `id`
+                              .map((input, index) => ({ ...input, originalIndex: index })) // Assign original index
+                              .sort((a, b) => a.name.localeCompare(b.name));
+
+                            for (const [_sortedIndex, input] of sortedInputs.entries()) {
+                              // Map input ID to its type
+                              this.inputToType[input.id] = input.type;
+
+                              // Add the input source service for the current input
+                              // The originalIndex reflects the position in the sorted order (before reversing)
+                              await this.addInputSourceService(null, input.originalIndex);
+                              // this.log.debug('addInputSourceService called', input.name, input.originalIndex);
+
+                              // Add a small delay between adding inputs to prevent potential issues
+                              await new Promise((resolve) => setTimeout(resolve, 100));
                             }
+
                         }, 100);
 
 
@@ -260,13 +290,13 @@ export function InputManagementMixin<
                 this.inputs = this.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
 
                 try {
-                    let savedVisibility: Record<string, number> = {};
+                    let importedFromOldInputVisibilityFile: Record<string, number> = {};
 
                     // Check if the old visibility file exists
                     if (fs.existsSync(this.oldInputVisibilityFile)) {
                         // File exists: read and parse its content
                         const fileData = fs.readFileSync(this.oldInputVisibilityFile, "utf-8");
-                        savedVisibility = JSON.parse(fileData);
+                        importedFromOldInputVisibilityFile = JSON.parse(fileData);
 
                         // Delete the old file after reading it
                         fs.unlink(this.oldInputVisibilityFile, (unlinkErr) => {
@@ -286,10 +316,10 @@ export function InputManagementMixin<
                         }
 
                         // Only set visibility if it hasn't been already defined
-                        if (this.inputs[index].visible === undefined) {
+                        if (this.inputs[index].visible === undefined || input.id in savedVisibility) {
                             this.inputs[index].visible =
-                                savedVisibility && input.id in savedVisibility
-                                    ? this.visibilityStateToBoolean(savedVisibility[input.id]) // Use saved visibility state
+                                input.id in savedVisibility ? savedVisibility[input.id] : input.id in importedFromOldInputVisibilityFile
+                                    ? this.visibilityStateToBoolean(importedFromOldInputVisibilityFile[input.id]) // Use saved visibility state
                                     : true; // Default to visible
                         }
                     }
@@ -302,10 +332,23 @@ export function InputManagementMixin<
                             await new Promise((resolve) => setTimeout(resolve, 50));
                         }
 
-                        // Iterate over cached inputs and call addInputSourceService
-                        for (const [index, _input] of this.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10)).entries()) {
-                            // this.log.info(`Input [${input.name}] from cache`);
-                            this.addInputSourceService(null, index);
+                        // Sort inputs by `id`, assign original index, reverse order, and iterate
+                        const sortedInputs = [...this.inputs]
+                          .sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10)) // Sort inputs numerically by `id`
+                          .map((input, index) => ({ ...input, originalIndex: index })) // Assign original index
+                          .sort((a, b) => a.name.localeCompare(b.name));
+
+                        for (const [_sortedIndex, input] of sortedInputs.entries()) {
+                          // Map input ID to its type
+                          // this.inputToType[input.id] = input.type;
+
+                          // Add the input source service for the current input
+                          // The originalIndex reflects the position in the sorted order (before reversing)
+                          await this.addInputSourceService(null, input.originalIndex);
+                          // this.log.debug('addInputSourceService called', input.name, input.originalIndex);
+
+                          // Add a small delay between adding inputs to prevent potential issues
+                          await new Promise((resolve) => setTimeout(resolve, 100));
                         }
                     }, 100);
 
@@ -348,7 +391,7 @@ export function InputManagementMixin<
                 !this.state.on ||
                 this.state.input === null
             ) {
-                callback(null, 0);
+                callback(null, this.state.input || 0);
                 return;
             }
 
@@ -367,10 +410,15 @@ export function InputManagementMixin<
         public setInput(id: string) {
             this.lastUserInteraction = Date.now();
 
+            const inputIndex = this.inputs.findIndex(
+                (findInput) => findInput.id === id
+            );
+
             if (
                 !this.telnetAvr ||
                 !this.telnetAvr.connectionReady ||
-                !this.state.on
+                !this.state.on ||
+                this.state.input === inputIndex
             ) {
                 return;
             }

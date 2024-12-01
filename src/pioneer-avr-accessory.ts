@@ -456,7 +456,7 @@ class PioneerAvrAccessory {
                 .setCharacteristic(
                     this.platform.characteristic.CurrentVisibilityState,
                     this.avr.booleanToVisibilityState(
-                        input.visible ?? this.platform.characteristic.CurrentVisibilityState.SHOWN === 0
+                        input.visible ?? true
                     )
                 );
 
