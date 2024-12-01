@@ -1,8 +1,8 @@
 // src/telnet-avr/dataHandler.ts
 
-import { TelnetAvr } from "./telnetAvr";
-import displayChars from "./displayChars";
-import { MessageQueue } from "./messageQueue";
+import { TelnetAvr } from './telnetAvr';
+import displayChars from './displayChars';
+import { MessageQueue } from './messageQueue';
 
 class DataHandler {
     private telnetAvr: TelnetAvr; // Reference to TelnetAvr instance for managing Telnet operations
@@ -45,7 +45,7 @@ class DataHandler {
                 .split(/\r?\n/)
                 .map((line) => line.trim())
                 .filter((line) => line.length > 0);
-            this.log.debug("telnet data>", data.toString().trim());
+            this.log.debug('telnet data>', data.toString().trim());
 
             // Update the timestamp of the last received message.
             this._lastMessageReceived = Date.now();
@@ -54,22 +54,22 @@ class DataHandler {
             let callbackCalled = false;
 
             for (const d of lines) {
-                // Process "FL" (display) messages.
-                if (d.startsWith("FL")) {
+                // Process 'FL' (display) messages.
+                if (d.startsWith('FL')) {
                     const displayedMessage = d.substr(2).trim().match(/(..?)/g);
-                    let outMessage = "";
+                    let outMessage = '';
 
                     // Translate each character code into readable display characters.
                     for (let pair of displayedMessage ?? []) {
                         pair = String(pair).toLowerCase();
-                        outMessage += displayChars[pair] || "";
+                        outMessage += displayChars[pair] || '';
                     }
                     outMessage = outMessage.trim();
                     this.displayChanged(outMessage);
                     continue;
                 }
 
-                if (d.startsWith("E")) {
+                if (d.startsWith('E')) {
                     // Clear the queue entry if a queue lock exists.
                     const firstQueueEntry = this.messageQueue.queue[0];
                     if (firstQueueEntry) {
@@ -78,7 +78,7 @@ class DataHandler {
                             this.messageQueue.getCallbacksForKey(callbackChars);
 
                         for (const callback of callbacks) {
-                            if (typeof callback === "function") {
+                            if (typeof callback === 'function') {
                                 try {
                                     // Execute the matched callback with the received data.
                                     this.fallbackOnData(
@@ -101,14 +101,14 @@ class DataHandler {
                     // Process callbacks based on callback keys in the queue.
                     const callbackKeys = this.messageQueue.getCallbackKeys();
                     for (const callbackKey of callbackKeys) {
-                        if (d.includes(callbackKey) || callbackKey == "!none") {
+                        if (d.includes(callbackKey) || callbackKey == '!none') {
                             const callbacks =
                                 this.messageQueue.getCallbacksForKey(
                                     callbackKey,
                                 );
 
                             for (const callback of callbacks) {
-                                if (typeof callback === "function") {
+                                if (typeof callback === 'function') {
                                     try {
                                         // Execute the matched callback with the received data.
                                         this.fallbackOnData(null, d, callback);
@@ -129,20 +129,20 @@ class DataHandler {
                 // Handle unrecognized or unmatched messages.
                 if (
                     !callbackCalled &&
-                    !d.startsWith("FL") &&
-                    !d.startsWith("R") &&
-                    !d.startsWith("ST") &&
+                    !d.startsWith('FL') &&
+                    !d.startsWith('R') &&
+                    !d.startsWith('ST') &&
                     ![
-                        "RGC",
-                        "RGD",
-                        "GBH",
-                        "GHH",
-                        "VTA",
-                        "AUA",
-                        "AUB",
-                        "GEH",
-                        "STM",
-                        "STO",
+                        'RGC',
+                        'RGD',
+                        'GBH',
+                        'GHH',
+                        'VTA',
+                        'AUA',
+                        'AUB',
+                        'GEH',
+                        'STM',
+                        'STO',
                     ].includes(d.substr(0, 3))
                 ) {
                     // Fallback handling for unrecognized messages.

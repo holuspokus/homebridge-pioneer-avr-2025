@@ -1,6 +1,6 @@
 // src/telnet-avr/messageQueue.ts
 
-import { Connection } from "./connection";
+import { Connection } from './connection';
 
 export class MessageQueue {
     public queue: [string, string][] = []; // Array storing message and its callback character string
@@ -84,7 +84,7 @@ export class MessageQueue {
         callback?: Function,
     ) {
         if (!callbackChars) {
-            callbackChars = "!none";
+            callbackChars = '!none';
         }
 
         // Add the message to the queue if not already present
