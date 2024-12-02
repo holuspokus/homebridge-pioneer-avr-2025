@@ -1,6 +1,6 @@
 // src/telnet-avr/messageQueue.ts
 
-import { Connection } from './connection';
+import type { Connection } from './connection';
 
 export class MessageQueue {
     public queue: [string, string][] = []; // Array storing message and its callback character string
@@ -44,13 +44,17 @@ export class MessageQueue {
      * Processes the first item in the queue, sending the message if not locked.
      */
     public async processQueue() {
-        if (this.queue.length === 0) return;
+        if (this.queue.length === 0) {
+            return;
+        }
 
         const [message, callbackKey] = this.queue[0];
 
         // Skip processing if the lock for the callback key is active
         const lock = this.callbackLocks[callbackKey];
-        if (lock?.queueLock) return;
+        if (lock?.queueLock) {
+            return;
+        }
 
         // Lock the callback key before sending the message
         if (!this.callbackLocks[callbackKey]) {

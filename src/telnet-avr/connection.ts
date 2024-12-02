@@ -1,7 +1,7 @@
 // src/telnet-avr/connection.ts
 
 import net from 'net';
-import { TelnetAvr } from './telnetAvr';
+import type { TelnetAvr } from './telnetAvr';
 import { MessageQueue } from './messageQueue';
 import DataHandler from './dataHandler';
 import { addExitHandler } from '../exitHandler';
@@ -113,10 +113,15 @@ export class Connection {
         this.socket.removeAllListeners('connect');
 
         this.socket.on('connect', () => {
-            if (onExitCalled || !this.socket) return;
-            if (this.socket.destroyed) return;
-            if (this.socket.connecting || this.socket.readyState !== 'open')
+            if (onExitCalled || !this.socket) {
                 return;
+            }
+            if (this.socket.destroyed) {
+                return;
+            }
+            if (this.socket.connecting || this.socket.readyState !== 'open') {
+                return;
+            }
 
             this.reconnectCounter = 0;
             this.lastMessageReceived = null;
@@ -152,9 +157,15 @@ export class Connection {
             });
         });
 
-        this.socket.on('close', () => this.handleClose());
-        this.socket.on('data', (data) => this.handleData(data));
-        this.socket.on('error', (err) => this.handleError(err));
+        this.socket.on('close', () => {
+            this.handleClose();
+        });
+        this.socket.on('data', (data) => {
+            this.handleData(data);
+        });
+        this.socket.on('error', (err) => {
+            this.handleError(err);
+        });
 
         this.socket.connect(this.port, this.host);
     }
@@ -163,7 +174,9 @@ export class Connection {
         this.isConnecting = null;
         this.setConnectionReady(false);
 
-        if (onExitCalled) return;
+        if (onExitCalled) {
+            return;
+        }
         this.log.debug('Socket closed, attempting reconnect.');
         this.tryReconnect();
     }
@@ -182,7 +195,9 @@ export class Connection {
     }
 
     private tryReconnect() {
-        if (onExitCalled) return;
+        if (onExitCalled) {
+            return;
+        }
 
         // this.log.debug('tryReconnect() called');
 
@@ -190,14 +205,18 @@ export class Connection {
         const delay = this.reconnectCounter > 30 ? 60 : 15;
 
         setTimeout(() => {
-            if (onExitCalled || this.connectionReady) return;
+            if (onExitCalled || this.connectionReady) {
+                return;
+            }
             this.log.info('Attempting reconnection...');
             this.connect();
         }, delay * 1000);
     }
 
     async reconnect(callback: () => void) {
-        if (onExitCalled || this.connectionReady || !this.socket) return;
+        if (onExitCalled || this.connectionReady || !this.socket) {
+            return;
+        }
         if (this.socket.connecting || this.socket.readyState === 'open') {
             try {
                 callback();
@@ -212,9 +231,7 @@ export class Connection {
             this.reconnectCounter >= this.maxReconnectAttempts &&
             this.avr.device.source == 'bonjour'
         ) {
-            const TELNET_PORTS = this.avr.platform.TELNET_PORTS || [
-                23, 24, 8102,
-            ];
+            const TELNET_PORTS = this.avr.platform.TELNET_PORTS || [23, 24, 8102];
             const devices = await findDevices(
                 this.avr.device.origName,
                 TELNET_PORTS,
@@ -285,7 +302,9 @@ export class Connection {
         }
 
         this.disconnectTimeout = setTimeout(
-            () => this.disconnect(),
+            () => {
+                this.disconnect();
+            },
             5 * 60 * 1000,
         );
 

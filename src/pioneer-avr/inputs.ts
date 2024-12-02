@@ -3,10 +3,10 @@
 import type { Service, Logging } from 'homebridge'; // Imports Logging type
 import fs from 'fs'; // For file system operations
 import path from 'path'; // For handling file paths
-import { TelnetAvr } from '../telnet-avr/telnetAvr';
+import type { TelnetAvr } from '../telnet-avr/telnetAvr';
 import type { AVState } from './pioneerAvr'; // Imports AVState type from PioneerAvr
 
-type Device = {
+export interface Device {
     name: string;
     origName: string;
     host: string;
@@ -15,7 +15,7 @@ type Device = {
     maxVolume?: number;
     minVolume?: number;
     inputSwitches?: string[];
-};
+}
 
 /**
  * This mixin adds input management methods to a base class, including input setup, handling,
@@ -39,13 +39,13 @@ export function InputManagementMixin<
         public accessory: any;
         public prefsDir: string = '';
         public inputCacheFile: string = '';
-        public inputBeingAdded: string | boolean = false;
+        public inputBeingAdded: boolean | string = false;
         public inputBeingAddedWaitCount: number = 0;
         public inputMissing: string[][] = [];
         public inputs: any[] = [];
         public tvService!: Service;
         public enabledServices: Service[] = [];
-        public inputToType: { [key: string]: number } = {};
+        public inputToType: Record<string, number> = {};
         public pioneerAvrClassCallbackCalled: boolean = false;
         public initCount: number = 0;
         public oldInputVisibilityFile: string;
@@ -135,7 +135,7 @@ export function InputManagementMixin<
                 return;
             }
 
-            let savedVisibility = {};
+            const savedVisibility = {};
 
             // Check if cached inputs are valid
             if (fs.existsSync(this.inputCacheFile)) {
@@ -149,7 +149,7 @@ export function InputManagementMixin<
                     const now = new Date();
 
                     if (cache.timestamp) {
-                      cacheTimestamp = new Date(cache.timestamp);
+                        cacheTimestamp = new Date(cache.timestamp);
                     }
 
 
@@ -179,21 +179,21 @@ export function InputManagementMixin<
 
                             // Sort inputs by `id`, assign original index, reverse order, and iterate
                             const sortedInputs = [...this.inputs]
-                              .sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10)) // Sort inputs numerically by `id`
-                              .map((input, index) => ({ ...input, originalIndex: index })) // Assign original index
-                              .sort((a, b) => a.name.localeCompare(b.name));
+                                .sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10)) // Sort inputs numerically by `id`
+                                .map((input, index) => ({ ...input, originalIndex: index })) // Assign original index
+                                .sort((a, b) => a.name.localeCompare(b.name));
 
                             for (const [_sortedIndex, input] of sortedInputs.entries()) {
-                              // Map input ID to its type
-                              this.inputToType[input.id] = input.type;
+                                // Map input ID to its type
+                                this.inputToType[input.id] = input.type;
 
-                              // Add the input source service for the current input
-                              // The originalIndex reflects the position in the sorted order (before reversing)
-                              await this.addInputSourceService(null, input.originalIndex);
-                              // this.log.debug('addInputSourceService called', input.name, input.originalIndex);
+                                // Add the input source service for the current input
+                                // The originalIndex reflects the position in the sorted order (before reversing)
+                                await this.addInputSourceService(null, input.originalIndex);
+                                // this.log.debug('addInputSourceService called', input.name, input.originalIndex);
 
-                              // Add a small delay between adding inputs to prevent potential issues
-                              await new Promise((resolve) => setTimeout(resolve, 100));
+                                // Add a small delay between adding inputs to prevent potential issues
+                                await new Promise((resolve) => setTimeout(resolve, 100));
                             }
 
                         }, 100);
@@ -240,7 +240,13 @@ export function InputManagementMixin<
                 //
                 // While this compact approach minimizes code size, it retains functionality and ensures that each
                 // input ID is correctly assigned a `Characteristic.InputSourceType` value.
-                this.inputToType[key] = [2,18,38].includes(i)?2:[19,20,21,22,23,24,25,26,31,5,6,15].includes(i)?3:i==10?4:i==14?6:i==17?9:i==26?10:i==46?8:0;
+                this.inputToType[key] = [2, 18, 38].includes(i)
+                    ?2
+                    :[
+                        19, 20, 21, 22, 23, 24, 25, 26, 31, 5, 6, 15,
+                    ].includes(i)
+                        ?3
+                        :i==10?4:i==14?6:i==17?9:i==26?10:i==46?8:0;
 
                 if (
                     typeof this.inputBeingAdded === 'string' &&
@@ -263,7 +269,7 @@ export function InputManagementMixin<
 
                 let index = -1;
                 for (const i in this.inputMissing) {
-                    if (this.inputMissing[i].indexOf(key) > -1) {
+                    if (this.inputMissing[i].includes(key)) {
                         index = parseInt(i, 10);
                         break;
                     }
@@ -276,7 +282,7 @@ export function InputManagementMixin<
                 await this.telnetAvr.sendMessage(
                     `?RGB${key}`,
                     `RGB${key}`,
-                    ()=>{
+                    () => {
 
                     },
                 );
@@ -334,21 +340,21 @@ export function InputManagementMixin<
 
                         // Sort inputs by `id`, assign original index, reverse order, and iterate
                         const sortedInputs = [...this.inputs]
-                          .sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10)) // Sort inputs numerically by `id`
-                          .map((input, index) => ({ ...input, originalIndex: index })) // Assign original index
-                          .sort((a, b) => a.name.localeCompare(b.name));
+                            .sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10)) // Sort inputs numerically by `id`
+                            .map((input, index) => ({ ...input, originalIndex: index })) // Assign original index
+                            .sort((a, b) => a.name.localeCompare(b.name));
 
                         for (const [_sortedIndex, input] of sortedInputs.entries()) {
-                          // Map input ID to its type
-                          // this.inputToType[input.id] = input.type;
+                            // Map input ID to its type
+                            // this.inputToType[input.id] = input.type;
 
-                          // Add the input source service for the current input
-                          // The originalIndex reflects the position in the sorted order (before reversing)
-                          await this.addInputSourceService(null, input.originalIndex);
-                          // this.log.debug('addInputSourceService called', input.name, input.originalIndex);
+                            // Add the input source service for the current input
+                            // The originalIndex reflects the position in the sorted order (before reversing)
+                            await this.addInputSourceService(null, input.originalIndex);
+                            // this.log.debug('addInputSourceService called', input.name, input.originalIndex);
 
-                          // Add a small delay between adding inputs to prevent potential issues
-                          await new Promise((resolve) => setTimeout(resolve, 100));
+                            // Add a small delay between adding inputs to prevent potential issues
+                            await new Promise((resolve) => setTimeout(resolve, 100));
                         }
                     }, 100);
 
@@ -366,7 +372,6 @@ export function InputManagementMixin<
                     // Catch and log any unexpected errors during processing
                     this.log.debug('Error processing input visibility file:', error);
                 }
-
 
 
                 this.isReady = true;
@@ -411,7 +416,7 @@ export function InputManagementMixin<
             this.lastUserInteraction = Date.now();
 
             const inputIndex = this.inputs.findIndex(
-                (findInput) => findInput.id === id
+                (findInput) => findInput.id === id,
             );
 
             if (
@@ -436,8 +441,9 @@ export function InputManagementMixin<
                 !this.telnetAvr ||
                 !this.telnetAvr.connectionReady ||
                 !this.state.on
-            )
+            ) {
                 return;
+            }
 
             const shrinkName = newName
                 .replace(/[^\p{L}\p{N} /:._-]/gu, '')

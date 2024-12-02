@@ -10,14 +10,14 @@ async function findDevices(
     log: any,
     maxDevices: number = Infinity,
 ): Promise<
-    {
-        name: string;
-        origName: string;
-        host: string;
-        port: number;
-        source: string;
-    }[]
-> {
+        {
+            name: string;
+            origName: string;
+            host: string;
+            port: number;
+            source: string;
+        }[]
+    > {
     const devices: {
         name: string;
         origName: string;
@@ -63,7 +63,7 @@ async function discoverBonjourDevices(
     bonjourService: any,
     maxDevices: number,
 ) {
-    let hostsFound: string[] = [];
+    const hostsFound: string[] = [];
     return new Promise<void>((resolve) => {
         bonjourService.find({ type: 'raop' }, (service) => {
             // {
@@ -144,7 +144,9 @@ async function discoverBonjourDevices(
                                     /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/,
                                 ),
                             );
-                            if (ip) return ip;
+                            if (ip) {
+                                return ip;
+                            }
                         }
                     }
                     return null;
@@ -195,7 +197,7 @@ async function discoverBonjourDevices(
                 //     .trim();
 
 
-                if (hostsFound.indexOf(host) === -1) {
+                if (!hostsFound.includes(host)) {
                     hostsFound.push(host);
                     checkPorts(
                         host,

@@ -7,7 +7,7 @@ import { TelnetAvr } from '../telnet-avr/telnetAvr';
 import { addExitHandler } from '../exitHandler';
 
 
-type Device = {
+export interface Device {
     name: string;
     origName: string;
     host: string;
@@ -16,7 +16,7 @@ type Device = {
     maxVolume?: number;
     minVolume?: number;
     inputSwitches?: string[];
-};
+}
 
 /**
  * This mixin adds initialization and connection handling capabilities to a base class.
@@ -73,7 +73,7 @@ export function InitializeMixin<
 
             try {
                 this.telnetAvr.onData = this.onData;
-                this.telnetAvr.connect(() => this.setupConnectionCallbacks());
+                this.telnetAvr.connect(async () => this.setupConnectionCallbacks());
             } catch (e) {
                 this.log.debug('Pioneer AVR connection error', e);
             }

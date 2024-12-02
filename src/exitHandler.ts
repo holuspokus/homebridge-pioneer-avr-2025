@@ -1,6 +1,6 @@
 // src/exitHandler.ts
 
-const handlers: Array<{ handler: () => void; context: any }> = [];
+const handlers: { handler: () => void; context: any }[] = [];
 
 /**
  * Adds an exit handler function with an optional context.
@@ -16,7 +16,9 @@ export function addExitHandler(handler: () => void, context: any) {
  */
 let runHandlersCalled = false;
 function runHandlers() {
-    if (runHandlersCalled) return;
+    if (runHandlersCalled) {
+        return;
+    }
 
     runHandlersCalled = true;
     handlers.forEach(({ handler, context }) => {
