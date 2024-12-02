@@ -729,7 +729,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                         properties: {
                             host: {
                                 type: 'string',
-                                title: 'Host (IP or DNS Name) Dont change.',
+                                title: 'Host (IP or DNS Name). Do not edit this value.',
                                 readOnly: true,
                             },
                             maxVolume: {
