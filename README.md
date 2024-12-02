@@ -1,7 +1,9 @@
 
 # homebridge-pioneer-avr-2025
 
-A [Homebridge](https://github.com/nfarina/homebridge) plugin that integrates your Pioneer AVR as a TV accessory in HomeKit. This project is compatible with Node 22 and below, as well as Homebridge 2 or earlier versions. It is written in TypeScript and leverages the latest Homebridge methods and practices, ensuring a streamlined setup with optional manual configuration. The plugin automatically detects your receiver for a more reliable user experience.
+A [Homebridge](https://github.com/nfarina/homebridge) plugin that integrates your Pioneer AVR as a TV accessory in HomeKit. This project supports Node.js versions up to 22 and is compatible with Homebridge version 2 and earlier. Developed in TypeScript and as a Platform, it incorporates modern Homebridge practices and methods to provide a seamless setup process with optional manual configuration. The plugin features automatic receiver detection, enhancing reliability and ease of use.
+
+While the plugin is not perfect, I hope it provides a dependable way to connect your receiver to HomeKit.
 
 > **Note**: This plugin is specifically designed for Pioneer models released before 2017 that use Pioneer Telnet Commands (e.g., VSX-922). It may not be compatible with newer models that use the ISCP protocol (e.g., VSX-LX304). For newer models, please consider using the [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer) plugin or see the "Alternatives" section below.
 
@@ -34,7 +36,11 @@ The receiver is detected automatically over the network.
 Manual configuration is also available, and previous configurations from older Versions or from the [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr) plugin will be imported automatically if present. You may also configure settings via the Config-UI interface.
 
 ### Adding Input Switches
-Once the receiver's inputs are loaded, you can select up to five inputs through the plugin settings in Config-UI. These selected inputs will appear in HomeKit as individual switches, allowing direct selection, use in automations, or integration with physical switches.
+Once the receiver's inputs are loaded, you can select up to five inputs through the plugin settings in Config-UI. These selected inputs will appear in HomeKit as individual switches, allowing direct selection, use in automations, or integration with physical switches.  
+
+If the receiver is already on and the input is selected, pressing the switch again will turn off the receiver. This behavior is particularly useful in HomeKit, where only one scene can be assigned to a button, not two separate scenes (e.g., one for turning on and another for turning off). With this feature, the same button can be used to turn on the receiver, switch input, and turn off the receiver.  
+
+The button can also serve as a trigger for other scenes but should not be included in the same scene with other devices, such as lights, to avoid unintended behavior.
 
 ### Preparing the Receiver and Network
 To ensure proper connectivity for the plugin, connect the receiver to the network. The simplest way to verify that the receiver is accessible is to check if an iPhone can establish an AirPlay connection to the receiver. If this works, the receiver is ready. Otherwise, ensure the following:
@@ -77,10 +83,11 @@ After confirming the network connection, restart the plugin to enable communicat
    ```
 
 ### Accessory Configuration Example
-
 Below is a sample configuration for your accessory:
 
-#### Discovery
+#### minimalistic Setup with Discovery
+For most users, the following minimal configuration is recommended. The plugin will automatically discover your receiver and configure it for use:
+
 ```json
 "platforms": [
     {
@@ -89,8 +96,10 @@ Below is a sample configuration for your accessory:
     }
 ]
 ```
+This setup simplifies installation and leverages the plugin's automatic discovery feature, ensuring ease of use and reliable integration.  
 
-#### minimalistic Setup
+
+#### minimalistic Setup with manual configured Receiver
 ```json
 "platforms": [
     {
@@ -152,7 +161,7 @@ Below is a sample configuration for your accessory:
 > In the example below, "name" under "devices" refers to the name as it appears in HomeKit.
 > Characters that could cause issues are automatically removed.
 
-#### Over-the-top unrealistic setup
+#### Over-the-top unrealistic setup with manual configured Receivers
 ```json
 "platforms": [
     {
@@ -207,8 +216,9 @@ Below is a sample configuration for your accessory:
 ]
 ```
 
-#### After Discovery
+#### Minimalistic Setup after discovery
 Set Input switches for discovered Devices
+
 ```json
 "platforms": [
     {
@@ -229,6 +239,8 @@ Set Input switches for discovered Devices
 ]
 ```
 
+> **Note:** The "discoveredDevices" section is automatically created when a receiver is detected. There is no need to manually add devices to this section, as it is specifically designed for configuring additional attributes for automatically discovered devices. Attributes such as `maxVolume`, `minVolume`, and `inputSwitches` can be customized here for greater control over the integration. Please note that the `host` attribute serves as a key and should not be modified.
+
 <br><br><br><br>
 
 ## Links
@@ -247,6 +259,7 @@ Set Input switches for discovered Devices
 <br>
 
 ## Release Notes Platform Version
+- **v0.2.1**: Optimized saving of input visibility and improved ordering of inputs in the Config-UI.
 - **v0.2.0**: Rewritten as a platform plugin in TypeScript for enhanced future-proofing and extensibility. Added switches.
 
 ## Release Notes Accessory Version

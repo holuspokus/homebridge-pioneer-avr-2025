@@ -1,16 +1,18 @@
 // src/pioneer-avr-accessory.ts
 
-import PioneerAvr from "./pioneer-avr/pioneerAvr";
+import PioneerAvr from './pioneer-avr/pioneerAvr';
 import {
     Service,
     Logging,
     PlatformAccessory,
     CharacteristicValue,
-} from "homebridge";
-import * as fs from "fs";
-import packageJson from "../package.json";
-import { PioneerAvrPlatform } from "./pioneer-avr-platform";
-import { addExitHandler } from "./exitHandler";
+} from 'homebridge';
+import fs from 'fs'; // For file system operations
+import path from 'path'; // For handling file paths
+
+import packageJson from '../package.json';
+import { PioneerAvrPlatform } from './pioneer-avr-platform';
+import { addExitHandler } from './exitHandler';
 
 type Device = {
     name: string;
@@ -25,10 +27,10 @@ type Device = {
 
 class PioneerAvrAccessory {
     private informationService!: Service;
-    private tvService!: Service;
+    public tvService!: Service;
     private volumeServiceLightbulb!: Service;
     private tvSpeakerService!: Service;
-    private enabledServices: Service[] = [];
+    public enabledServices: Service[] = [];
     public avr!: PioneerAvr;
     private name: string;
     private manufacturer: string;
@@ -36,12 +38,13 @@ class PioneerAvrAccessory {
     private host: string;
     private maxVolume: number;
     private prefsDir: string;
-    private inputVisibilityFile: string;
-    private savedVisibility: Record<string, any> = {};
+    private inputCacheFile: string = '';
+    private inputCache: Record<string, any> = {};
     private log: Logging;
     public platform: PioneerAvrPlatform;
     public accessory: PlatformAccessory;
     private version: string;
+    private writeVisbilityTimeout: NodeJS.Timeout | null = null;
 
     constructor(
         private device: Device,
@@ -52,32 +55,31 @@ class PioneerAvrAccessory {
         this.platform = platform;
         this.accessory = accessory;
         this.log = this.platform.log;
-        this.name = device.name || "Pioneer AVR";
-        this.manufacturer = this.platform.config.manufacturer || "Pioneer";
+        this.name = device.name || 'Pioneer AVR';
+        this.manufacturer = this.platform.config.manufacturer || 'Pioneer';
         this.model =
-            this.platform.config.model || device.name || "Unknown Model";
-        this.host = device.host || this.platform.config.host || "";
+            this.platform.config.model || device.name || 'Unknown Model';
+        this.host = device.host || this.platform.config.host || '';
         this.maxVolume = this.platform.config.maxVolume || 100;
         this.prefsDir =
             this.platform.config.prefsDir ||
-            this.platform.api.user.storagePath() + "/pioneerAvr/";
+            this.platform.api.user.storagePath() + '/pioneerAvr/';
+        this.inputCacheFile = path.join(
+            this.prefsDir,
+            `inputCache_${this.host}.json`,
+        );
+
         this.version = packageJson.version;
 
-        this.name = this.name.replace(/[^a-zA-Z0-9 ']/g, "");
+        this.name = this.name.replace(/[^a-zA-Z0-9 ']/g, '');
         this.name = this.name
-            .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, "")
+            .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '')
             .trim();
 
         this.log.info(
             `Creating accessory ${this.name} for: ${this.device.origName} at ${this.device.host}:${this.device.port}`,
         );
 
-        this.inputVisibilityFile =
-            `${this.prefsDir}/inputsVisibility_${this.host}`.replace(
-                /\/{2,}/g,
-                "/",
-            );
-        this.initializeVisibilityFile();
 
         try {
             this.avr = new PioneerAvr(
@@ -104,7 +106,7 @@ class PioneerAvrAccessory {
                             `> Finished initializing. Device ${this.name} ready!`,
                         );
                     } catch (err) {
-                        this.log.debug("Error during AVR setup callback:", err);
+                        this.log.debug('Error during AVR setup callback:', err);
                     }
                 },
             );
@@ -112,8 +114,14 @@ class PioneerAvrAccessory {
             this.avr.addInputSourceService =
                 this.addInputSourceService.bind(this);
         } catch (err) {
-            this.log.debug("Error initializing AVR:", err);
+            this.log.debug('Error initializing AVR:', err);
         }
+
+        // addExitHandler(() => {
+        //     if (this.writeVisbilityTimeout) {
+        //         clearTimeout(this.writeVisbilityTimeout);
+        //     }
+        // }, this);
     }
 
     public async handleInputSwitches() {
@@ -122,53 +130,6 @@ class PioneerAvrAccessory {
         }
     }
 
-
-
-    private initializeVisibilityFile() {
-        try {
-            if (!fs.existsSync(this.prefsDir)) {
-                fs.mkdirSync(this.prefsDir, { recursive: true });
-            }
-
-            fs.access(this.inputVisibilityFile, fs.constants.F_OK, (err) => {
-                if (err) {
-                    fs.writeFile(this.inputVisibilityFile, "{}", (err) => {
-                        if (err) {
-                            this.log.error(
-                                "Error creating the Input visibility file:",
-                                err,
-                            );
-                        } else {
-                            this.log.debug(
-                                "Input visibility file successfully created.",
-                            );
-                            this.loadSavedVisibility();
-                        }
-                    });
-                } else {
-                    this.log.debug(
-                        "The Input visibility file already exists:",
-                        this.inputVisibilityFile,
-                    );
-                    this.loadSavedVisibility();
-                }
-            });
-        } catch (err) {
-            this.log.debug("Input visibility file could not be created:", err);
-        }
-    }
-
-    private loadSavedVisibility() {
-        try {
-            const fileData = fs.readFileSync(this.inputVisibilityFile, "utf-8");
-            this.savedVisibility = JSON.parse(fileData);
-        } catch (err) {
-            this.log.debug(
-                "Input visibility file does not exist or JSON parsing failed:",
-                err,
-            );
-        }
-    }
 
     /**
      * Prepares the accessory's information service.
@@ -185,7 +146,7 @@ class PioneerAvrAccessory {
         this.informationService
             .setCharacteristic(
                 this.platform.characteristic.Name,
-                this.device.name.replace(/[^a-zA-Z0-9 ]/g, ""),
+                this.device.name.replace(/[^a-zA-Z0-9 ]/g, ''),
             )
             .setCharacteristic(
                 this.platform.characteristic.Manufacturer,
@@ -194,7 +155,7 @@ class PioneerAvrAccessory {
             .setCharacteristic(this.platform.characteristic.Model, this.model)
             .setCharacteristic(
                 this.platform.characteristic.SerialNumber,
-                this.device.origName.replace(/[^a-zA-Z0-9 ]/g, ""),
+                this.device.origName.replace(/[^a-zA-Z0-9 ]/g, ''),
             )
             .setCharacteristic(
                 this.platform.characteristic.FirmwareRevision,
@@ -213,7 +174,7 @@ class PioneerAvrAccessory {
             this.accessory.addService(
                 this.platform.service.Television,
                 this.name,
-                "tvService",
+                'tvService',
             );
 
         this.tvService
@@ -256,7 +217,6 @@ class PioneerAvrAccessory {
         this.avr.functionSetPowerState = (set: boolean) => {
             try {
                 let boolToNum = set ? 1 : 0;
-                // console.log('functionSetPowerState called', typeof(this.tvService.getCharacteristic(this.platform.characteristic.Active).value), this.tvService.getCharacteristic(this.platform.characteristic.Active).value, boolToNum)
                 if (
                     this.tvService.getCharacteristic(
                         this.platform.characteristic.Active,
@@ -273,14 +233,13 @@ class PioneerAvrAccessory {
                     );
                 }
             } catch (e) {
-                this.log.debug("Error functionSetPowerState:", e);
+                this.log.debug('Error functionSetPowerState:', e);
             }
         };
 
         this.avr.functionSetPowerState(this.avr.state.on);
 
         this.avr.functionSetActiveIdentifier = (set: number) => {
-            // console.log('functionSetActiveIdentifier called', this.tvService.getCharacteristic(this.platform.characteristic.ActiveIdentifier).value, set)
             if (
                 this.tvService.getCharacteristic(
                     this.platform.characteristic.ActiveIdentifier,
@@ -311,8 +270,8 @@ class PioneerAvrAccessory {
             ) ||
             this.accessory.addService(
                 this.platform.service.TelevisionSpeaker,
-                this.name + " Speaker",
-                "tvSpeakerService",
+                this.name + ' Speaker',
+                'tvSpeakerService',
             );
 
         this.tvSpeakerService
@@ -367,8 +326,8 @@ class PioneerAvrAccessory {
             this.accessory.getService(this.platform.service.Lightbulb) ||
             this.accessory.addService(
                 this.platform.service.Lightbulb,
-                this.name + " Volume",
-                "volumeInput",
+                this.name + ' Volume',
+                'volumeInput',
             );
 
         this.volumeServiceLightbulb
@@ -414,12 +373,12 @@ class PioneerAvrAccessory {
                     );
                 }
             } catch (e) {
-                this.log.debug("Error updating Lightbulb volume:", e);
+                this.log.debug('Error updating Lightbulb volume:', e);
             }
         };
 
         // Initial volume setup only if volume state is valid
-        if (typeof this.avr.state.volume === "number") {
+        if (typeof this.avr.state.volume === 'number') {
             this.avr.functionSetLightbulbVolume(this.avr.state.volume);
         }
 
@@ -439,7 +398,7 @@ class PioneerAvrAccessory {
                     );
                 }
             } catch (e) {
-                this.log.debug("Error updating Lightbulb mute state:", e);
+                this.log.debug('Error updating Lightbulb mute state:', e);
             }
         };
 
@@ -451,7 +410,6 @@ class PioneerAvrAccessory {
      */
     private async addInputSourceService(error: any, key: any) {
         if (error) {
-            // console.log('in addInputSourceService ERROR> ' + String(error),  String(key))
             return;
         }
 
@@ -462,8 +420,13 @@ class PioneerAvrAccessory {
             await new Promise((resolve) => setTimeout(resolve, 180));
         }
 
+        if (!(key in this.avr.inputs)) {
+            this.log.error('addInputSourceService() input key not found.', key, this.avr.inputs);
+            return;
+        }
+
+
         try {
-            // console.log('in addInputSourceService> ' + String(key), this.avr.inputs)
             const input = this.avr.inputs[key];
             const tmpInput =
                 this.accessory.getServiceById(
@@ -472,7 +435,7 @@ class PioneerAvrAccessory {
                 ) ||
                 this.accessory.addService(
                     this.platform.service.InputSource,
-                    input.name.replace(/[^a-zA-Z0-9 ]/g, " "),
+                    input.name.replace(/[^a-zA-Z0-9 ]/g, ' '),
                     key.toString(),
                 );
 
@@ -480,7 +443,7 @@ class PioneerAvrAccessory {
                 .setCharacteristic(this.platform.characteristic.Identifier, key)
                 .setCharacteristic(
                     this.platform.characteristic.ConfiguredName,
-                    input.name.replace(/[^a-zA-Z0-9 ]/g, " "),
+                    input.name.replace(/[^a-zA-Z0-9 ]/g, ' '),
                 )
                 .setCharacteristic(
                     this.platform.characteristic.IsConfigured,
@@ -488,13 +451,13 @@ class PioneerAvrAccessory {
                 )
                 .setCharacteristic(
                     this.platform.characteristic.InputSourceType,
-                    input.type,
+                    input.type ?? 0,
                 )
                 .setCharacteristic(
                     this.platform.characteristic.CurrentVisibilityState,
-                    this.savedVisibility[input.id] ||
-                        this.platform.characteristic.CurrentVisibilityState
-                            .SHOWN,
+                    this.avr.booleanToVisibilityState(
+                        input.visible ?? true
+                    )
                 );
 
             tmpInput
@@ -502,30 +465,55 @@ class PioneerAvrAccessory {
                     this.platform.characteristic.TargetVisibilityState,
                 )
                 .onSet((state) => {
+
+                  // const state = this.avr.booleanToVisibilityState(true); // 0
+                  // const isVisible = this.avr.visibilityStateToBoolean(1); // false
+
+                    this.avr.inputs[key].visible = this.avr.visibilityStateToBoolean( parseInt(String(state), 10) );
+
+
                     setTimeout(() => {
+                        tmpInput.updateCharacteristic(
+                            this.platform.characteristic
+                                .CurrentVisibilityState,
+                            state,
+                        );
+                    }, key * 233);
+
+
+
+                    if (this.writeVisbilityTimeout) {
+                        clearTimeout(this.writeVisbilityTimeout);
+                    }
+                    this.writeVisbilityTimeout = setTimeout(() => {
                         try {
-                            tmpInput.updateCharacteristic(
-                                this.platform.characteristic
-                                    .CurrentVisibilityState,
-                                state,
-                            );
-                            this.savedVisibility[input.id] = state;
-                            // this.log.debug('set visibility:', input.name, state)
+
+
+                            if (fs.existsSync(this.inputCacheFile)) {
+                                  this.inputCache = JSON.parse(
+                                      fs.readFileSync(this.inputCacheFile, 'utf-8'),
+                                  );
+                            }
+
+                            if (!this.inputCache) {
+                                this.inputCache = {};
+                            }
+
+                            this.inputCache.inputs = this.avr.inputs;
+
                             fs.writeFile(
-                                this.inputVisibilityFile,
-                                JSON.stringify(this.savedVisibility),
+                                this.inputCacheFile,
+                                JSON.stringify(this.inputCache),
                                 () => {
                                     this.log.debug(
-                                        "saved visibility:",
-                                        input.name,
-                                        state,
+                                        'saved visibility:'
                                     );
                                 },
                             );
                         } catch (error) {
-                            this.log.error("set visibility Error", error);
+                            this.log.error('set visibility Error', error);
                         }
-                    }, 10);
+                    }, 15000);
                 });
 
             tmpInput
@@ -538,7 +526,7 @@ class PioneerAvrAccessory {
             this.tvService.addLinkedService(tmpInput);
             this.enabledServices.push(tmpInput);
         } catch (e) {
-            console.error("Error addInputSourceService:", e);
+            console.error('Error addInputSourceService:', e);
         }
     }
 
@@ -557,7 +545,7 @@ class PioneerAvrAccessory {
         return new Promise((resolve) => {
             this.avr.powerStatus((error, status) => {
                 if (error) {
-                    this.log.error("Error getting power status:", error);
+                    this.log.error('Error getting power status:', error);
                     resolve(false);
                 } else {
                     resolve(status!);
@@ -591,11 +579,11 @@ class PioneerAvrAccessory {
     ): Promise<void> {
         // console.log('setActiveIdentifier called', newValue, typeof(newValue))
         if (
-            typeof newValue === "number" &&
+            typeof newValue === 'number' &&
             this.avr.telnetAvr.connectionReady
         ) {
             this.log.debug(
-                "set active identifier:",
+                'set active identifier:',
                 this.avr.inputs[newValue].name,
                 this.avr.inputs[newValue].id,
             );
@@ -604,7 +592,7 @@ class PioneerAvrAccessory {
     }
 
     private async setVolumeSwitch(state: CharacteristicValue): Promise<void> {
-        this.log.debug("setVolumeSwitch called:", state);
+        this.log.debug('setVolumeSwitch called:', state);
         if (state !== 1) {
             this.avr.volumeUp();
         } else {
@@ -637,17 +625,17 @@ class PioneerAvrAccessory {
         // Extract the return value from volume as a number or default to 0 if undefined
         return new Promise<number>((resolve) => {
             this.avr.volumeStatus((_error, volume) => {
-                resolve(typeof volume === "number" ? volume : 0);
+                resolve(typeof volume === 'number' ? volume : 0);
             });
         });
     }
 
     private async setVolume(volume: CharacteristicValue): Promise<void> {
         // Check if volume is a number before sending it to the device
-        if (typeof volume === "number") {
+        if (typeof volume === 'number') {
             this.avr.setVolume(volume);
         } else {
-            this.log.debug("setVolume called with invalid volume:", volume);
+            this.log.debug('setVolume called with invalid volume:', volume);
         }
     }
 
@@ -687,28 +675,28 @@ class PioneerAvrAccessory {
     ): Promise<void> {
         switch (remoteKey) {
             case this.platform.characteristic.RemoteKey.ARROW_UP:
-                this.avr.remoteKey("UP");
+                this.avr.remoteKey('UP');
                 break;
             case this.platform.characteristic.RemoteKey.ARROW_DOWN:
-                this.avr.remoteKey("DOWN");
+                this.avr.remoteKey('DOWN');
                 break;
             case this.platform.characteristic.RemoteKey.ARROW_LEFT:
-                this.avr.remoteKey("LEFT");
+                this.avr.remoteKey('LEFT');
                 break;
             case this.platform.characteristic.RemoteKey.ARROW_RIGHT:
-                this.avr.remoteKey("RIGHT");
+                this.avr.remoteKey('RIGHT');
                 break;
             case this.platform.characteristic.RemoteKey.SELECT:
-                this.avr.remoteKey("ENTER");
+                this.avr.remoteKey('ENTER');
                 break;
             case this.platform.characteristic.RemoteKey.BACK:
-                this.avr.remoteKey("RETURN");
+                this.avr.remoteKey('RETURN');
                 break;
             case this.platform.characteristic.RemoteKey.PLAY_PAUSE:
-                this.avr.remoteKey("TOGGLE_PLAY_PAUSE");
+                this.avr.remoteKey('TOGGLE_PLAY_PAUSE');
                 break;
             case this.platform.characteristic.RemoteKey.INFORMATION:
-                this.avr.remoteKey("HOME_MENU");
+                this.avr.remoteKey('HOME_MENU');
                 break;
             default:
                 break;
@@ -742,7 +730,7 @@ class PioneerAvrAccessory {
 
         const validAccessories: string[] = []; // Track valid accessory UUIDs
 
-        inputToSwitches.slice(0, 5).forEach((inputId) => {
+        inputToSwitches.slice(0, 5).sort((a, b) => parseInt(a, 10) - parseInt(b, 10)).forEach((inputId) => {
             const input = cachedInputs.find((input) => input.id === inputId);
 
             if (!input) {
@@ -751,9 +739,9 @@ class PioneerAvrAccessory {
             }
 
             let switchName = `${input.name} ${this.name}`;
-            switchName = switchName.replace(/[^a-zA-Z0-9 ']/g, "");
+            switchName = switchName.replace(/[^a-zA-Z0-9 ']/g, '');
             switchName = switchName
-                .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, "")
+                .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '')
                 .trim();
 
             this.log.debug(`Creating switch accessory: ${switchName} for host: ${host}`);
@@ -795,7 +783,7 @@ class PioneerAvrAccessory {
                 (findInput) => findInput.id === input.id
             );
 
-            // Configure "On" characteristic
+            // Configure 'On' characteristic
             switchService
                 .getCharacteristic(this.platform.characteristic.On)
                 .onGet(async () => {
@@ -808,6 +796,11 @@ class PioneerAvrAccessory {
                         if (!this.avr.state.on) {
                             await this.avr.powerOn();
                             await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
+                        } else
+
+                        if (this.avr.state.on && this.avr.state.input === inputIndex) {
+                            await this.avr.powerOff();
+                            return;
                         }
 
                         // Set the desired input

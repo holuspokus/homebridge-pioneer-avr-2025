@@ -1,9 +1,9 @@
 // src/pioneer-avr/volume.ts
 
-import { TelnetAvr } from "../telnet-avr/telnetAvr";
-import { addExitHandler } from "../exitHandler";
-import type { Logging } from "homebridge";
-import type { AVState } from "./pioneerAvr";
+import { TelnetAvr } from '../telnet-avr/telnetAvr';
+import { addExitHandler } from '../exitHandler';
+import type { Logging } from 'homebridge';
+import type { AVState } from './pioneerAvr';
 
 /**
  * This mixin adds volume management methods to a base class, including volume control,
@@ -27,6 +27,7 @@ export function VolumeManagementMixin<
         public updateVolumeTimeout: NodeJS.Timeout | null = null;
         public cancelVolumeDownSteps: boolean = false;
         public activeVolumeDownStepTimeouts: NodeJS.Timeout[] = []; // Array to track active timeouts
+        public lastSetVolume: String = '';
 
         constructor(...args: any[]) {
             super(...args);
@@ -36,7 +37,7 @@ export function VolumeManagementMixin<
                 try {
                     this.functionSetLightbulbVolume?.(this.state.volume);
                 } catch (e) {
-                    this.log.debug("functionSetLightbulbVolume error", e);
+                    this.log.debug('functionSetLightbulbVolume error', e);
                 }
             });
 
@@ -48,7 +49,7 @@ export function VolumeManagementMixin<
                     this.__updateVolume(() => {});
                     this.__updateMute(() => {});
                 } catch (e) {
-                    this.log.debug("functionSetLightbulbVolume error", e);
+                    this.log.debug('functionSetLightbulbVolume error', e);
                 }
             });
 
@@ -58,7 +59,7 @@ export function VolumeManagementMixin<
                 try {
                     this.functionSetLightbulbVolume?.(this.state.volume);
                 } catch (e) {
-                    this.log.debug("functionSetLightbulbVolume error", e);
+                    this.log.debug('functionSetLightbulbVolume error', e);
                 }
             }, this);
         }
@@ -80,7 +81,7 @@ export function VolumeManagementMixin<
         public async __updateVolume(
             callback: (error: any, response: string) => void,
         ) {
-            this.telnetAvr.sendMessage("?V", "VOL", callback);
+            this.telnetAvr.sendMessage('?V', 'VOL', callback);
         }
 
         /**
@@ -90,7 +91,7 @@ export function VolumeManagementMixin<
         public async __updateMute(
             callback: (error: any, response: string) => void,
         ) {
-            this.telnetAvr.sendMessage("?M", "MUT", callback);
+            this.telnetAvr.sendMessage('?M', 'MUT', callback);
         }
 
         /**
@@ -127,16 +128,16 @@ export function VolumeManagementMixin<
             targetVolume = parseInt(targetVolume.toString(), 10);
 
             if (
-                callback &&
                 (isNaN(targetVolume) ||
                     Math.floor(targetVolume) === this.state.volume)
             ) {
-                try {
-                    callback(null, "");
-                } catch (e) {
-                    this.log.debug("", e);
+                if (callback) {
+                    try {
+                        callback(null, '');
+                    } catch (e) {
+                        this.log.debug('', e);
+                    }
                 }
-
                 return;
             }
 
@@ -153,10 +154,14 @@ export function VolumeManagementMixin<
             }
 
             vsxVol = Math.floor(vsxVol);
-            const vsxVolStr = vsxVol.toString().padStart(3, "0");
+            const vsxVolStr = vsxVol.toString().padStart(3, '0');
 
-            this.telnetAvr.sendMessage(`${vsxVolStr}VL`, undefined, callback);
-            this.lastUserInteraction = Date.now();
+            if (this.lastSetVolume !== vsxVolStr) {
+                this.lastSetVolume = vsxVolStr;
+
+                this.telnetAvr.sendMessage(`${vsxVolStr}VL`, undefined, callback);
+                this.lastUserInteraction = Date.now();
+            }
         }
 
         /**
@@ -171,13 +176,13 @@ export function VolumeManagementMixin<
             )
                 return;
 
-            this.log.debug("Volume up");
+            this.log.debug('Volume up');
 
             if (this.updateVolumeTimeout) {
                 clearTimeout(this.updateVolumeTimeout);
             }
 
-            this.telnetAvr.sendMessage("VU", undefined, () => {
+            this.telnetAvr.sendMessage('VU', undefined, () => {
                 this.updateVolumeTimeout = setTimeout(() => {
                     this.__updateVolume(() => {});
                     this.__updateMute(() => {});
@@ -197,7 +202,7 @@ export function VolumeManagementMixin<
             )
                 return;
 
-            this.log.debug("Volume down");
+            this.log.debug('Volume down');
 
             // Cancel any ongoing steps and clear active timeouts
             this.cancelVolumeDownSteps = true;
@@ -216,7 +221,7 @@ export function VolumeManagementMixin<
             // Function to execute each step with a delay
             const executeStep = (step: number) => {
                 if (step > 0 && !this.cancelVolumeDownSteps) {
-                    this.telnetAvr.sendMessage("VD", "VOL", () => {
+                    this.telnetAvr.sendMessage('VD', 'VOL', () => {
                         const timeout = setTimeout(() => {
                             executeStep(step - 1);
                         }, delay);
@@ -267,8 +272,8 @@ export function VolumeManagementMixin<
             )
                 return;
 
-            this.log.debug("Mute on");
-            this.telnetAvr.sendMessage("MO");
+            this.log.debug('Mute on');
+            this.telnetAvr.sendMessage('MO');
         }
 
         /**
@@ -284,8 +289,8 @@ export function VolumeManagementMixin<
             )
                 return;
 
-            this.log.debug("Mute off");
-            this.telnetAvr.sendMessage("MF");
+            this.log.debug('Mute off');
+            this.telnetAvr.sendMessage('MF');
         }
 
         /**
@@ -295,7 +300,7 @@ export function VolumeManagementMixin<
         public __updateListeningMode(
             callback: (error: any, response: string) => void,
         ) {
-            this.telnetAvr.sendMessage("?S", "SR", callback);
+            this.telnetAvr.sendMessage('?S', 'SR', callback);
         }
 
         /**
@@ -320,16 +325,16 @@ export function VolumeManagementMixin<
             // Check if the AVR is ready and if a listening mode is set
             if (!this.isReady || !this.state.listeningMode) {
                 if (callback) {
-                    callback(null, this.state.listeningMode ?? "");
+                    callback(null, this.state.listeningMode ?? '');
                 }
                 return;
             }
 
-            this.log.debug("Toggle Listening Mode", this.state.listeningMode);
+            this.log.debug('Toggle Listening Mode', this.state.listeningMode);
 
-            if (["0013", "0101"].includes(this.state.listeningMode)) {
-                this.telnetAvr.sendMessage("0112SR");
-                this.state.listeningMode = "0112";
+            if (['0013', '0101'].includes(this.state.listeningMode)) {
+                this.telnetAvr.sendMessage('0112SR');
+                this.state.listeningMode = '0112';
 
                 // Execute the callback with a delay if provided
                 if (callback) {
@@ -339,11 +344,11 @@ export function VolumeManagementMixin<
                     );
                 }
             } else {
-                this.state.listeningMode = "0013";
-                this.telnetAvr.sendMessage("!0013SR", "SR", (error, _data) => {
+                this.state.listeningMode = '0013';
+                this.telnetAvr.sendMessage('!0013SR', 'SR', (error, _data) => {
                     if (error) {
-                        this.state.listeningMode = "0101";
-                        this.telnetAvr.sendMessage("0101SR");
+                        this.state.listeningMode = '0101';
+                        this.telnetAvr.sendMessage('0101SR');
                     }
 
                     // Execute the callback with a delay if provided

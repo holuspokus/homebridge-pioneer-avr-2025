@@ -1,10 +1,10 @@
 // src/pioneer-avr/initialize.ts
 
-import { onDataHandler } from "./onDataHandler";
-import type { Logging } from "homebridge";
-import type { AVState } from "./pioneerAvr";
-import { TelnetAvr } from "../telnet-avr/telnetAvr";
-import { addExitHandler } from "../exitHandler";
+import { onDataHandler } from './onDataHandler';
+import type { Logging } from 'homebridge';
+import type { AVState } from './pioneerAvr';
+import { TelnetAvr } from '../telnet-avr/telnetAvr';
+import { addExitHandler } from '../exitHandler';
 
 
 type Device = {
@@ -62,7 +62,7 @@ export function InitializeMixin<
         public setupTelnetConnection() {
             if (!this.host || !this.port) {
                 this.log.error(
-                    "Host or port information is missing, cannot initialize TelnetAvr.",
+                    'Host or port information is missing, cannot initialize TelnetAvr.',
                 );
                 return;
             }
@@ -75,11 +75,11 @@ export function InitializeMixin<
                 this.telnetAvr.onData = this.onData;
                 this.telnetAvr.connect(() => this.setupConnectionCallbacks());
             } catch (e) {
-                this.log.debug("Pioneer AVR connection error", e);
+                this.log.debug('Pioneer AVR connection error', e);
             }
 
             this.log.debug(
-                "Waiting until Telnet is connected to",
+                'Waiting until Telnet is connected to',
                 this.host,
                 this.port,
             );
@@ -91,34 +91,34 @@ export function InitializeMixin<
         public async setupConnectionCallbacks() {
             try {
                 if (!this.telnetAvr) {
-                    this.log.error("TelnetAvr instance is not initialized.");
+                    this.log.error('TelnetAvr instance is not initialized.');
                     return;
                 }
 
                 if (!this.telnetAvr.connectionReady) {
-                    this.log.info("Telnet is not ready :(");
+                    this.log.info('Telnet is not ready :(');
                     return;
                 }
 
-                this.log.info("Telnet connected, starting up");
+                this.log.info('Telnet connected, starting up');
 
                 this.telnetAvr.addOnDisconnectCallback(() => {
-                    // this.log.info("Telnet Disconnected!");
+                    // this.log.info('Telnet Disconnected!');
                 });
 
                 this.telnetAvr.addOnConnectCallback(async () => {
-                    this.log.debug("Telnet connected, waited for PWR...");
+                    this.log.debug('Telnet connected, waited for PWR...');
                 });
 
                 this.telnetAvr.displayChanged = (text: string) => {
                     try {
                         if (text) {
                             this.log.debug(
-                                "[" + this.device.name + " DISPLAY] " + text,
+                                '[' + this.device.name + ' DISPLAY] ' + text,
                             );
                         }
                     } catch (error) {
-                        this.log.debug("init displayChanged()", error);
+                        this.log.debug('init displayChanged()', error);
                     }
                 };
 
@@ -145,11 +145,11 @@ export function InitializeMixin<
                             this.__updatePower?.(() => {});
                         }
                     } catch (e) {
-                        this.log.debug("Polling error", e);
+                        this.log.debug('Polling error', e);
                     }
                 }, 2000);
             } catch (error) {
-                console.log("setupConnectionCallbacks() error" + String(error));
+                console.log('setupConnectionCallbacks() error' + String(error));
             }
         }
 
@@ -169,33 +169,33 @@ export function InitializeMixin<
 
             // Implemented key from CURSOR OPERATION
             switch (rk) {
-                case "UP":
-                    this.telnetAvr.sendMessage("CUP");
+                case 'UP':
+                    this.telnetAvr.sendMessage('CUP');
                     break;
-                case "DOWN":
-                    this.telnetAvr.sendMessage("CDN");
+                case 'DOWN':
+                    this.telnetAvr.sendMessage('CDN');
                     break;
-                case "LEFT":
-                    this.telnetAvr.sendMessage("CLE");
+                case 'LEFT':
+                    this.telnetAvr.sendMessage('CLE');
                     break;
-                case "RIGHT":
-                    this.telnetAvr.sendMessage("CRI");
+                case 'RIGHT':
+                    this.telnetAvr.sendMessage('CRI');
                     break;
-                case "ENTER":
-                    this.telnetAvr.sendMessage("CEN");
+                case 'ENTER':
+                    this.telnetAvr.sendMessage('CEN');
                     break;
-                case "RETURN":
-                    this.telnetAvr.sendMessage("CRT");
+                case 'RETURN':
+                    this.telnetAvr.sendMessage('CRT');
                     break;
-                case "HOME_MENU":
-                    this.telnetAvr.sendMessage("HM");
+                case 'HOME_MENU':
+                    this.telnetAvr.sendMessage('HM');
                     break;
-                case "TOGGLE_PLAY_PAUSE":
+                case 'TOGGLE_PLAY_PAUSE':
                     (this as any).toggleListeningMode();
-                    // this.telnetAvr.sendMessage("CTP"); ?
+                    // this.telnetAvr.sendMessage('CTP'); ?
                     break;
                 default:
-                    this.log.info("Unhandled remote key: %s", rk);
+                    this.log.info('Unhandled remote key: %s', rk);
             }
         }
     };

@@ -1,6 +1,6 @@
 // src/pioneer-avr/onDataHandler.ts
 
-import PioneerAvr from "./pioneerAvr";
+import PioneerAvr from './pioneerAvr';
 
 export function onDataHandler(pioneerThis: PioneerAvr) {
     // Ensure `initCount` is initialized
@@ -10,57 +10,57 @@ export function onDataHandler(pioneerThis: PioneerAvr) {
 
     return function (error: any, data: string, callback: Function = () => {}) {
         // Log the received data if needed
-        // pioneerThis.log.debug("Receive data: %s", data);
+        // pioneerThis.log.debug('Receive data: %s', data);
 
         if (error) {
             pioneerThis.log.error(error);
             try {
                 callback(error, data);
             } catch (e) {
-                pioneerThis.log.debug("onData", e);
+                pioneerThis.log.debug('onData', e);
             }
             return;
         }
 
         // Handle different data responses based on prefixes
         if (
-            data.startsWith("E") &&
-            !data.startsWith("E06RGB") &&
-            !data.startsWith("E04RGB")
+            data.startsWith('E') &&
+            !data.startsWith('E06RGB') &&
+            !data.startsWith('E04RGB')
         ) {
-            pioneerThis.log.debug("Receive error: " + String(data));
+            pioneerThis.log.debug('Receive error: ' + String(data));
             try {
                 callback(String(data), data);
             } catch (e) {
-                pioneerThis.log.debug("onData", e);
+                pioneerThis.log.debug('onData', e);
             }
         } else if (
-            data.indexOf("VD:SENT") > -1 ||
-            data.indexOf("VU:SENT") > -1 ||
-            data.indexOf("MO:SENT") > -1
+            data.indexOf('VD:SENT') > -1 ||
+            data.indexOf('VU:SENT') > -1 ||
+            data.indexOf('MO:SENT') > -1
         ) {
             try {
                 callback(error, data);
             } catch (e) {
-                pioneerThis.log.debug("onData", e);
+                pioneerThis.log.debug('onData', e);
             }
-        } else if (data.indexOf(":SENT") > -1) {
+        } else if (data.indexOf(':SENT') > -1) {
             // Placeholder for additional handling if needed
-        } else if (data.indexOf("PWR") > -1) {
+        } else if (data.indexOf('PWR') > -1) {
             handlePowerStatus(data, pioneerThis, callback);
-        } else if (data.indexOf("MUT") > -1) {
+        } else if (data.indexOf('MUT') > -1) {
             handleMuteStatus(data, pioneerThis, callback);
-        } else if (data.indexOf("SR") > -1 && data.length === 6) {
-            handleListeningMode(data, pioneerThis, callback, "listeningMode");
-        } else if (data.indexOf("LM") > -1 && data.length === 6) {
-            handleListeningMode(data, pioneerThis, callback, "listeningModeLM");
-        } else if (data.indexOf("VOL") > -1) {
+        } else if (data.indexOf('SR') > -1 && data.length === 6) {
+            handleListeningMode(data, pioneerThis, callback, 'listeningMode');
+        } else if (data.indexOf('LM') > -1 && data.length === 6) {
+            handleListeningMode(data, pioneerThis, callback, 'listeningModeLM');
+        } else if (data.indexOf('VOL') > -1) {
             handleVolumeStatus(data, pioneerThis, callback);
-        } else if (data.indexOf("FN") > -1) {
+        } else if (data.indexOf('FN') > -1) {
             handleInputStatus(data, pioneerThis, callback);
-        } else if (data.startsWith("E06RGB") || data.startsWith("E04RGB")) {
+        } else if (data.startsWith('E06RGB') || data.startsWith('E04RGB')) {
             handleInputErrors(data, pioneerThis, callback);
-        } else if (data.indexOf("RGB") > -1) {
+        } else if (data.indexOf('RGB') > -1) {
             handleInputDiscovery(data, pioneerThis, callback);
         }
     };
@@ -77,11 +77,11 @@ function handlePowerStatus(
     pioneerThis: PioneerAvr,
     callback: Function,
 ) {
-    data = data.substring(data.indexOf("PWR"));
+    data = data.substring(data.indexOf('PWR'));
     pioneerThis.state.on = parseInt(data[3], 10) === 0;
     pioneerThis.log.debug(
-        "Receive Power status: %s (%s)",
-        pioneerThis.state.on ? "On" : "Off",
+        'Receive Power status: %s (%s)',
+        pioneerThis.state.on ? 'On' : 'Off',
         data,
     );
     pioneerThis.state.lastGetPowerStatus = Date.now();
@@ -89,7 +89,7 @@ function handlePowerStatus(
     try {
         callback(null, data);
     } catch (e) {
-        pioneerThis.log.debug("onData", e);
+        pioneerThis.log.debug('onData', e);
     }
 
     // Update power state
@@ -110,11 +110,11 @@ function handleMuteStatus(
     pioneerThis: PioneerAvr,
     callback: Function,
 ) {
-    data = data.substring(data.indexOf("MUT"));
+    data = data.substring(data.indexOf('MUT'));
     pioneerThis.state.muted = parseInt(data[3], 10) === 0;
     pioneerThis.log.debug(
-        "Receive Mute status: %s (%s -> %s)",
-        pioneerThis.state.muted ? "Muted" : "Not Muted",
+        'Receive Mute status: %s (%s -> %s)',
+        pioneerThis.state.muted ? 'Muted' : 'Not Muted',
         data[3],
         data,
     );
@@ -122,7 +122,7 @@ function handleMuteStatus(
     try {
         callback(null, pioneerThis.state.muted);
     } catch (e) {
-        pioneerThis.log.debug("onData", e);
+        pioneerThis.log.debug('onData', e);
     }
 
     // Update mute state
@@ -143,13 +143,13 @@ function handleListeningMode(
     modeKey: string,
 ) {
     data = data.substring(
-        data.indexOf(modeKey === "listeningMode" ? "SR" : "LM"),
+        data.indexOf(modeKey === 'listeningMode' ? 'SR' : 'LM'),
     );
     pioneerThis.state[modeKey] = data.substr(2, 4);
     try {
         callback(null, data);
     } catch (e) {
-        pioneerThis.log.debug("onData", e);
+        pioneerThis.log.debug('onData', e);
     }
 }
 
@@ -164,7 +164,7 @@ function handleVolumeStatus(
     pioneerThis: PioneerAvr,
     callback: Function,
 ) {
-    data = data.substring(data.indexOf("VOL"));
+    data = data.substring(data.indexOf('VOL'));
     let vol = data.substr(3, 3);
     let volPctF = calculateVolumePercentage(vol, pioneerThis);
 
@@ -172,12 +172,12 @@ function handleVolumeStatus(
         pioneerThis.state.volume = Math.floor(volPctF);
     }
 
-    pioneerThis.log.debug("Volume is %s (%s%%)", vol, volPctF);
+    pioneerThis.log.debug('Volume is %s (%s%%)', vol, volPctF);
 
     try {
         callback(null, pioneerThis.state.volume);
     } catch (e) {
-        pioneerThis.log.debug("onData", e);
+        pioneerThis.log.debug('onData', e);
     }
 }
 
@@ -219,8 +219,8 @@ function handleInputStatus(
     pioneerThis: PioneerAvr,
     callback: Function,
 ) {
-    data = data.substring(data.indexOf("FN"));
-    pioneerThis.log.debug("Receive Input status: %s", data);
+    data = data.substring(data.indexOf('FN'));
+    pioneerThis.log.debug('Receive Input status: %s', data);
 
     let inputId = data.substr(2, 2);
     let inputIndex = pioneerThis.inputs.findIndex(
@@ -231,7 +231,7 @@ function handleInputStatus(
         try {
             callback(null, 0);
         } catch (e) {
-            pioneerThis.log.debug("onData", e);
+            pioneerThis.log.debug('onData', e);
         }
         return;
     }
@@ -260,7 +260,7 @@ function handleInputErrors(
     callback: Function,
 ) {
     try {
-        data = data.substring(data.indexOf("RGB"));
+        data = data.substring(data.indexOf('RGB'));
         let thisId = data.substr(3, 2);
 
         for (let key in pioneerThis.inputToType) {
@@ -284,7 +284,7 @@ function handleInputErrors(
 
         callback(String(data), data);
     } catch (e) {
-        pioneerThis.log.debug("onData", e);
+        pioneerThis.log.debug('onData', e);
     }
 }
 
@@ -299,7 +299,7 @@ function handleInputDiscovery(
     pioneerThis: PioneerAvr,
     callback: Function,
 ) {
-    data = data.substring(data.indexOf("RGB"));
+    data = data.substring(data.indexOf('RGB'));
     let tmpInput = {
         id: data.substr(3, 2),
         name: data.substr(6).trim(),
@@ -312,7 +312,7 @@ function handleInputDiscovery(
     }
 
     if (
-        typeof pioneerThis.inputBeingAdded === "string" &&
+        typeof pioneerThis.inputBeingAdded === 'string' &&
         pioneerThis.inputBeingAdded === tmpInput.id
     ) {
         pioneerThis.inputBeingAdded = false;
@@ -352,7 +352,7 @@ function handleInputDiscovery(
         try {
             callback(null, inputIndex);
         } catch (e) {
-            pioneerThis.log.debug("onData", e);
+            pioneerThis.log.debug('onData', e);
         }
     }
 }
