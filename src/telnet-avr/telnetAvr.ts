@@ -78,4 +78,12 @@ export class TelnetAvr {
     public fallbackOnData(error: any, message: string, callback?: Function) {
         this.onData(error, message, callback);
     }
+
+    public onDisconnect(): void {
+        this.connection.onDisconnect();
+    }
+
+    public onConnect(): void {
+        this.connection.onConnect();
+    }
 }

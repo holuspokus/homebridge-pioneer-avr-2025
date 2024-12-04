@@ -342,6 +342,14 @@ function handleInputDiscovery(
             // pioneerThis.log.info(
             //     `Input [${tmpInput.id}] name updated to [${tmpInput.name}]`
             // );
+
+
+            if (pioneerThis.saveInputsTimeout) {
+                clearTimeout(pioneerThis.saveInputsTimeout);
+            }
+            pioneerThis.saveInputsTimeout = setTimeout(() => {
+                pioneerThis.saveInputs();
+            }, 15000);
         }
     }
 

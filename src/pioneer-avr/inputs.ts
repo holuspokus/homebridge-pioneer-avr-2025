@@ -5,6 +5,8 @@ import fs from 'fs'; // For file system operations
 import path from 'path'; // For handling file paths
 import type { TelnetAvr } from '../telnet-avr/telnetAvr';
 import type { AVState } from './pioneerAvr'; // Imports AVState type from PioneerAvr
+import { addExitHandler } from '../exitHandler';
+
 
 export interface Device {
     name: string;
@@ -51,6 +53,7 @@ export function InputManagementMixin<
         public oldInputVisibilityFile: string;
         public booleanToVisibilityState: (visible: boolean) => number;
         public visibilityStateToBoolean: (state: number) => boolean;
+        public saveInputsTimeout!: NodeJS.Timeout;
 
         constructor(...args: any[]) {
             super(...args);
@@ -114,6 +117,16 @@ export function InputManagementMixin<
                     }
                 });
             });
+
+            addExitHandler(() => {
+                if (this.saveInputs) {
+                    this.saveInputs();
+                }
+                if (this.saveInputsTimeout) {
+                    clearTimeout(this.saveInputsTimeout);
+                }
+
+            }, this);
         }
 
         /**
@@ -360,14 +373,7 @@ export function InputManagementMixin<
 
 
                     // Save inputs to the cache file
-                    fs.writeFileSync(
-                        this.inputCacheFile,
-                        JSON.stringify({
-                            timestamp: new Date().toISOString(), // Add a timestamp for tracking
-                            inputs: this.inputs, // Save the current inputs
-                        }),
-                    );
-                    this.log.info('Inputs cached successfully.');
+                    this.saveInputs();
                 } catch (error) {
                     // Catch and log any unexpected errors during processing
                     this.log.debug('Error processing input visibility file:', error);
@@ -382,6 +388,28 @@ export function InputManagementMixin<
 
             if (callback) {
                 callback();
+            }
+        }
+
+        /**
+         * Saves the current inputs to the cache file.
+         */
+        public saveInputs() {
+            try {
+                if (this.inputs.length > 0) {
+                    // Write inputs and a timestamp to the cache file
+                    fs.writeFileSync(
+                        this.inputCacheFile,
+                        JSON.stringify({
+                            timestamp: new Date().toISOString(), // Add a timestamp for tracking
+                            inputs: this.inputs, // Save the current inputs
+                        })
+                    );
+                    this.log.debug('Inputs saved to cache file.'); // Log success message
+                }
+            } catch (error) {
+                // Log any errors encountered during the file write operation
+                this.log.error('Failed to save inputs to cache file:', error);
             }
         }
 
