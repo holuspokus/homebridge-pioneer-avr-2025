@@ -255,7 +255,7 @@ const displayChars = {
     'fc': 'ü',
     'fd': 'ý',
     'fe': 'þ',
-    'ff': 'ÿ'
+    'ff': 'ÿ',
 };
 
 export default displayChars;

@@ -1,8 +1,8 @@
 // src/telnet-avr/dataHandler.ts
 
-import { TelnetAvr } from './telnetAvr';
+import type { TelnetAvr } from './telnetAvr';
 import displayChars from './displayChars';
-import { MessageQueue } from './messageQueue';
+import type { MessageQueue } from './messageQueue';
 
 class DataHandler {
     private telnetAvr: TelnetAvr; // Reference to TelnetAvr instance for managing Telnet operations

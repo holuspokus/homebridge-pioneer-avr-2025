@@ -5,9 +5,9 @@ import { InitializeMixin } from './initialize';
 import { InputManagementMixin } from './inputs';
 import { PowerManagementMixin } from './power';
 import { VolumeManagementMixin } from './volume';
-import { TelnetAvr } from '../telnet-avr/telnetAvr';
+import type { TelnetAvr } from '../telnet-avr/telnetAvr';
 
-type Device = {
+export interface Device {
     name: string;
     origName: string;
     host: string;
@@ -16,7 +16,7 @@ type Device = {
     maxVolume?: number;
     minVolume?: number;
     inputSwitches?: string[];
-};
+}
 
 export interface AVState {
     volume: number;
@@ -79,16 +79,27 @@ class PioneerAvr extends InitializeMixin(
                             platform.config.minVolume ||
                             this.minVolume;
 
-                        if (this.maxVolume > 100) this.maxVolume = 100;
-                        if (this.maxVolume < 20) this.maxVolume = 20;
+                        if (this.maxVolume > 100) {
+                            this.maxVolume = 100;
+                        }
+                        if (this.maxVolume < 20) {
+                            this.maxVolume = 20;
+                        }
 
-                        if (this.minVolume > this.maxVolume)
+                        if (this.minVolume > this.maxVolume) {
                             this.minVolume = this.maxVolume - 20;
-                        if (this.minVolume < 0) this.minVolume = 0;
+                        }
+                        if (this.minVolume < 0) {
+                            this.minVolume = 0;
+                        }
 
                         while (this.maxVolume - this.minVolume < 20) {
-                            if (this.maxVolume + 1 < 100) this.maxVolume++;
-                            if (this.minVolume - 1 > 0) this.minVolume--;
+                            if (this.maxVolume + 1 < 100) {
+                                this.maxVolume++;
+                            }
+                            if (this.minVolume - 1 > 0) {
+                                this.minVolume--;
+                            }
                         }
 
                         // Initialize the default state object for the AVR

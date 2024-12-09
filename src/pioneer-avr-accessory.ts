@@ -1,7 +1,7 @@
 // src/pioneer-avr-accessory.ts
 
 import PioneerAvr from './pioneer-avr/pioneerAvr';
-import {
+import type {
     Service,
     Logging,
     PlatformAccessory,
@@ -11,10 +11,10 @@ import fs from 'fs'; // For file system operations
 import path from 'path'; // For handling file paths
 
 import packageJson from '../package.json';
-import { PioneerAvrPlatform } from './pioneer-avr-platform';
+import type { PioneerAvrPlatform } from './pioneer-avr-platform';
 import { addExitHandler } from './exitHandler';
 
-type Device = {
+export interface Device {
     name: string;
     origName: string;
     host: string;
@@ -23,7 +23,7 @@ type Device = {
     maxVolume?: number;
     minVolume?: number;
     inputSwitches?: string[];
-};
+}
 
 class PioneerAvrAccessory {
     private informationService!: Service;
@@ -197,7 +197,6 @@ class PioneerAvrAccessory {
         }, this);
 
 
-
         this.tvService
             .getCharacteristic(this.platform.characteristic.Active)
             .onGet(this.getPowerOn.bind(this))
@@ -216,7 +215,7 @@ class PioneerAvrAccessory {
 
         this.avr.functionSetPowerState = (set: boolean) => {
             try {
-                let boolToNum = set ? 1 : 0;
+                const boolToNum = set ? 1 : 0;
                 if (
                     this.tvService.getCharacteristic(
                         this.platform.characteristic.Active,
@@ -456,8 +455,8 @@ class PioneerAvrAccessory {
                 .setCharacteristic(
                     this.platform.characteristic.CurrentVisibilityState,
                     this.avr.booleanToVisibilityState(
-                        input.visible ?? true
-                    )
+                        input.visible ?? true,
+                    ),
                 );
 
             tmpInput
@@ -466,10 +465,10 @@ class PioneerAvrAccessory {
                 )
                 .onSet((state) => {
 
-                  // const state = this.avr.booleanToVisibilityState(true); // 0
-                  // const isVisible = this.avr.visibilityStateToBoolean(1); // false
+                    // const state = this.avr.booleanToVisibilityState(true); // 0
+                    // const isVisible = this.avr.visibilityStateToBoolean(1); // false
 
-                    this.avr.inputs[key].visible = this.avr.visibilityStateToBoolean( parseInt(String(state), 10) );
+                    this.avr.inputs[key].visible = this.avr.visibilityStateToBoolean(parseInt(String(state), 10));
 
 
                     setTimeout(() => {
@@ -481,7 +480,6 @@ class PioneerAvrAccessory {
                     }, key * 233);
 
 
-
                     if (this.writeVisbilityTimeout) {
                         clearTimeout(this.writeVisbilityTimeout);
                     }
@@ -490,9 +488,9 @@ class PioneerAvrAccessory {
 
 
                             if (fs.existsSync(this.inputCacheFile)) {
-                                  this.inputCache = JSON.parse(
-                                      fs.readFileSync(this.inputCacheFile, 'utf-8'),
-                                  );
+                                this.inputCache = JSON.parse(
+                                    fs.readFileSync(this.inputCacheFile, 'utf-8'),
+                                );
                             }
 
                             if (!this.inputCache) {
@@ -506,7 +504,7 @@ class PioneerAvrAccessory {
                                 JSON.stringify(this.inputCache),
                                 () => {
                                     this.log.debug(
-                                        'saved visibility:'
+                                        'saved visibility:',
                                     );
                                 },
                             );
@@ -640,8 +638,9 @@ class PioneerAvrAccessory {
     }
 
     private async getMuted(): Promise<CharacteristicValue> {
-        if (!this.avr || this.avr.state.muted || !this.avr.state.on)
+        if (!this.avr || this.avr.state.muted || !this.avr.state.on) {
             return true;
+        }
 
         return new Promise((resolve) => {
             this.avr.muteStatus((_error, isMuted) => {
@@ -751,7 +750,7 @@ class PioneerAvrAccessory {
 
             // Check if accessory already exists
             let accessory = this.platform.accessories.find(
-                (existing) => existing.UUID === uuid
+                (existing) => existing.UUID === uuid,
             );
 
             if (!accessory) {
@@ -766,7 +765,7 @@ class PioneerAvrAccessory {
                 this.platform.api.registerPlatformAccessories(
                     this.platform.pluginName,
                     this.platform.platformName,
-                    [accessory]
+                    [accessory],
                 );
             }
 
@@ -776,11 +775,11 @@ class PioneerAvrAccessory {
                 accessory.addService(
                     this.platform.service.Switch,
                     switchName,
-                    input.id
+                    input.id,
                 );
 
             const inputIndex = this.avr.inputs.findIndex(
-                (findInput) => findInput.id === input.id
+                (findInput) => findInput.id === input.id,
             );
 
             // Configure 'On' characteristic
@@ -798,10 +797,10 @@ class PioneerAvrAccessory {
                             await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
                         } else
 
-                        if (this.avr.state.on && this.avr.state.input === inputIndex) {
-                            await this.avr.powerOff();
-                            return;
-                        }
+                            if (this.avr.state.on && this.avr.state.input === inputIndex) {
+                                await this.avr.powerOff();
+                                return;
+                            }
 
                         // Set the desired input
                         await this.avr.setInput(input.id);
@@ -836,7 +835,7 @@ class PioneerAvrAccessory {
 
 
             this.log.info(
-                `Switch accessory created for input: ${input.name} (${input.id}) on host: ${host}`
+                `Switch accessory created for input: ${input.name} (${input.id}) on host: ${host}`,
             );
         });
 
@@ -847,12 +846,12 @@ class PioneerAvrAccessory {
 
             if (!isValid && accessory.context.host && host && accessory.context.host.toLowerCase() === host.toLowerCase()) {
                 this.log.info(
-                    `Removing accessory: ${accessory.displayName} (no longer valid)`
+                    `Removing accessory: ${accessory.displayName} (no longer valid)`,
                 );
                 this.platform.api.unregisterPlatformAccessories(
                     this.platform.pluginName,
                     this.platform.platformName,
-                    [accessory]
+                    [accessory],
                 );
             }
 

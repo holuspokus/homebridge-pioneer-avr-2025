@@ -1,6 +1,6 @@
 // src/pioneer-avr/power.ts
 
-import { TelnetAvr } from '../telnet-avr/telnetAvr';
+import type { TelnetAvr } from '../telnet-avr/telnetAvr';
 import { addExitHandler } from '../exitHandler';
 import type { Logging } from 'homebridge';
 import type { AVState } from './pioneerAvr';

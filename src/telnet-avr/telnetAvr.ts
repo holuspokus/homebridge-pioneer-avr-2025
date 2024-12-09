@@ -1,14 +1,15 @@
 // src/telnet-avr/telnetAvr.ts
 
 import { Connection } from './connection';
-import PioneerAvr from '../pioneer-avr/pioneerAvr';
+import type PioneerAvr from '../pioneer-avr/pioneerAvr';
 
 export class TelnetAvr {
     public readonly connection: Connection;
     public onData: (error: any, data: string, callback?: Function) => void =
         () => {};
-    private onDisconnectCallbacks: Array<() => void> = []; // List for onDisconnect callbacks
-    private onConnectCallbacks: Array<() => void> = []; // Callbacks for onConnect
+
+    private onDisconnectCallbacks: (() => void)[] = []; // List for onDisconnect callbacks
+    private onConnectCallbacks: (() => void)[] = []; // Callbacks for onConnect
     public connectionReady = false;
     public host: string;
     public port: number;
@@ -76,5 +77,13 @@ export class TelnetAvr {
 
     public fallbackOnData(error: any, message: string, callback?: Function) {
         this.onData(error, message, callback);
+    }
+
+    public onDisconnect(): void {
+        this.connection.onDisconnect();
+    }
+
+    public onConnect(): void {
+        this.connection.onConnect();
     }
 }

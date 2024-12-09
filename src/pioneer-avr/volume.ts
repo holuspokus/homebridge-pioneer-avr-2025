@@ -1,6 +1,6 @@
 // src/pioneer-avr/volume.ts
 
-import { TelnetAvr } from '../telnet-avr/telnetAvr';
+import type { TelnetAvr } from '../telnet-avr/telnetAvr';
 import { addExitHandler } from '../exitHandler';
 import type { Logging } from 'homebridge';
 import type { AVState } from './pioneerAvr';
@@ -27,7 +27,7 @@ export function VolumeManagementMixin<
         public updateVolumeTimeout: NodeJS.Timeout | null = null;
         public cancelVolumeDownSteps: boolean = false;
         public activeVolumeDownStepTimeouts: NodeJS.Timeout[] = []; // Array to track active timeouts
-        public lastSetVolume: String = '';
+        public lastSetVolume: string = '';
 
         constructor(...args: any[]) {
             super(...args);
@@ -122,14 +122,15 @@ export function VolumeManagementMixin<
                 !this.telnetAvr ||
                 !this.telnetAvr.connectionReady ||
                 !this.state.on
-            )
+            ) {
                 return;
+            }
 
             targetVolume = parseInt(targetVolume.toString(), 10);
 
             if (
-                (isNaN(targetVolume) ||
-                    Math.floor(targetVolume) === this.state.volume)
+                isNaN(targetVolume) ||
+                    Math.floor(targetVolume) === this.state.volume
             ) {
                 if (callback) {
                     try {
@@ -144,13 +145,13 @@ export function VolumeManagementMixin<
             let vsxVol = 0;
 
             if (this.maxVolume > 0) {
-                const minVolumeIn185 = (this.minVolume / 100) * 185;
-                const maxVolumeIn185 = (this.maxVolume / 100) * 185;
+                const minVolumeIn185 = this.minVolume / 100 * 185;
+                const maxVolumeIn185 = this.maxVolume / 100 * 185;
                 vsxVol =
-                    (targetVolume / 100) * (maxVolumeIn185 - minVolumeIn185) +
+                    targetVolume / 100 * (maxVolumeIn185 - minVolumeIn185) +
                     minVolumeIn185;
             } else {
-                vsxVol = (targetVolume * 185) / 100;
+                vsxVol = targetVolume * 185 / 100;
             }
 
             vsxVol = Math.floor(vsxVol);
@@ -173,8 +174,9 @@ export function VolumeManagementMixin<
                 !this.telnetAvr ||
                 !this.telnetAvr.connectionReady ||
                 !this.state.on
-            )
+            ) {
                 return;
+            }
 
             this.log.debug('Volume up');
 
@@ -199,8 +201,9 @@ export function VolumeManagementMixin<
                 !this.telnetAvr ||
                 !this.telnetAvr.connectionReady ||
                 !this.state.on
-            )
+            ) {
                 return;
+            }
 
             this.log.debug('Volume down');
 
@@ -210,8 +213,9 @@ export function VolumeManagementMixin<
                 clearTimeout(this.updateVolumeTimeout);
             }
 
-            this.activeVolumeDownStepTimeouts.forEach((timeout) =>
-                clearTimeout(timeout),
+            this.activeVolumeDownStepTimeouts.forEach((timeout) => {
+                clearTimeout(timeout);
+            },
             );
             this.activeVolumeDownStepTimeouts = [];
 
@@ -269,8 +273,9 @@ export function VolumeManagementMixin<
                 !this.telnetAvr.connectionReady ||
                 !this.state.on ||
                 this.state.muted === true
-            )
+            ) {
                 return;
+            }
 
             this.log.debug('Mute on');
             this.telnetAvr.sendMessage('MO');
@@ -286,8 +291,9 @@ export function VolumeManagementMixin<
                 !this.telnetAvr.connectionReady ||
                 !this.state.on ||
                 this.state.muted === false
-            )
+            ) {
                 return;
+            }
 
             this.log.debug('Mute off');
             this.telnetAvr.sendMessage('MF');
@@ -339,7 +345,9 @@ export function VolumeManagementMixin<
                 // Execute the callback with a delay if provided
                 if (callback) {
                     setTimeout(
-                        () => callback(null, this.state.listeningMode!),
+                        () => {
+                            callback(null, this.state.listeningMode!);
+                        },
                         100,
                     );
                 }
@@ -354,7 +362,9 @@ export function VolumeManagementMixin<
                     // Execute the callback with a delay if provided
                     if (callback) {
                         setTimeout(
-                            () => callback(null, this.state.listeningMode!),
+                            () => {
+                                callback(null, this.state.listeningMode!);
+                            },
                             100,
                         );
                     }
