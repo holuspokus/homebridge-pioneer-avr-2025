@@ -36,6 +36,8 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
     public readonly characteristic: typeof Characteristic;
     public platformName: string;
     public pluginName: string;
+    private prefsDir: string;
+    private homebridgeConfigPath: string = '';
 
     // Used to track restored cached accessories
     public accessories: PlatformAccessory[] = [];
@@ -76,6 +78,26 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
         this.platformName = platformName || 'pioneerAvr2025';
         this.pluginName = pluginName || 'homebridge-pioneer-avr-2025';
+
+        this.prefsDir =
+            this.config.prefsDir ||
+            this.api.user.storagePath() + '/pioneerAvr/';
+
+
+        this.homebridgeConfigPath = path.join(this.api.user.storagePath(), 'config.json');
+
+        const possiblePaths = [
+            path.join(this.api.user.storagePath(), 'config.json'),
+            path.join(this.prefsDir, 'config.json'),
+            path.resolve(__dirname, '../config.json')
+        ];
+
+        for (const configPath of possiblePaths) {
+            if (fs.existsSync(configPath)) {
+                this.homebridgeConfigPath = configPath;
+                break;
+            }
+        }
 
         this.log.debug('Platform started:', this.platformName, this.pluginName);
 
@@ -291,16 +313,16 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             this.devicesFound.push(addDevice);
             this.log.debug('Using manually configured device:', this.devicesFound);
         } else {
-            const homebridgeConfigPath = path.join(
-                this.api.user.storagePath(),
-                'config.json',
-            );
 
             try {
                 // Load the config.json file
                 const homebridgeConfig: any = JSON.parse(
-                    fs.readFileSync(homebridgeConfigPath, 'utf8'),
+                    fs.existsSync(this.homebridgeConfigPath) ? fs.readFileSync(this.homebridgeConfigPath, 'utf8') : '{}',
                 );
+
+                if (Object.keys(homebridgeConfig).length < 2) {
+                  return;
+                }
 
                 // Check if 'pioneerAvrAccessory' exists in accessories
                 const pioneerAccessory = homebridgeConfig.accessories?.find(
@@ -421,7 +443,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
                 // Save the updated config.json
                 fs.writeFileSync(
-                    homebridgeConfigPath,
+                    this.homebridgeConfigPath,
                     JSON.stringify(homebridgeConfig, null, 2),
                     'utf8',
                 );
@@ -868,16 +890,23 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
             if (schema.schema.properties.discoveredDevices && schema.schema.properties.discoveredDevices.default.length > 0) {
 
-                const configPath = path.resolve(__dirname, '../config.json');
-
                 try {
                     // Read the existing config.json
-                    const rawConfig = fs.existsSync(configPath) ? fs.readFileSync(configPath, 'utf8') : '{}';
+                    const rawConfig = fs.existsSync(this.homebridgeConfigPath) ? fs.readFileSync(this.homebridgeConfigPath, 'utf8') : '{}';
                     const config = JSON.parse(rawConfig);
 
+                    if (Array.isArray(config.discoveredDevices)) {
+                        delete config.discoveredDevices;
+                    }
+
+                    // get config for 'pioneerAvr2025' platform
+                    let pioneerPlatform = config.platforms?.find(
+                        (platform: any) => platform.name === this.platformName,
+                    );
+
                     // Ensure the discoveredDevices array exists in the config.json
-                    if (!Array.isArray(config.discoveredDevices)) {
-                        config.discoveredDevices = [];
+                    if (!Array.isArray(pioneerPlatform.discoveredDevices)) {
+                        pioneerPlatform.discoveredDevices = [];
                     }
 
                     // Update discoveredDevices in config.json with the default values from schema
@@ -888,15 +917,17 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
                     // Avoid duplicates by checking for existing devices in config.json
                     updatedDiscoveredDevices.forEach((newDevice) => {
-                        if (!config.discoveredDevices.some((device: { host: string }) => device.host.toLowerCase() === newDevice.host.toLowerCase())) {
-                            config.discoveredDevices.push(newDevice);
+                        if (!pioneerPlatform.discoveredDevices.some((device: { host: string }) => device.host.toLowerCase() === newDevice.host.toLowerCase())) {
+                            pioneerPlatform.discoveredDevices.push(newDevice);
                         }
                     });
 
                     // Write back the updated config.json
-                    fs.writeFileSync(configPath, JSON.stringify(config, null, 4), 'utf8');
+                    if (Object.keys(config).length > 1) {
+                        fs.writeFileSync(this.homebridgeConfigPath, JSON.stringify(config, null, 4), 'utf8');
+                    }
 
-                    this.log.debug('Successfully updated discoveredDevices in config.json.');
+                    this.log.debug('Successfully updated discoveredDevices in config.json.', this.homebridgeConfigPath);
                 } catch (error) {
                     this.log.error('Failed to update config.json with discoveredDevices:', error);
                 }
