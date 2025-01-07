@@ -43,6 +43,7 @@ export function InitializeMixin<
         public __updatePower!: any;
         public functionSetPowerState!: any;
         public functionSetLightbulbMuted!: any;
+        public allIntervalCounter: number = 0;
 
         constructor(...args: any[]) {
             super(...args);
@@ -126,10 +127,11 @@ export function InitializeMixin<
                 this.allInterval = setInterval(async () => {
                     try {
                         if (
-                            this.lastUserInteraction &&
+                            !this.state.on && this.lastUserInteraction &&
                             Date.now() - this.lastUserInteraction >
                                 48 * 60 * 60 * 1000
                         ) {
+                            this.allIntervalCounter = 0;
                             return;
                         }
 
@@ -138,11 +140,18 @@ export function InitializeMixin<
                             this.telnetAvr.connectionReady &&
                             this.telnetAvr.connection.lastMessageReceived !==
                                 null &&
-                            Date.now() -
+                                Date.now() -
                                 this.telnetAvr.connection.lastMessageReceived >
                                 29000
+
                         ) {
-                            this.__updatePower?.(() => {});
+                            if (this.allIntervalCounter % 2 === 0) {
+                                this.__updatePower?.(() => {});
+                            } else {
+                                this.__updateVolume?.(() => {});
+                            }
+
+                            this.allIntervalCounter++;
                         }
                     } catch (e) {
                         this.log.debug('Polling error', e);

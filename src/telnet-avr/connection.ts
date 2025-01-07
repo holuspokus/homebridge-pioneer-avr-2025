@@ -259,6 +259,8 @@ export class Connection {
             Date.now() - (this.lastConnect ?? 0) > 15 * 1000
         ) {
             this.log.debug('Reconnecting socket.');
+            this.isConnecting = Date.now();
+            this.socket.removeAllListeners('connect');
             this.socket.connect(this.port, this.host, callback);
         } else {
             setTimeout(() => {
