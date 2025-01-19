@@ -146,7 +146,7 @@ class PioneerAvrAccessory {
         this.informationService
             .setCharacteristic(
                 this.platform.characteristic.Name,
-                this.device.name.replace(/[^a-zA-Z0-9 ]/g, ''),
+                this.device.name.replace(/(^[^a-zA-Z0-9]+)|([^a-zA-Z0-9]+$)|([^a-zA-Z0-9 '])/g, '')
             )
             .setCharacteristic(
                 this.platform.characteristic.Manufacturer,
@@ -155,7 +155,7 @@ class PioneerAvrAccessory {
             .setCharacteristic(this.platform.characteristic.Model, this.model)
             .setCharacteristic(
                 this.platform.characteristic.SerialNumber,
-                this.device.origName.replace(/[^a-zA-Z0-9 ]/g, ''),
+                this.device.origName.replace(/(^[^a-zA-Z0-9]+)|([^a-zA-Z0-9]+$)|([^a-zA-Z0-9\-\. '])/g, ''),
             )
             .setCharacteristic(
                 this.platform.characteristic.FirmwareRevision,
@@ -434,7 +434,7 @@ class PioneerAvrAccessory {
                 ) ||
                 this.accessory.addService(
                     this.platform.service.InputSource,
-                    input.name.replace(/[^a-zA-Z0-9 ]/g, ' '),
+                    input.name.replace(/(^[^a-zA-Z0-9]+)|([^a-zA-Z0-9]+$)|([^a-zA-Z0-9 '])/g, ''),
                     key.toString(),
                 );
 
@@ -442,7 +442,7 @@ class PioneerAvrAccessory {
                 .setCharacteristic(this.platform.characteristic.Identifier, key)
                 .setCharacteristic(
                     this.platform.characteristic.ConfiguredName,
-                    input.name.replace(/[^a-zA-Z0-9 ]/g, ' '),
+                    input.name.replace(/(^[^a-zA-Z0-9]+)|([^a-zA-Z0-9]+$)|([^a-zA-Z0-9 '])/g, ''),
                 )
                 .setCharacteristic(
                     this.platform.characteristic.IsConfigured,
@@ -738,9 +738,7 @@ class PioneerAvrAccessory {
             }
 
             let switchName = `${input.name} ${this.name}`;
-            switchName = switchName.replace(/[^a-zA-Z0-9 ']/g, '');
-            switchName = switchName
-                .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '')
+            switchName = switchName.replace(/(^[^a-zA-Z0-9]+)|([^a-zA-Z0-9]+$)|([^a-zA-Z0-9 '])/g, '')
                 .trim();
 
             this.log.debug(`Creating switch accessory: ${switchName} for host: ${host}`);
@@ -781,6 +779,41 @@ class PioneerAvrAccessory {
             const inputIndex = this.avr.inputs.findIndex(
                 (findInput) => findInput.id === input.id,
             );
+
+            // switchService.setCharacteristic(
+            //     this.platform.characteristic.SerialNumber,
+            //     `${host}-${input.id}-${input.name}`.replace(/(^[^a-zA-Z0-9]+)|([^a-zA-Z0-9]+$)|([^a-zA-Z0-9\-\. '])/g, ''),
+            // )
+
+
+
+            const informationService =
+                accessory.getService(
+                    this.platform.service.AccessoryInformation,
+                ) ||
+                accessory.addService(
+                    this.platform.service.AccessoryInformation,
+                );
+
+            informationService
+                .setCharacteristic(
+                    this.platform.characteristic.Name,
+                    switchName.replace(/(^[^a-zA-Z0-9]+)|([^a-zA-Z0-9]+$)|([^a-zA-Z0-9 '])/g, '')
+                )
+                .setCharacteristic(
+                    this.platform.characteristic.Manufacturer,
+                    this.manufacturer,
+                )
+                .setCharacteristic(this.platform.characteristic.Model, this.model)
+                .setCharacteristic(
+                    this.platform.characteristic.SerialNumber,
+                    `${host}-${input.id}-${input.name}`.replace(/(^[^a-zA-Z0-9]+)|([^a-zA-Z0-9]+$)|([^a-zA-Z0-9\-\. '])/g, ''),
+                )
+                .setCharacteristic(
+                    this.platform.characteristic.FirmwareRevision,
+                    this.version,
+                );
+
 
             // Configure 'On' characteristic
             switchService
