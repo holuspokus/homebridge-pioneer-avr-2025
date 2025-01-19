@@ -259,6 +259,7 @@ Set Input switches for discovered Devices
 <br>
 
 ## Release Notes Platform Version
+- **v0.2.4**: Added Serial Numbers to the Switches
 - **v0.2.3**: `discoveredDevices` was not correctly saved in `config.json` across all environments.
 - **v0.2.2**: A few improvements to ESLint and greater use of cached inputs.
 - **v0.2.1**: Optimized saving of input visibility and improved ordering of inputs in the Config-UI.
