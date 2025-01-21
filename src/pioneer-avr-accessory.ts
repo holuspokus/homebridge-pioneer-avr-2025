@@ -828,19 +828,21 @@ class PioneerAvrAccessory {
                         if (!this.avr.state.on) {
                             await this.avr.powerOn();
                             await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
-                        } else
+                        } else {
 
-                            if (this.avr.state.on && this.avr.state.input === inputIndex) {
+                            if ((this.platform.config.toggleOffIfActive ?? true) && this.avr.state.on && this.avr.state.input === inputIndex) {
                                 await this.avr.powerOff();
                                 return;
                             }
 
-                        // Set the desired input
-                        await this.avr.setInput(input.id);
-                        this.log.debug(`Input set to ${input.name} (${input.id})`);
+                            // Set the desired input
+                            await this.avr.setInput(input.id);
+                            this.log.debug(`Input set to ${input.name} (${input.id})`);
 
-                        // Update all switch states
-                        this.updateSwitchStates(input.id);
+                            // Update all switch states
+                            this.updateSwitchStates(input.id);
+
+                        }
                     } else {
                         this.log.debug(`Switch for ${switchName} turned off.`);
                         // // Wait before validating the state

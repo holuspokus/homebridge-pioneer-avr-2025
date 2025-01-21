@@ -69,6 +69,12 @@
                 "maximum": 100,
                 "description": "Set the minimum volume level for all devices (0-100)."
             },
+            "toggleOffIfActive": {
+                "title": "Toggle Off If Active",
+                "type": "boolean",
+                "default": true,
+                "description": "If enabled, pressing an input switch that is already active will turn off the receiver. This allows a single button to toggle the receiver on and off, facilitating one-button control in HomeKit. If disabled, the receiver will remain on and simply reselect the current input."
+            },
             "name": {
                 "title": "Platform Name",
                 "type": "string",

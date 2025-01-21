@@ -5,7 +5,7 @@ A [Homebridge](https://github.com/nfarina/homebridge) plugin that integrates you
 
 While the plugin is not perfect, I hope it provides a dependable way to connect your receiver to HomeKit.
 
-> **Note**: This plugin is specifically designed for Pioneer models released before 2017 that use Pioneer Telnet Commands (e.g., VSX-922). It may not be compatible with newer models that use the ISCP protocol (e.g., VSX-LX304). For newer models, please consider using the [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer) plugin or see the "Alternatives" section below.
+> **Note**: This plugin is specifically designed for Pioneer models released before 2017 that use Pioneer Telnet Commands (e.g., VSX-922, VSX-527). It may not be compatible with newer models that use the ISCP protocol (e.g., VSX-LX304). For newer models, please consider using the [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer) plugin or see the "Alternatives" section below.
 
 ![npm](https://img.shields.io/npm/v/homebridge-pioneer-avr-2025) ![license](https://img.shields.io/badge/license-MIT-blue) ![PRs](https://img.shields.io/github/issues-pr/holuspokus/homebridge-pioneer-avr-2025) ![Issues](https://img.shields.io/github/issues/holuspokus/homebridge-pioneer-avr-2025)
 <br>
@@ -35,12 +35,21 @@ The receiver is detected automatically over the network.
 
 Manual configuration is also available, and previous configurations from older Versions or from the [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr) plugin will be imported automatically if present. You may also configure settings via the Config-UI interface.
 
+Hier ist der aktualisierte Abschnitt im README sowie eine präzisierte Beschreibung für das neue Konfigurationsfeld im `config.schema.json`:
+
+---
+
 ### Adding Input Switches
+
 Once the receiver's inputs are loaded, you can select up to five inputs through the plugin settings in Config-UI. These selected inputs will appear in HomeKit as individual switches, allowing direct selection, use in automations, or integration with physical switches.  
 
 If the receiver is already on and the input is selected, pressing the switch again will turn off the receiver. This behavior is particularly useful in HomeKit, where only one scene can be assigned to a button, not two separate scenes (e.g., one for turning on and another for turning off). With this feature, the same button can be used to turn on the receiver, switch input, and turn off the receiver.  
 
 The button can also serve as a trigger for other scenes but should not be included in the same scene with other devices, such as lights, to avoid unintended behavior.
+
+**Configuration Option: Toggle Off If Active**  
+Additionally, you can control this behavior via the plugin's configuration option **Toggle Off If Active**. When enabled (default), if the receiver is already on and the same input switch is pressed again, the receiver will be turned off. This allows a single button to handle turning the receiver on, switching inputs, and turning it off. If disabled, pressing the active switch will leave the receiver on and simply reselect the same input without turning off the receiver.
+<br>
 
 ### Preparing the Receiver and Network
 To ensure proper connectivity for the plugin, connect the receiver to the network. The simplest way to verify that the receiver is accessible is to check if an iPhone can establish an AirPlay connection to the receiver. If this works, the receiver is ready. Otherwise, ensure the following:
@@ -258,29 +267,13 @@ Set Input switches for discovered Devices
 - [openhab.org](https://www.openhab.org/addons/bindings/pioneeravr/)
 <br>
 
-## Release Notes Platform Version
-- **v0.2.4**: Added Serial Numbers to the Switches
-- **v0.2.3**: `discoveredDevices` was not correctly saved in `config.json` across all environments.
-- **v0.2.2**: A few improvements to ESLint and greater use of cached inputs.
-- **v0.2.1**: Optimized saving of input visibility and improved ordering of inputs in the Config-UI.
-- **v0.2.0**: Rewritten as a platform plugin in TypeScript for enhanced future-proofing and extensibility. Added switches.
 
-## Release Notes Accessory Version
-- **v0.1.6**: Fixes a bug where the receiver would start when the plugin started. Preparations for the transition of the plugin from Accessory to Platform. To ensure a smooth transition, this version should be installed before version 0.2.0.
-- **v0.1.5**: Withdrawn.
-- **v0.1.4**: Little fixes
-- **v0.1.3**: Improved communication of device status with HomeKit and fixed a bug with volume control in the iOS Remote.
-- **v0.1.2**: Fixed an issue where "Web Interface enabled" unintentionally turned on the receiver.
-- **v0.1.1**: Reduced npm dependencies and updated `package.json`, less info-logging.
-- **v0.1.0**: Some final improvements for stabilization.
-- **v0.0.9**: Fixed an issue related to volume control on Apple Watch.
-- **v0.0.8**: Volume as Lightbulb works even finer now!
-- **v0.0.7**: Volume as Lightbulb works fine now.
-- **v0.0.6**: The volume can now be adjusted within the Home icon of the receiver.
-- **v0.0.5**: The unused Remote-Key "Play/Pause" can now be used to toggle Listening-Mode.
-- **v0.0.4**: Plugin-Name in README fixed.
-- **v0.0.3**: Input 46 -> AIRPLAY added.
-- **v0.0.2**: Fixes.
-- **v0.0.1**: Enhanced performance and responsiveness of the Pioneer AVR receiver.
-- **v0.0.0**: Forked homebridge-pioneer-avr.
+## Release Notes
+- **v0.2.5**: Code cleanup for improved maintainability; added "Toggle Off If Active" configuration option.  
+  _Note: Compatibility with plugin versions before v0.2.0 is not maintained._  
+- **v0.2.4**: Added a serial number to switches for better device identification.  
+- **v0.2.3**: Fixed issue where `discoveredDevices` was not correctly saved in `config.json` across all environments.  
+- **v0.2.2**: Made several ESLint improvements and increased use of cached inputs.  
+- **v0.2.1**: Optimized saving of input visibility and improved ordering of inputs in the Config-UI.  
+- **v0.2.0**: Rewritten as a platform plugin in TypeScript for enhanced future-proofing and extensibility. Added switches.
 <br>
