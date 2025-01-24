@@ -1,7 +1,7 @@
 
 # homebridge-pioneer-avr-2025
 
-A [Homebridge](https://github.com/nfarina/homebridge) plugin that integrates your Pioneer AVR as a TV accessory in HomeKit. This project supports Node.js versions up to 22 and is compatible with Homebridge version 2 and earlier. Developed in TypeScript and as a Platform, it incorporates modern Homebridge practices and methods to provide a seamless setup process with optional manual configuration. The plugin features automatic receiver detection, enhancing reliability and ease of use.
+A [Homebridge](https://github.com/nfarina/homebridge) plugin that integrates your Pioneer AVR as a TV accessory in HomeKit. This project supports Node.js versions up to 22 and is compatible with Homebridge version 2 and earlier. Developed in TypeScript and as a Platform, it incorporates modern Homebridge practices and methods to provide a seamless setup process with optional manual configuration. With automatic receiver detection, the plugin enhances reliability and user-friendliness.
 
 While the plugin is not perfect, I hope it provides a dependable way to connect your receiver to HomeKit.
 
@@ -122,14 +122,15 @@ This setup simplifies installation and leverages the plugin's automatic discover
 ]
 ```
 
-|          Key | Value                         |
-| -----------: | :---------------------------- |
-|     platform | don't change                  |
-|         name | Custom input, can remain      |
-|         host | needs to be accurate or empty |
-|         port | needs to be accurate          |
-|    maxVolume | Optional input, can remain    |
-|    minVolume | Optional input, can remain    |
+|                Key | Value                         |
+| -----------------: | :---------------------------- |
+|           platform | don't change                  |
+|               name | Custom input, can remain      |
+|               host | needs to be accurate or empty |
+|               port | needs to be accurate          |
+|          maxVolume | Optional input, can remain    |
+|          minVolume | Optional input, can remain    |
+|  toggleOffIfActive | Toggle receiver off if active |
 
 > **name:**
 > In the example above, the "name" field refers to the platform and is used to define the name of the platform in Homebridge, for example, as visible in the logs. The device name, in this case, is derived from the hostname unless the hostname is an IP address, in which case the platform name is used instead.
@@ -165,6 +166,11 @@ This setup simplifies installation and leverages the plugin's automatic discover
 
 > **inputSwitches:**
 > Set up to 5 inputs to expose as switches in HomeKit
+
+> **toggleOffIfActive:**
+> If enabled, pressing an input switch that is already active will turn off the receiver.
+> This allows a single button to toggle the receiver on and off, facilitating one-button control in HomeKit.
+> If disabled, the receiver will remain on and simply reselect the current input.
 
 > **name:**
 > In the example below, "name" under "devices" refers to the name as it appears in HomeKit.
@@ -217,6 +223,7 @@ This setup simplifies installation and leverages the plugin's automatic discover
         ],
         "maxVolume": 65,
         "minVolume": 30,
+        "toggleOffIfActive": true,
         "_bridge": {
             "username": "0E:D6:86:BA:AM:69",
             "port": 35337
@@ -269,8 +276,7 @@ Set Input switches for discovered Devices
 
 
 ## Release Notes
-- **v0.2.5**: Code cleanup for improved maintainability; added "Toggle Off If Active" configuration option.  
-  _Note: Compatibility with plugin versions before v0.2.0 is not maintained._  
+- **v0.2.5**: Added "Toggle Off If Active" configuration option (switches).  
 - **v0.2.4**: Added a serial number to switches for better device identification.  
 - **v0.2.3**: Fixed issue where `discoveredDevices` was not correctly saved in `config.json` across all environments.  
 - **v0.2.2**: Made several ESLint improvements and increased use of cached inputs.  
