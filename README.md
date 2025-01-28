@@ -34,11 +34,10 @@ This plugin allows you to control various aspects of your Pioneer AVR directly f
 
 ## Accessory Configuration
 The receiver is detected automatically over the network.
-
-Manual configuration is also available, and previous configurations from older Versions or from the [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr) plugin will be imported automatically if present. You may also configure settings via the Config-UI interface.
+You may also configure settings via the Config-UI interface.
+Manual configuration is also available.
 
 ### Adding Input Switches
-
 Once the receiver's inputs are loaded, you can select up to five inputs through the plugin settings in Config-UI. These selected inputs will appear in HomeKit as individual switches, allowing direct selection, use in automations, or integration with physical switches.  
 
 If the receiver is already on and the input is selected, pressing the switch again will turn off the receiver. This behavior is particularly useful in HomeKit, where only one scene can be assigned to a button, not two separate scenes (e.g., one for turning on and another for turning off). With this feature, the same button can be used to turn on the receiver, switch input, and turn off the receiver.  
