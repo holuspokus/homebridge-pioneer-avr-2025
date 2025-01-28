@@ -29,15 +29,12 @@ This plugin allows you to control various aspects of your Pioneer AVR directly f
 ## Installation
 1. **Install Homebridge**: Follow the [Homebridge Installation Guide](https://github.com/homebridge/homebridge/wiki).
 2. **Install the Plugin**: Use the Homebridge Web Interface (Config-UI) to install **homebridge-pioneer-avr-2025**.
+3. **Connect to HomeKit**: Open the Home app on your iOS device, tap Add Accessory, and scan the QR code displayed in the Homebridge Web Interface (Config-UI).
 
 ## Accessory Configuration
 The receiver is detected automatically over the network.
 
 Manual configuration is also available, and previous configurations from older Versions or from the [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr) plugin will be imported automatically if present. You may also configure settings via the Config-UI interface.
-
-Hier ist der aktualisierte Abschnitt im README sowie eine präzisierte Beschreibung für das neue Konfigurationsfeld im `config.schema.json`:
-
----
 
 ### Adding Input Switches
 
