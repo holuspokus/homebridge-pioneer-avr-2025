@@ -1,4 +1,5 @@
 
+
 # homebridge-pioneer-avr-2025
 
 A [Homebridge](https://github.com/nfarina/homebridge) plugin that integrates your Pioneer AVR as a TV accessory in HomeKit. This project supports Node.js versions up to 22 and is compatible with Homebridge version 2 and earlier. Developed in TypeScript and as a Platform, it incorporates modern Homebridge practices and methods to provide a seamless setup process with optional manual configuration. With automatic receiver detection, the plugin enhances reliability and user-friendliness.
@@ -87,6 +88,30 @@ After confirming the network connection, restart the plugin to enable communicat
       or
    homebridge
    ```
+
+5. **Connect to HomeKit**
+**Retrieve the Setup Code**: In your terminal run the following command to view the Homebridge logs, which include the setup code:
+
+    ```bash
+    sudo hb-service logs
+    ```
+
+    Look for output similar to:
+
+    ```
+    Enter this code with your HomeKit app on your iOS device to pair with Homebridge:
+
+        ┌────────────┐     
+        │ 340-36-041 │     
+        └────────────┘     
+    ```
+
+	**Add Childbridge to HomeKit**:
+    - Open the **Home app** on your iOS device.
+    - Tap **"Add Accessory"**.
+    - Choose **"Don't Have a Code or Can't Scan?"**.
+    - Select **"Enter Code"** and input the 8-digit code (z.B. `340-36-041`) displayed in the logs.
+<br>
 
 ### Accessory Configuration Example
 Below is a sample configuration for your accessory:
