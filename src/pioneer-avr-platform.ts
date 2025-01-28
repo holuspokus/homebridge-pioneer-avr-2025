@@ -557,7 +557,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             if (enums.length > 0) {
                 // Add the 'toggleOffIfActive' field directly under schema.schema.properties
                 schema.schema.properties.toggleOffIfActive = {
-                    title: "Toggle Off If Already Active",
+                    title: "Toggle Off If Already Active (Input Switch)",
                     type: "boolean",
                     default: this.config.toggleOffIfActive ?? true,
                     description: "If enabled, pressing an input switch that is already active will turn off the receiver. This allows a single button to toggle the receiver on and off, facilitating one-button control in HomeKit. If disabled, the receiver will remain on and simply reselect the current input."
