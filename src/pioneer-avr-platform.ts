@@ -554,6 +554,23 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             const enums = uniqueInputs.map((input) => input.id);
             const enumNames = uniqueInputs.map((input) => input.name);
 
+            if (enums.length > 0) {
+                // Add the 'toggleOffIfActive' field directly under schema.schema.properties
+                schema.schema.properties.toggleOffIfActive = {
+                    title: "Toggle Off If Already Active",
+                    type: "boolean",
+                    default: this.config.toggleOffIfActive ?? true,
+                    description: "If enabled, pressing an input switch that is already active will turn off the receiver. This allows a single button to toggle the receiver on and off, facilitating one-button control in HomeKit. If disabled, the receiver will remain on and simply reselect the current input."
+                };
+            }else{
+
+              // remove the 'toggleOffIfActive' field if no enums are present
+              if (schema.schema.properties.toggleOffIfActive) {
+                  delete schema.schema.properties.toggleOffIfActive;
+              }
+
+            }
+
             if (bonjourCounter !== foundDevices.length) {
                 schema.schema.properties.devices.items.properties.inputSwitches = {
                     type: 'array',
@@ -570,12 +587,15 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 };
 
                 if (enums.length > 0) {
-                    schema.schema.properties.devices.items.properties.inputSwitches.items.enum =
-                        enums;
-                    schema.schema.properties.devices.items.properties.inputSwitches.items.enumNames =
-                        enumNames;
-                } else if (schema.schema.properties.devices.items.properties.inputSwitches) {
-                    delete schema.schema.properties.devices.items.properties.inputSwitches;
+                    // Set the enum and enumNames for inputSwitches
+                    schema.schema.properties.devices.items.properties.inputSwitches.items.enum = enums;
+                    schema.schema.properties.devices.items.properties.inputSwitches.items.enumNames = enumNames;
+
+                } else {
+                    // Remove the inputSwitches field if no enums are present
+                    if (schema.schema.properties.devices.items.properties.inputSwitches) {
+                        delete schema.schema.properties.devices.items.properties.inputSwitches;
+                    }
                 }
             } else if (schema.schema.properties.devices.items.properties.inputSwitches) {
                 delete schema.schema.properties.devices.items.properties.inputSwitches;
