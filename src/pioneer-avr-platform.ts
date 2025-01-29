@@ -556,12 +556,35 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
             if (enums.length > 0) {
                 // Add the 'toggleOffIfActive' field directly under schema.schema.properties
-                schema.schema.properties.toggleOffIfActive = {
-                    title: "Toggle Off If Already Active (Input Switch)",
+                // schema.schema.properties.toggleOffIfActive = {
+                //     title: "Toggle Off If Already Active (For Exposed Input Switches)",
+                //     type: "boolean",
+                //     default: this.config.toggleOffIfActive ?? true,
+                //     description: "If enabled, pressing an input switch that is already active will turn off the receiver. This allows a single button to toggle the receiver on and off, facilitating one-button control in HomeKit. If disabled, the receiver will remain on and simply reselect the current input."
+                // };
+
+                // Define the 'toggleOffIfActive' field
+                const toggleOffIfActive = {
+                    title: "Toggle Off If Already Active (For Exposed Input Switches)",
                     type: "boolean",
                     default: this.config.toggleOffIfActive ?? true,
                     description: "If enabled, pressing an input switch that is already active will turn off the receiver. This allows a single button to toggle the receiver on and off, facilitating one-button control in HomeKit. If disabled, the receiver will remain on and simply reselect the current input."
                 };
+
+                // Remove 'toggleOffIfActive' if it already exists to avoid duplication
+                if (schema.schema.properties.toggleOffIfActive) {
+                    delete schema.schema.properties.toggleOffIfActive;
+                }
+
+                // Reconstruct properties to insert 'toggleOffIfActive' before 'devices'
+                const newProperties: any = {};
+                for (const key in schema.schema.properties) {
+                    if (key === 'devices') {
+                        newProperties['toggleOffIfActive'] = toggleOffIfActive;
+                    }
+                    newProperties[key] = schema.schema.properties[key];
+                }
+                schema.schema.properties = newProperties;
             }else{
 
               // remove the 'toggleOffIfActive' field if no enums are present

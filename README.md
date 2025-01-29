@@ -9,6 +9,8 @@ While the plugin is not perfect, I hope it provides a dependable way to connect 
 > **Note**: This plugin is specifically designed for Pioneer models released before 2017 that use Pioneer Telnet Commands (e.g., VSX-922, VSX-527). It may not be compatible with newer models that use the ISCP protocol (e.g., VSX-LX304). For newer models, please consider using the [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer) plugin or see the "Alternatives" section below.
 
 ![npm](https://img.shields.io/npm/v/homebridge-pioneer-avr-2025) ![license](https://img.shields.io/badge/license-MIT-blue) ![PRs](https://img.shields.io/github/issues-pr/holuspokus/homebridge-pioneer-avr-2025) ![Issues](https://img.shields.io/github/issues/holuspokus/homebridge-pioneer-avr-2025)
+<br><br>
+Issues or Feedback: [Github homebridge-pioneer-avr-2025](https://github.com/holuspokus/homebridge-pioneer-avr-2025/issues)
 <br>
 
 ## Features
@@ -44,7 +46,7 @@ If the receiver is already on and the input is selected, pressing the switch aga
 
 The button can also serve as a trigger for other scenes but should not be included in the same scene with other devices, such as lights, to avoid unintended behavior.
 
-**Configuration Option: Toggle Off If Active**  
+**Configuration Option**  
 Additionally, you can control this behavior via the plugin's configuration option **Toggle Off If Already Active**. When enabled (default), if the receiver is already on and the same input switch is pressed again, the receiver will be turned off. This allows a single button to handle turning the receiver on, switching inputs, and turning it off. If disabled, pressing the active switch will leave the receiver on and simply reselect the same input without turning off the receiver.
 <br>
 
@@ -109,7 +111,7 @@ After confirming the network connection, restart the plugin to enable communicat
     - Open the **Home app** on your iOS device.
     - Tap **"Add Accessory"**.
     - Choose **"Don't Have a Code or Can't Scan?"**.
-    - Select **"Enter Code"** and input the 8-digit code (z.B. `340-36-041`) displayed in the logs.
+    - Select **"Enter Code"** and input the 8-digit code (e.g. `340-36-041`) displayed in the logs.
 <br>
 
 ### Accessory Configuration Example
@@ -297,7 +299,7 @@ Set Input switches for discovered Devices
 
 
 ## Release Notes
-- **v0.2.5**: Added "Toggle Off If Active" configuration option (switches).  
+- **v0.2.5**: Added "Toggle Off If Already Active" configuration option (switches).  
 - **v0.2.4**: Added a serial number to switches for better device identification.  
 - **v0.2.3**: Fixed issue where `discoveredDevices` was not correctly saved in `config.json` across all environments.  
 - **v0.2.2**: Made several ESLint improvements and increased use of cached inputs.  
