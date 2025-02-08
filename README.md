@@ -160,7 +160,7 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > Characters that could cause issues are automatically removed.
 
 > **host:**
-> To use the network scan (Multicast), leave `host` field empty in the plugin configuration.
+> To use the network scan (Multicast), leave `host` (Device IP Address) field empty in the plugin configuration.
 
 > **port:**  
 > The port used for Telnet to connect to your receiver.  

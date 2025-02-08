@@ -2,8 +2,8 @@
     "pluginAlias": "pioneerAvr2025",
     "pluginType": "platform",
     "singular": true,
-    "headerDisplay": "This is a plugin that integrates your Pioneer AVR as a TV accessory in HomeKit.\n\nTo use the network scan (Multicast), leave `host` field empty in the plugin configuration and dont manually add any Devices.<br>\n\nThis plugin is specifically designed for Pioneer models released before 2017 that use Pioneer Telnet Commands (e.g., VSX-922, VSX-527). It may not be compatible with newer models that use the ISCP protocol (e.g., VSX-LX304). For newer models, please consider using the [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer) plugin.",
-    "footerDisplay": "",
+    "headerDisplay": "This is a plugin that integrates your Pioneer AVR as a TV accessory in HomeKit.\n\nTo use the network scan (Multicast), leave `Device IP Address` (`host`) field empty in the plugin configuration and dont manually add any Devices.<br>\n\nThis plugin is specifically designed for Pioneer models released before 2017 that use Pioneer Telnet Commands (e.g., VSX-922, VSX-527). It may not be compatible with newer models that use the ISCP protocol (e.g., VSX-LX304). For newer models, please consider using the [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer) plugin.",
+    "footerDisplay": "issues: [homebridge-pioneer-avr-2025](https://github.com/holuspokus/homebridge-pioneer-avr-2025/issues)",
     "schema": {
         "title": "Pioneer AVR Plugin",
         "type": "object",
