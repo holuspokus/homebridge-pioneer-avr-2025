@@ -231,6 +231,18 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                         source: 'pluginConfig',
                     };
 
+                    if (device.listeningMode) {
+                        addDevice.listeningMode = device.listeningMode;
+                    }
+
+                    if (device.listeningModeFallback) {
+                        addDevice.listeningModeFallback = device.listeningModeFallback;
+                    }
+
+                    if (device.listeningModeOther) {
+                        addDevice.listeningModeOther = device.listeningModeOther;
+                    }
+
                     if (device.minVolume) {
                         addDevice.minVolume = device.minVolume;
                     }
@@ -247,7 +259,6 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 }
             }
 
-            this.log.debug('Using manually configured devices:', this.devicesFound);
         } else if (
             this.config?.device &&
             (this.config.device.host || this.config.device.ip) &&
@@ -271,6 +282,18 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 source: 'pluginConfig',
             };
 
+            if (this.config.device.listeningMode) {
+                addDevice.listeningMode = this.config.device.listeningMode;
+            }
+
+            if (this.config.device.listeningModeFallback) {
+                addDevice.listeningModeFallback = this.config.device.listeningModeFallback;
+            }
+
+            if (this.config.device.listeningModeOther) {
+                addDevice.listeningModeOther = this.config.device.listeningModeOther;
+            }
+
             if (this.config.device.minVolume) {
                 addDevice.minVolume = this.config.device.minVolume;
             }
@@ -284,8 +307,6 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             }
 
             this.devicesFound.push(addDevice);
-
-            this.log.debug('Using manually configured device:', this.devicesFound);
         } else if (
             this.config &&
             (this.config.host || this.config.ip) &&
@@ -312,8 +333,12 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             };
 
             this.devicesFound.push(addDevice);
+        }
+
+
+        if (this.devicesFound.length > 0) {
             this.log.debug('Using manually configured device:', this.devicesFound);
-        } else {
+        }else{
 
             let attempts = 0;
 
@@ -346,6 +371,15 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                             inputSwitches: this.config.discoveredDevices?.find(
                                 (device: any) => device.host.toLowerCase() === dDevice.host.toLowerCase(),
                             )?.inputSwitches || [],
+                            listeningMode: this.config.discoveredDevices?.find(
+                                (device: any) => device.host.toLowerCase() === dDevice.host.toLowerCase(),
+                            )?.listeningMode || undefined,
+                            listeningModeFallback: this.config.discoveredDevices?.find(
+                                (device: any) => device.host.toLowerCase() === dDevice.host.toLowerCase(),
+                            )?.listeningModeFallback || undefined,
+                            listeningModeOther: this.config.discoveredDevices?.find(
+                                (device: any) => device.host.toLowerCase() === dDevice.host.toLowerCase(),
+                            )?.listeningModeOther || undefined,
                         });
                     }
                     this.log.debug('Discovered devices:', this.devicesFound);
@@ -660,19 +694,19 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                             listeningMode: {
                                 title: 'Primary Listening Mode',
                                 type: 'string',
-                                default: this.config.listeningMode || '0013',
+                                placeholder: this.config.listeningMode || '0013',
                                 description: 'The default listening mode when the switch in HomeKit is active. Default 0013 PRO LOGIC2 MOVIE',
                             },
                             listeningModeOther: {
                                 title: 'Alternative Listening Mode',
                                 type: 'string',
-                                default: this.config.listeningModeFallback || '0112',
+                                placeholder: this.config.listeningModeFallback || '0112',
                                 description: 'The alternative listening mode that is toggled via HomeKit switch or the iOS Remote app. Default 0112 EXTENDED STEREO',
                             },
                             listeningModeFallback: {
                                 title: 'Fallback Listening Mode',
                                 type: 'string',
-                                default: this.config.listeningModeOther || '0101',
+                                placeholder: this.config.listeningModeOther || '0101',
                                 description: 'A backup listening mode used when the Primary Listening Mode is unavailable (e.g., due to input signal restrictions). This mode should be **different** from the Primary Listening Mode and should be chosen based on what is likely to be supported. Default 0101 ACTION\nAvailable modes can be found in the list at the bottom of this page.',
                             },
                             inputSwitches: {
