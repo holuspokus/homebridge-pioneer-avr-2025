@@ -411,7 +411,7 @@ Set Input switches for discovered Devices
 
 
 ## Release Notes
-- **v0.2.6**: Toggle Listening Mode is now configurable and available not only via "Remote" but also through HomeKit.
+- **v0.2.7**: Toggle Listening Mode is now configurable and available not only via "Remote" but also through HomeKit.
 - **v0.2.5**: Added "Toggle Off If Already Active" configuration option (switches).  
 - **v0.2.4**: Added a serial number to switches for better device identification.  
 - **v0.2.3**: Fixed issue where `discoveredDevices` was not correctly saved in `config.json` across all environments.  

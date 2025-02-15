@@ -49,19 +49,19 @@
                         "listeningMode": {
                             "title": "Primary Listening Mode",
                             "type": "string",
-                            "default": "0013",
+                            "placeholder": "0013",
                             "description": "The default listening mode when the switch in HomeKit is active. Default 0013 PRO LOGIC2 MOVIE"
                         },
                         "listeningModeOther": {
                             "title": "Alternative Listening Mode",
                             "type": "string",
-                            "default": "0112",
+                            "placeholder": "0112",
                             "description": "The alternative listening mode that is toggled via HomeKit switch or the iOS Remote app. Default 0112 EXTENDED STEREO"
                         },
                         "listeningModeFallback": {
                             "title": "Fallback Listening Mode",
                             "type": "string",
-                            "default": "0101",
+                            "placeholder": "0101",
                             "description": "A backup listening mode used when the Primary Listening Mode is unavailable (e.g., due to input signal restrictions). This mode should be **different** from the Primary Listening Mode and should be chosen based on what is likely to be supported. Default 0101 ACTION\nAvailable modes can be found in the list at the bottom of this page."
                         }
                     },
