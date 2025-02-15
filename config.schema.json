@@ -2,8 +2,8 @@
     "pluginAlias": "pioneerAvr2025",
     "pluginType": "platform",
     "singular": true,
-    "headerDisplay": "This is a plugin that integrates your Pioneer AVR as a TV accessory in HomeKit.\n\nTo use the network scan (Multicast), leave `host` field empty in the plugin configuration and dont manually add any Devices.<br>\n\nThis plugin is specifically designed for Pioneer models released before 2017 that use Pioneer Telnet Commands (e.g., VSX-922). It may not be compatible with newer models that use the ISCP protocol (e.g., VSX-LX304). For newer models, please consider using the [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer) plugin.",
-    "footerDisplay": "",
+    "headerDisplay": "This is a plugin that integrates your Pioneer AVR as a TV accessory in HomeKit.\n\nTo use the network scan (Multicast), leave `Device IP Address` (`host`) field empty in the plugin configuration and dont manually add any Devices.<br>\n\nThis plugin is specifically designed for Pioneer models released before 2017 that use Pioneer Telnet Commands (e.g., VSX-922, VSX-527). It may not be compatible with newer models that use the ISCP protocol (e.g., VSX-LX304). For newer models, please consider using the [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer) plugin.",
+    "footerDisplay": "issues: [homebridge-pioneer-avr-2025](https://github.com/holuspokus/homebridge-pioneer-avr-2025/issues)\n\nListening Modes: 0001: STEREO (cyclic), 0009: STEREO (direct set) (set to SCI-FI mode.), 0151: Auto Level Control (A.L.C.), 0003: Front Stage Surround Advance Focus, 0004: Front Stage Surround Advance Wide (set to PURE DIRECT), 0153: RETRIEVER AIR, 0010: STANDARD mode., 0011: (2ch source), 0013: PRO LOGIC2 MOVIE, 0018: PRO LOGIC2x MOVIE, 0014: PRO LOGIC2 MUSIC, 0019: PRO LOGIC2x MUSIC, 0015: PRO LOGIC2 GAME, 0020: PRO LOGIC2x GAME, 0032: WIDE SURROUND MOVIE, 0033: WIDE SURROUND MUSIC, 0012: PRO LOGIC, 0016: Neo:6 CINEMA, 0017: Neo:6 MUSIC, 0028: XM HD SURROUND, 0029: NEURAL SURROUND, 0024: (Multi ch source)+PRO LOGIC2x MUSIC, 0034: (Multi-ch Source)+PRO LOGIC2z HEIGHT, 0035: (Multi-ch Source)+WIDE SURROUND MOVIE, 0036: (Multi-ch Source)+WIDE SURROUND MUSIC, 0025: DTS-ES Neo:6, 0026: DTS-ES matrix, 0027: DTS-ES discrete, 0101: ACTION, 0103: DRAMA, 0102: SCI-FI, 0105: MONO FILM, 0104: ENTERTAINMENT SHOW, 0106: EXPANDED THEATER, 0116: TV SURROUND, 0118: ADVANCED GAME, 0117: SPORTS, 0107: CLASSICAL, 0110: ROCK/POP, 0109: UNPLUGGED, 0112: EXTENDED STEREO, 0113: PHONES SURROUND, 0051: PROLOGIC + THX CINEMA, 0052: PL2 MOVIE + THX CINEMA, 0053: Neo:6 CINEMA + THX CINEMA, 0054: PL2x MOVIE + THX CINEMA, 0092: PL2z HEIGHT + THX CINEMA, 0055: THX SELECT2 GAMES, 0093: PL2z HEIGHT + THX MUSIC, 0073: Neo:6 MUSIC + THX MUSIC, 0074: PL2 GAME + THX GAMES, 0075: PL2x GAME + THX GAMES, 0094: PL2z HEIGHT + THX GAMES, 0076: THX ULTRA2 GAMES, 0077: PROLOGIC + THX MUSIC, 0057: THX SURROUND EX (for multi ch), 0058: PL2x MOVIE + THX CINEMA (for multi ch), 0095: PL2z HEIGHT + THX CINEMA (for multi ch), 0067: ES 8ch DISCRETE + THX CINEMA (for multi ch), 0031: PRO LOGIC2z Height, 0100: ADVANCED SURROUND (cyclic), 0050: THX (cyclic), 0068: THX CINEMA (for 2ch), 0069: THX MUSIC (for 2ch), 0070: THX GAMES (for 2ch), 0071: PL2 MUSIC + THX MUSIC, 0072: PL2x MUSIC + THX MUSIC, 0078: PROLOGIC + THX GAMES, 0056: THX CINEMA (for multi ch), 0059: ES Neo:6 + THX CINEMA (for multi ch), 0060: ES MATRIX + THX CINEMA (for multi ch), 0061: ES DISCRETE + THX CINEMA (for multi ch), 0062: THX SELECT2 CINEMA (for multi ch), 0063: THX SELECT2 MUSIC (for multi ch), 0064: THX SELECT2 GAMES (for multi ch), 0065: THX ULTRA2 CINEMA (for multi ch), 0066: THX ULTRA2 MUSIC (for multi ch), 0079: THX ULTRA2 GAMES (for multi ch), 0080: THX MUSIC (for multi ch), 0081: THX GAMES (for multi ch), 0082: PL2x MUSIC + THX MUSIC (for multi ch), 0096: PL2z HEIGHT + THX MUSIC (for multi ch), 0083: EX + THX GAMES (for multi ch), 0097: PL2z HEIGHT + THX GAMES (for multi ch), 0084: Neo:6 + THX MUSIC (for multi ch), 0085: Neo:6 + THX GAMES (for multi ch), 0086: ES MATRIX + THX MUSIC (for multi ch), 0087: ES MATRIX + THX GAMES (for multi ch), 0088: ES DISCRETE + THX MUSIC (for multi ch), 0089: ES DISCRETE + THX GAMES (for multi ch), 0090: ES 8CH DISCRETE + THX MUSIC (for multi ch), 0091: ES 8CH DISCRETE + THX GAMES (for multi ch), 0005: AUTO SURR/STREAM DIRECT (cyclic), 0006: AUTO SURROUND, 0152: OPTIMUM SURROUND, 0007: DIRECT, 0008: PURE DIRECT",
     "schema": {
         "title": "Pioneer AVR Plugin",
         "type": "object",
@@ -45,10 +45,28 @@
                             "minimum": 0,
                             "maximum": 100,
                             "description": "Set the minimum volume level (0-100). Owerwrites global setting."
+                        },
+                        "listeningMode": {
+                            "title": "Primary Listening Mode",
+                            "type": "string",
+                            "default": "0013",
+                            "description": "The default listening mode when the switch in HomeKit is active. Default 0013 PRO LOGIC2 MOVIE"
+                        },
+                        "listeningModeOther": {
+                            "title": "Alternative Listening Mode",
+                            "type": "string",
+                            "default": "0112",
+                            "description": "The alternative listening mode that is toggled via HomeKit switch or the iOS Remote app. Default 0112 EXTENDED STEREO"
+                        },
+                        "listeningModeFallback": {
+                            "title": "Fallback Listening Mode",
+                            "type": "string",
+                            "default": "0101",
+                            "description": "A backup listening mode used when the Primary Listening Mode is unavailable (e.g., due to input signal restrictions). This mode should be **different** from the Primary Listening Mode and should be chosen based on what is likely to be supported. Default 0101 ACTION\nAvailable modes can be found in the list at the bottom of this page."
                         }
                     },
                     "required": [],
-                    "description": "Configure the device parameters manually if needed."
+                    "description": ""
                 },
                 "default": [],
                 "description": "Add multiple Pioneer AVR devices to your configuration."

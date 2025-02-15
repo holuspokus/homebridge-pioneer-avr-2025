@@ -9,6 +9,8 @@ While the plugin is not perfect, I hope it provides a dependable way to connect 
 > **Note**: This plugin is specifically designed for Pioneer models released before 2017 that use Pioneer Telnet Commands (e.g., VSX-922, VSX-527). It may not be compatible with newer models that use the ISCP protocol (e.g., VSX-LX304). For newer models, please consider using the [homebridge-onkyo-pioneer](https://github.com/nitaybz/homebridge-onkyo-pioneer) plugin or see the "Alternatives" section below.
 
 ![npm](https://img.shields.io/npm/v/homebridge-pioneer-avr-2025) ![license](https://img.shields.io/badge/license-MIT-blue) ![PRs](https://img.shields.io/github/issues-pr/holuspokus/homebridge-pioneer-avr-2025) ![Issues](https://img.shields.io/github/issues/holuspokus/homebridge-pioneer-avr-2025)
+<br><br>
+Issues or Feedback: [Github homebridge-pioneer-avr-2025](https://github.com/holuspokus/homebridge-pioneer-avr-2025/issues)
 <br>
 
 ## Features
@@ -34,18 +36,17 @@ This plugin allows you to control various aspects of your Pioneer AVR directly f
 
 ## Accessory Configuration
 The receiver is detected automatically over the network.
-
-Manual configuration is also available, and previous configurations from older Versions or from the [homebridge-pioneer-avr](https://github.com/kazcangi/homebridge-pioneer-avr) plugin will be imported automatically if present. You may also configure settings via the Config-UI interface.
+You may also configure settings via the Config-UI interface.
+Manual configuration is also available.
 
 ### Adding Input Switches
-
 Once the receiver's inputs are loaded, you can select up to five inputs through the plugin settings in Config-UI. These selected inputs will appear in HomeKit as individual switches, allowing direct selection, use in automations, or integration with physical switches.  
 
 If the receiver is already on and the input is selected, pressing the switch again will turn off the receiver. This behavior is particularly useful in HomeKit, where only one scene can be assigned to a button, not two separate scenes (e.g., one for turning on and another for turning off). With this feature, the same button can be used to turn on the receiver, switch input, and turn off the receiver.  
 
 The button can also serve as a trigger for other scenes but should not be included in the same scene with other devices, such as lights, to avoid unintended behavior.
 
-**Configuration Option: Toggle Off If Active**  
+**Configuration Option**  
 Additionally, you can control this behavior via the plugin's configuration option **Toggle Off If Already Active**. When enabled (default), if the receiver is already on and the same input switch is pressed again, the receiver will be turned off. This allows a single button to handle turning the receiver on, switching inputs, and turning it off. If disabled, pressing the active switch will leave the receiver on and simply reselect the same input without turning off the receiver.
 <br>
 
@@ -110,7 +111,7 @@ After confirming the network connection, restart the plugin to enable communicat
     - Open the **Home app** on your iOS device.
     - Tap **"Add Accessory"**.
     - Choose **"Don't Have a Code or Can't Scan?"**.
-    - Select **"Enter Code"** and input the 8-digit code (z.B. `340-36-041`) displayed in the logs.
+    - Select **"Enter Code"** and input the 8-digit code (e.g. `340-36-041`) displayed in the logs.
 <br>
 
 ### Accessory Configuration Example
@@ -159,7 +160,7 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > Characters that could cause issues are automatically removed.
 
 > **host:**
-> To use the network scan (Multicast), leave `host` field empty in the plugin configuration.
+> To use the network scan (Multicast), leave `host` (Device IP Address) field empty in the plugin configuration.
 
 > **port:**  
 > The port used for Telnet to connect to your receiver.  
@@ -186,8 +187,17 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > This setting is only active in combination with `maxVolume`.  
 > A value of 35 has worked well for me.  
 
+> **listeningMode:**
+> The default listening mode when the switch in HomeKit is active. Default 0013 PRO LOGIC2 MOVIE   
+
+> **listeningModeOther:**
+> The alternative listening mode that is toggled via HomeKit switch or the iOS Remote app. Default 0112 EXTENDED STEREO   
+
+> **listeningModeFallback:**
+> A backup listening mode used when the Primary Listening Mode is unavailable (e.g., due to input signal restrictions). This mode should be **different** from the Primary Listening Mode and should be chosen based on what is likely to be supported. Default 0101 ACTION\nAvailable modes can be found in the list at the bottom of this page.   
+
 > **inputSwitches:**
-> Set up to 5 inputs to expose as switches in HomeKit
+> Set up to 5 inputs to expose as switches in HomeKit   
 
 > **toggleOffIfActive:**
 > If enabled, pressing an input switch that is already active will turn off the receiver.
@@ -209,6 +219,9 @@ This setup simplifies installation and leverages the plugin's automatic discover
                 "host": "VSX-922.local",
                 "port": 23,
                 "name": "VSX922",
+                "listeningMode": "0013",
+                "listeningModeOther": "0112",
+                "listeningModeFallback": "0101",
                 "inputSwitches": [
                     "20",
                     "25",
@@ -279,6 +292,106 @@ Set Input switches for discovered Devices
 
 > **Note:** The "discoveredDevices" section is automatically created when a receiver is detected. There is no need to manually add devices to this section, as it is specifically designed for configuring additional attributes for automatically discovered devices. Attributes such as `maxVolume`, `minVolume`, and `inputSwitches` can be customized here for greater control over the integration. Please note that the `host` attribute serves as a key and should not be modified.
 
+<br>
+
+
+#### Known Listeningmodes
+| Code  | Description |
+|-------|------------|
+| 0001  | STEREO (cyclic) |
+| 0009  | STEREO (direct set) (set to SCI-FI mode.) |
+| 0151  | Auto Level Control (A.L.C.) |
+| 0003  | Front Stage Surround Advance Focus |
+| 0004  | Front Stage Surround Advance Wide (set to PURE DIRECT) |
+| 0153  | RETRIEVER AIR |
+| 0010  | STANDARD mode. |
+| 0011  | (2ch source) |
+| 0013  | PRO LOGIC2 MOVIE |
+| 0018  | PRO LOGIC2x MOVIE |
+| 0014  | PRO LOGIC2 MUSIC |
+| 0019  | PRO LOGIC2x MUSIC |
+| 0015  | PRO LOGIC2 GAME |
+| 0020  | PRO LOGIC2x GAME |
+| 0032  | WIDE SURROUND MOVIE |
+| 0033  | WIDE SURROUND MUSIC |
+| 0012  | PRO LOGIC |
+| 0016  | Neo:6 CINEMA |
+| 0017  | Neo:6 MUSIC |
+| 0028  | XM HD SURROUND |
+| 0029  | NEURAL SURROUND |
+| 0024  | (Multi ch source)+PRO LOGIC2x MUSIC |
+| 0034  | (Multi-ch Source)+PRO LOGIC2z HEIGHT |
+| 0035  | (Multi-ch Source)+WIDE SURROUND MOVIE |
+| 0036  | (Multi-ch Source)+WIDE SURROUND MUSIC |
+| 0025  | DTS-ES Neo:6 |
+| 0026  | DTS-ES matrix |
+| 0027  | DTS-ES discrete |
+| 0101  | ACTION |
+| 0103  | DRAMA |
+| 0102  | SCI-FI |
+| 0105  | MONO FILM |
+| 0104  | ENTERTAINMENT SHOW |
+| 0106  | EXPANDED THEATER |
+| 0116  | TV SURROUND |
+| 0118  | ADVANCED GAME |
+| 0117  | SPORTS |
+| 0107  | CLASSICAL |
+| 0110  | ROCK/POP |
+| 0109  | UNPLUGGED |
+| 0112  | EXTENDED STEREO |
+| 0113  | PHONES SURROUND |
+| 0051  | PROLOGIC + THX CINEMA |
+| 0052  | PL2 MOVIE + THX CINEMA |
+| 0053  | Neo:6 CINEMA + THX CINEMA |
+| 0054  | PL2x MOVIE + THX CINEMA |
+| 0092  | PL2z HEIGHT + THX CINEMA |
+| 0055  | THX SELECT2 GAMES |
+| 0093  | PL2z HEIGHT + THX MUSIC |
+| 0073  | Neo:6 MUSIC + THX MUSIC |
+| 0074  | PL2 GAME + THX GAMES |
+| 0075  | PL2x GAME + THX GAMES |
+| 0094  | PL2z HEIGHT + THX GAMES |
+| 0076  | THX ULTRA2 GAMES |
+| 0077  | PROLOGIC + THX MUSIC |
+| 0057  | THX SURROUND EX (for multi ch) |
+| 0058  | PL2x MOVIE + THX CINEMA (for multi ch) |
+| 0095  | PL2z HEIGHT + THX CINEMA (for multi ch) |
+| 0067  | ES 8ch DISCRETE + THX CINEMA (for multi ch) |
+| 0031  | PRO LOGIC2z Height |
+| 0100  | ADVANCED SURROUND (cyclic) |
+| 0050  | THX (cyclic) |
+| 0068  | THX CINEMA (for 2ch) |
+| 0069  | THX MUSIC (for 2ch) |
+| 0070  | THX GAMES (for 2ch) |
+| 0071  | PL2 MUSIC + THX MUSIC |
+| 0072  | PL2x MUSIC + THX MUSIC |
+| 0078  | PROLOGIC + THX GAMES |
+| 0056  | THX CINEMA (for multi ch) |
+| 0059  | ES Neo:6 + THX CINEMA (for multi ch) |
+| 0060  | ES MATRIX + THX CINEMA (for multi ch) |
+| 0061  | ES DISCRETE + THX CINEMA (for multi ch) |
+| 0062  | THX SELECT2 CINEMA (for multi ch) |
+| 0063  | THX SELECT2 MUSIC (for multi ch) |
+| 0064  | THX SELECT2 GAMES (for multi ch) |
+| 0065  | THX ULTRA2 CINEMA (for multi ch) |
+| 0066  | THX ULTRA2 MUSIC (for multi ch) |
+| 0079  | THX ULTRA2 GAMES (for multi ch) |
+| 0080  | THX MUSIC (for multi ch) |
+| 0081  | THX GAMES (for multi ch) |
+| 0082  | PL2x MUSIC + THX MUSIC (for multi ch) |
+| 0096  | PL2z HEIGHT + THX MUSIC (for multi ch) |
+| 0083  | EX + THX GAMES (for multi ch) |
+| 0097  | PL2z HEIGHT + THX GAMES (for multi ch) |
+| 0084  | Neo:6 + THX MUSIC (for multi ch) |
+| 0085  | Neo:6 + THX GAMES (for multi ch) |
+| 0086  | ES MATRIX + THX MUSIC (for multi ch) |
+| 0087  | ES MATRIX + THX GAMES (for multi ch) |
+| 0088  | ES DISCRETE + THX MUSIC (for multi ch) |
+| 0089  | ES DISCRETE + THX GAMES (for multi ch) |
+| 0090  | ES 8CH DISCRETE + THX MUSIC (for multi ch) |
+| 0091  | ES 8CH DISCRETE + THX GAMES (for multi ch) |
+
+
 <br><br><br><br>
 
 ## Links
@@ -298,7 +411,8 @@ Set Input switches for discovered Devices
 
 
 ## Release Notes
-- **v0.2.5**: Added "Toggle Off If Active" configuration option (switches).  
+- **v0.2.6**: Toggle Listening Mode is now configurable and available not only via "Remote" but also through HomeKit.
+- **v0.2.5**: Added "Toggle Off If Already Active" configuration option (switches).  
 - **v0.2.4**: Added a serial number to switches for better device identification.  
 - **v0.2.3**: Fixed issue where `discoveredDevices` was not correctly saved in `config.json` across all environments.  
 - **v0.2.2**: Made several ESLint improvements and increased use of cached inputs.  

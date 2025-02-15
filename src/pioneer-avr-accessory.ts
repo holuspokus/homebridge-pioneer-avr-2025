@@ -23,12 +23,16 @@ export interface Device {
     maxVolume?: number;
     minVolume?: number;
     inputSwitches?: string[];
+    listeningMode?: string;
+    listeningModeFallback?: string;
+    listeningModeOther?: string;
 }
 
 class PioneerAvrAccessory {
     private informationService!: Service;
     public tvService!: Service;
     private volumeServiceLightbulb!: Service;
+    private listeningServiceSwitch!: Service;
     private tvSpeakerService!: Service;
     public enabledServices: Service[] = [];
     public avr!: PioneerAvr;
@@ -97,6 +101,7 @@ class PioneerAvrAccessory {
                         await this.prepareInformationService();
                         await this.prepareTvService();
                         await this.prepareTvSpeakerService();
+                        await this.prepareListeningService();
 
                         if (this.maxVolume !== 0) {
                             await this.prepareVolumeService();
@@ -404,6 +409,96 @@ class PioneerAvrAccessory {
         this.avr.functionSetLightbulbMuted(this.avr.state.muted);
     }
 
+
+    /**
+    * Prepares the Switch service for listening mode control.
+    */
+    private async prepareListeningService() {
+        while (
+           !this.tvService ||
+           !this.enabledServices.includes(this.tvService)
+        ) {
+           await new Promise((resolve) => setTimeout(resolve, 180));
+        }
+
+
+        const isValidListeningMode = (value: string | undefined, defaultValue: string): string => {
+            return /^[0-9]{4}$/.test(value || '') ? value! : defaultValue;
+        };
+
+        const listeningModeOne = isValidListeningMode(this.device.listeningMode || this.platform.config.listeningMode, '0013'); // PRO LOGIC2 MOVIE
+        const listeningModeFallback = isValidListeningMode(this.device.listeningModeFallback || this.platform.config.listeningModeFallback, '0101'); // ACTION
+        // const listeningModeOther = isValidListeningMode(this.device.listeningModeOther || this.platform.config.listeningModeOther, '0112'); // EXTENDED STEREO
+
+
+        this.listeningServiceSwitch =
+           this.accessory.getService(this.platform.service.Switch) ||
+           this.accessory.addService(
+               this.platform.service.Switch,
+               this.name + ' Audio',
+               'listeningMode',
+           );
+
+
+        this.listeningServiceSwitch
+           .getCharacteristic(this.platform.characteristic.On)
+           .onGet(async () => {
+               const isOn = this.avr.state.on && [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
+               return isOn;
+           })
+           .onSet(async () => {
+               this.avr.toggleListeningMode();
+               this.avr.functionSetSwitchListeningMode();
+
+               setTimeout(() => {
+                  this.avr.functionSetSwitchListeningMode();
+               }, 2000)
+           });
+
+       addExitHandler(() => {
+           this.listeningServiceSwitch.updateCharacteristic(
+               this.platform.characteristic.On,
+               false,
+           );
+       }, this);
+
+        this.tvService.addLinkedService(this.listeningServiceSwitch);
+        this.enabledServices.push(this.listeningServiceSwitch);
+
+        this.avr.functionSetSwitchListeningMode = () => {
+           try {
+               const currentOnState =
+                   this.listeningServiceSwitch.getCharacteristic(
+                       this.platform.characteristic.On,
+                   ).value;
+
+               const isValidListeningMode = (value: string | undefined, defaultValue: string): string => {
+                   return /^[0-9]{4}$/.test(value || '') ? value! : defaultValue;
+               };
+
+               const listeningModeOne = isValidListeningMode(this.device.listeningMode || this.platform.config.listeningMode, '0013'); // PRO LOGIC2 MOVIE
+               const listeningModeFallback = isValidListeningMode(this.device.listeningModeFallback || this.platform.config.listeningModeFallback, '0101'); // ACTION
+               // const listeningModeOther = isValidListeningMode(this.device.listeningModeOther || this.platform.config.listeningModeOther, '0112'); // EXTENDED STEREO
+
+               const currentState = this.avr.state.on && [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
+
+               // Update On state based on whether a listening mode is active
+               if (currentOnState !== currentState) {
+                   this.listeningServiceSwitch.updateCharacteristic(
+                       this.platform.characteristic.On,
+                       !!currentState,
+                   );
+               }
+           } catch (e) {
+               this.log.debug('Error updating Switch listening mode:', e);
+           }
+        };
+
+        // Initial listening mode setup
+        this.avr.functionSetSwitchListeningMode();
+    }
+
+
     /**
      * Prepares the input source service to allow selection of various AVR inputs.
      */
@@ -707,7 +802,9 @@ class PioneerAvrAccessory {
         // Iterate through all accessories
         this.platform.accessories.forEach((accessory) => {
             const service = accessory.getService(this.platform.service.Switch);
-            if (service) {
+
+            // not listeningMode
+            if (service && service.subtype !== 'listeningMode') {
                 // Check if the current accessory corresponds to the active input
                 const isActive = accessory.context.inputId === activeInputId;
 

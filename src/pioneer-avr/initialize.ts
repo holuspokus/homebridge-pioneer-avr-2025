@@ -16,6 +16,9 @@ export interface Device {
     maxVolume?: number;
     minVolume?: number;
     inputSwitches?: string[];
+    listeningMode?: string;
+    listeningModeFallback?: string;
+    listeningModeOther?: string;
 }
 
 /**
@@ -43,6 +46,7 @@ export function InitializeMixin<
         public __updatePower!: any;
         public functionSetPowerState!: any;
         public functionSetLightbulbMuted!: any;
+        public functionSetSwitchListeningMode!: any;
         public allIntervalCounter: number = 0;
 
         constructor(...args: any[]) {

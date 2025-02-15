@@ -24,6 +24,9 @@ export interface Device {
     maxVolume?: number;
     minVolume?: number;
     inputSwitches?: string[];
+    listeningMode?: string;
+    listeningModeFallback?: string;
+    listeningModeOther?: string;
 }
 
 /**
@@ -556,12 +559,35 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
             if (enums.length > 0) {
                 // Add the 'toggleOffIfActive' field directly under schema.schema.properties
-                schema.schema.properties.toggleOffIfActive = {
-                    title: "Toggle Off If Already Active (Input Switch)",
+                // schema.schema.properties.toggleOffIfActive = {
+                //     title: "Toggle Off If Already Active (For Exposed Input Switches)",
+                //     type: "boolean",
+                //     default: this.config.toggleOffIfActive ?? true,
+                //     description: "If enabled, pressing an input switch that is already active will turn off the receiver. This allows a single button to toggle the receiver on and off, facilitating one-button control in HomeKit. If disabled, the receiver will remain on and simply reselect the current input."
+                // };
+
+                // Define the 'toggleOffIfActive' field
+                const toggleOffIfActive = {
+                    title: "Toggle Off If Already Active (For Exposed Input Switches)",
                     type: "boolean",
                     default: this.config.toggleOffIfActive ?? true,
                     description: "If enabled, pressing an input switch that is already active will turn off the receiver. This allows a single button to toggle the receiver on and off, facilitating one-button control in HomeKit. If disabled, the receiver will remain on and simply reselect the current input."
                 };
+
+                // Remove 'toggleOffIfActive' if it already exists to avoid duplication
+                if (schema.schema.properties.toggleOffIfActive) {
+                    delete schema.schema.properties.toggleOffIfActive;
+                }
+
+                // Reconstruct properties to insert 'toggleOffIfActive' before 'devices'
+                const newProperties: any = {};
+                for (const key in schema.schema.properties) {
+                    if (key === 'devices') {
+                        newProperties['toggleOffIfActive'] = toggleOffIfActive;
+                    }
+                    newProperties[key] = schema.schema.properties[key];
+                }
+                schema.schema.properties = newProperties;
             }else{
 
               // remove the 'toggleOffIfActive' field if no enums are present
@@ -631,6 +657,24 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                                 maximum: 100,
                                 placeholder: this.config.minVolume || 30,
                             },
+                            listeningMode: {
+                                title: 'Primary Listening Mode',
+                                type: 'string',
+                                default: this.config.listeningMode || '0013',
+                                description: 'The default listening mode when the switch in HomeKit is active. Default 0013 PRO LOGIC2 MOVIE',
+                            },
+                            listeningModeOther: {
+                                title: 'Alternative Listening Mode',
+                                type: 'string',
+                                default: this.config.listeningModeFallback || '0112',
+                                description: 'The alternative listening mode that is toggled via HomeKit switch or the iOS Remote app. Default 0112 EXTENDED STEREO',
+                            },
+                            listeningModeFallback: {
+                                title: 'Fallback Listening Mode',
+                                type: 'string',
+                                default: this.config.listeningModeOther || '0101',
+                                description: 'A backup listening mode used when the Primary Listening Mode is unavailable (e.g., due to input signal restrictions). This mode should be **different** from the Primary Listening Mode and should be chosen based on what is likely to be supported. Default 0101 ACTION\nAvailable modes can be found in the list at the bottom of this page.',
+                            },
                             inputSwitches: {
                                 type: 'array',
                                 title: 'Input Switches to Expose',
@@ -686,6 +730,9 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     name: any;
                     host: any;
                     port: any;
+                    listeningMode: any;
+                    listeningModeOther: any;
+                    listeningModeFallback: any;
                     maxVolume?: any;
                     minVolume?: any;
                     inputSwitches?: string[];
@@ -693,6 +740,9 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     name: foundDevice.name,
                     host: foundDevice.host,
                     port: foundDevice.port,
+                    listeningMode: foundDevice.listeningMode || '0013',
+                    listeningModeOther: foundDevice.listeningModeOther || '0012',
+                    listeningModeFallback: foundDevice.listeningModeFallback || '0101',
                     maxVolume: foundDevice.maxVolume
                         ? parseInt(foundDevice.maxVolume, 10)
                         : undefined,
