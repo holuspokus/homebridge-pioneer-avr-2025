@@ -295,7 +295,7 @@ Set Input switches for discovered Devices
 <br>
 
 
-#### Known Listenmodes
+#### Known Listeningmodes
 | Code  | Description |
 |-------|------------|
 | 0001  | STEREO (cyclic) |
