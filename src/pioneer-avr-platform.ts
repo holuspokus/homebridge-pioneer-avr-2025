@@ -24,6 +24,9 @@ export interface Device {
     maxVolume?: number;
     minVolume?: number;
     inputSwitches?: string[];
+    listeningMode?: string;
+    listeningModeFallback?: string;
+    listeningModeOther?: string;
 }
 
 /**
@@ -654,6 +657,24 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                                 maximum: 100,
                                 placeholder: this.config.minVolume || 30,
                             },
+                            listeningMode: {
+                                title: 'Primary Listening Mode',
+                                type: 'string',
+                                default: this.config.listeningMode || '0013',
+                                description: 'The default listening mode when the switch in HomeKit is active. Default 0013 PRO LOGIC2 MOVIE',
+                            },
+                            listeningModeOther: {
+                                title: 'Alternative Listening Mode',
+                                type: 'string',
+                                default: this.config.listeningModeFallback || '0112',
+                                description: 'The alternative listening mode that is toggled via HomeKit switch or the iOS Remote app. Default 0112 EXTENDED STEREO',
+                            },
+                            listeningModeFallback: {
+                                title: 'Fallback Listening Mode',
+                                type: 'string',
+                                default: this.config.listeningModeOther || '0101',
+                                description: 'A backup listening mode used when the Primary Listening Mode is unavailable (e.g., due to input signal restrictions). This mode should be **different** from the Primary Listening Mode and should be chosen based on what is likely to be supported. Default 0101 ACTION\nAvailable modes can be found in the list at the bottom of this page.',
+                            },
                             inputSwitches: {
                                 type: 'array',
                                 title: 'Input Switches to Expose',
@@ -709,6 +730,9 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     name: any;
                     host: any;
                     port: any;
+                    listeningMode: any;
+                    listeningModeOther: any;
+                    listeningModeFallback: any;
                     maxVolume?: any;
                     minVolume?: any;
                     inputSwitches?: string[];
@@ -716,6 +740,9 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     name: foundDevice.name,
                     host: foundDevice.host,
                     port: foundDevice.port,
+                    listeningMode: foundDevice.listeningMode || '0013',
+                    listeningModeOther: foundDevice.listeningModeOther || '0012',
+                    listeningModeFallback: foundDevice.listeningModeFallback || '0101',
                     maxVolume: foundDevice.maxVolume
                         ? parseInt(foundDevice.maxVolume, 10)
                         : undefined,

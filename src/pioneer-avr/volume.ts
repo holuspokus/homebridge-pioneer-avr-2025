@@ -5,6 +5,20 @@ import { addExitHandler } from '../exitHandler';
 import type { Logging } from 'homebridge';
 import type { AVState } from './pioneerAvr';
 
+export interface Device {
+    name: string;
+    origName: string;
+    host: string;
+    port: number;
+    source: string;
+    maxVolume?: number;
+    minVolume?: number;
+    inputSwitches?: string[];
+    listeningMode?: string;
+    listeningModeFallback?: string;
+    listeningModeOther?: string;
+}
+
 /**
  * This mixin adds volume management methods to a base class, including volume control,
  * mute functionality, and listening mode toggling.
@@ -20,14 +34,117 @@ export function VolumeManagementMixin<
         isReady: boolean;
         maxVolume: number;
         minVolume: number;
+        device: Device;
+        platform: any;
     },
 >(Base: TBase) {
     return class extends Base {
         public telnetAvr!: TelnetAvr;
+        public device!: Device;
+        public platform!: any;
         public updateVolumeTimeout: NodeJS.Timeout | null = null;
         public cancelVolumeDownSteps: boolean = false;
         public activeVolumeDownStepTimeouts: NodeJS.Timeout[] = []; // Array to track active timeouts
         public lastSetVolume: string = '';
+        // public allListeingModes: { [key: string]: string } = {
+        //     '0001': 'STEREO (cyclic)',
+        //     '0009': 'STEREO (direct set) (set to SCI-FI mode.)',
+        //     '0151': 'Auto Level Control (A.L.C.)',
+        //     '0003': 'Front Stage Surround Advance Focus',
+        //     '0004': 'Front Stage Surround Advance Wide (set to PURE DIRECT)',
+        //     '0153': 'RETRIEVER AIR',
+        //     '0010': 'STANDARD mode.',
+        //     '0011': '(2ch source)',
+        //     '0013': 'PRO LOGIC2 MOVIE',
+        //     '0018': 'PRO LOGIC2x MOVIE',
+        //     '0014': 'PRO LOGIC2 MUSIC',
+        //     '0019': 'PRO LOGIC2x MUSIC',
+        //     '0015': 'PRO LOGIC2 GAME',
+        //     '0020': 'PRO LOGIC2x GAME',
+        //     '0032': 'WIDE SURROUND MOVIE',
+        //     '0033': 'WIDE SURROUND MUSIC',
+        //     '0012': 'PRO LOGIC',
+        //     '0016': 'Neo:6 CINEMA',
+        //     '0017': 'Neo:6 MUSIC',
+        //     '0028': 'XM HD SURROUND',
+        //     '0029': 'NEURAL SURROUND',
+        //     '0024': '(Multi ch source)+PRO LOGIC2x MUSIC',
+        //     '0034': '(Multi-ch Source)+PRO LOGIC2z HEIGHT',
+        //     '0035': '(Multi-ch Source)+WIDE SURROUND MOVIE',
+        //     '0036': '(Multi-ch Source)+WIDE SURROUND MUSIC',
+        //     '0025': 'DTS-ES Neo:6',
+        //     '0026': 'DTS-ES matrix',
+        //     '0027': 'DTS-ES discrete',
+        //     '0101': 'ACTION',
+        //     '0103': 'DRAMA',
+        //     '0102': 'SCI-FI',
+        //     '0105': 'MONO FILM',
+        //     '0104': 'ENTERTAINMENT SHOW',
+        //     '0106': 'EXPANDED THEATER',
+        //     '0116': 'TV SURROUND',
+        //     '0118': 'ADVANCED GAME',
+        //     '0117': 'SPORTS',
+        //     '0107': 'CLASSICAL',
+        //     '0110': 'ROCK/POP',
+        //     '0109': 'UNPLUGGED',
+        //     '0112': 'EXTENDED STEREO',
+        //     '0113': 'PHONES SURROUND',
+        //     '0051': 'PROLOGIC + THX CINEMA',
+        //     '0052': 'PL2 MOVIE + THX CINEMA',
+        //     '0053': 'Neo:6 CINEMA + THX CINEMA',
+        //     '0054': 'PL2x MOVIE + THX CINEMA',
+        //     '0092': 'PL2z HEIGHT + THX CINEMA',
+        //     '0055': 'THX SELECT2 GAMES',
+        //     '0093': 'PL2z HEIGHT + THX MUSIC',
+        //     '0073': 'Neo:6 MUSIC + THX MUSIC',
+        //     '0074': 'PL2 GAME + THX GAMES',
+        //     '0075': 'PL2x GAME + THX GAMES',
+        //     '0094': 'PL2z HEIGHT + THX GAMES',
+        //     '0076': 'THX ULTRA2 GAMES',
+        //     '0077': 'PROLOGIC + THX MUSIC',
+        //     '0057': 'THX SURROUND EX (for multi ch)',
+        //     '0058': 'PL2x MOVIE + THX CINEMA (for multi ch)',
+        //     '0095': 'PL2z HEIGHT + THX CINEMA (for multi ch)',
+        //     '0067': 'ES 8ch DISCRETE + THX CINEMA (for multi ch)',
+        //     '0031': 'PRO LOGIC2z Height',
+        //     '0100': 'ADVANCED SURROUND (cyclic)',
+        //     '0050': 'THX (cyclic)',
+        //     '0068': 'THX CINEMA (for 2ch)',
+        //     '0069': 'THX MUSIC (for 2ch)',
+        //     '0070': 'THX GAMES (for 2ch)',
+        //     '0071': 'PL2 MUSIC + THX MUSIC',
+        //     '0072': 'PL2x MUSIC + THX MUSIC',
+        //     '0078': 'PROLOGIC + THX GAMES',
+        //     '0056': 'THX CINEMA (for multi ch)',
+        //     '0059': 'ES Neo:6 + THX CINEMA (for multi ch)',
+        //     '0060': 'ES MATRIX + THX CINEMA (for multi ch)',
+        //     '0061': 'ES DISCRETE + THX CINEMA (for multi ch)',
+        //     '0062': 'THX SELECT2 CINEMA (for multi ch)',
+        //     '0063': 'THX SELECT2 MUSIC (for multi ch)',
+        //     '0064': 'THX SELECT2 GAMES (for multi ch)',
+        //     '0065': 'THX ULTRA2 CINEMA (for multi ch)',
+        //     '0066': 'THX ULTRA2 MUSIC (for multi ch)',
+        //     '0079': 'THX ULTRA2 GAMES (for multi ch)',
+        //     '0080': 'THX MUSIC (for multi ch)',
+        //     '0081': 'THX GAMES (for multi ch)',
+        //     '0082': 'PL2x MUSIC + THX MUSIC (for multi ch)',
+        //     '0096': 'PL2z HEIGHT + THX MUSIC (for multi ch)',
+        //     '0083': 'EX + THX GAMES (for multi ch)',
+        //     '0097': 'PL2z HEIGHT + THX GAMES (for multi ch)',
+        //     '0084': 'Neo:6 + THX MUSIC (for multi ch)',
+        //     '0085': 'Neo:6 + THX GAMES (for multi ch)',
+        //     '0086': 'ES MATRIX + THX MUSIC (for multi ch)',
+        //     '0087': 'ES MATRIX + THX GAMES (for multi ch)',
+        //     '0088': 'ES DISCRETE + THX MUSIC (for multi ch)',
+        //     '0089': 'ES DISCRETE + THX GAMES (for multi ch)',
+        //     '0090': 'ES 8CH DISCRETE + THX MUSIC (for multi ch)',
+        //     '0091': 'ES 8CH DISCRETE + THX GAMES (for multi ch)',
+        //     '0005': 'AUTO SURR/STREAM DIRECT (cyclic)',
+        //     '0006': 'AUTO SURROUND',
+        //     '0152': 'OPTIMUM SURROUND',
+        //     '0007': 'DIRECT',
+        //     '0008': 'PURE DIRECT'
+        // };
 
         constructor(...args: any[]) {
             super(...args);
@@ -62,6 +179,7 @@ export function VolumeManagementMixin<
                     this.log.debug('functionSetLightbulbVolume error', e);
                 }
             }, this);
+
         }
 
         /**
@@ -73,6 +191,8 @@ export function VolumeManagementMixin<
         }
 
         public functionSetLightbulbMuted(_argument?: any) {}
+
+        public functionSetSwitchListeningMode(_argument?: any) {}        
 
         /**
          * Sends a volume status query to the AVR and updates the volume state.
@@ -338,9 +458,16 @@ export function VolumeManagementMixin<
 
             this.log.debug('Toggle Listening Mode', this.state.listeningMode);
 
-            if (['0013', '0101'].includes(this.state.listeningMode)) {
-                this.telnetAvr.sendMessage('0112SR');
-                this.state.listeningMode = '0112';
+            const isValidListeningMode = (value: string | undefined, defaultValue: string): string => {
+                return /^[0-9]{4}$/.test(value || '') ? value! : defaultValue;
+            };
+
+            const listeningModeOne = isValidListeningMode(this.device.listeningMode || this.platform.config.listeningMode, '0013'); // PRO LOGIC2 MOVIE
+            const listeningModeFallback = isValidListeningMode(this.device.listeningModeFallback || this.platform.config.listeningModeFallback, '0101'); // ACTION
+            const listeningModeOther = isValidListeningMode(this.device.listeningModeOther || this.platform.config.listeningModeOther, '0112'); // EXTENDED STEREO
+            if ([listeningModeOne, listeningModeFallback].includes(this.state.listeningMode)) {
+                this.telnetAvr.sendMessage(listeningModeOther + 'SR');
+                this.state.listeningMode = listeningModeOther;
 
                 // Execute the callback with a delay if provided
                 if (callback) {
@@ -352,11 +479,11 @@ export function VolumeManagementMixin<
                     );
                 }
             } else {
-                this.state.listeningMode = '0013';
-                this.telnetAvr.sendMessage('!0013SR', 'SR', (error, _data) => {
+                this.state.listeningMode = listeningModeOne;
+                this.telnetAvr.sendMessage('!' + listeningModeOne + 'SR', 'SR', (error, _data) => {
                     if (error) {
-                        this.state.listeningMode = '0101';
-                        this.telnetAvr.sendMessage('0101SR');
+                        this.state.listeningMode = listeningModeFallback;
+                        this.telnetAvr.sendMessage(listeningModeFallback + 'SR');
                     }
 
                     // Execute the callback with a delay if provided

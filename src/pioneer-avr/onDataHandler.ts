@@ -97,6 +97,8 @@ function handlePowerStatus(
 
     // Update mute state
     pioneerThis.functionSetLightbulbMuted(pioneerThis.state.muted);
+
+    pioneerThis.functionSetSwitchListeningMode();
 }
 
 /**
@@ -151,6 +153,9 @@ function handleListeningMode(
     } catch (e) {
         pioneerThis.log.debug('onData', e);
     }
+
+    // Update switch state
+    pioneerThis.functionSetSwitchListeningMode();
 }
 
 /**

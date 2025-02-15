@@ -22,6 +22,9 @@
                     "host": "VSX-922.local",
                     "port": 23,
                     "name": "VSX922",
+                    "listeningMode": "0013",
+                    "listeningModeOther": "0112",
+                    "listeningModeFallback": "0101",
                     "inputSwitches": [
                         "20",
                         "25",
