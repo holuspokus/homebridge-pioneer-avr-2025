@@ -413,6 +413,10 @@ class PioneerAvrAccessory {
     /**
     * Prepares the Switch service for listening mode control.
     */
+    private lastListeningSwitchPressTime: number = 0;
+    private readonly LOCK_INTERVAL_LISTENING_SWITCH: number = 3000;
+    private timeoutFunctionSetSwitchListeningMode: NodeJS.Timeout | null = null;
+
     private async prepareListeningService() {
         while (
            !this.tvService ||
@@ -440,20 +444,42 @@ class PioneerAvrAccessory {
            );
 
 
-        this.listeningServiceSwitch
-           .getCharacteristic(this.platform.characteristic.On)
-           .onGet(async () => {
-               const isOn = this.avr.state.on && [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
-               return isOn;
-           })
-           .onSet(async () => {
-               this.avr.toggleListeningMode();
-               this.avr.functionSetSwitchListeningMode();
+          this.listeningServiceSwitch
+          .getCharacteristic(this.platform.characteristic.On)
+          .onGet(async () => {
+              const isOn = this.avr.state.on && [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
+              return isOn;
+          })
+          .onSet(async () => {
+              const now = Date.now();
+              const timeSinceLastPress = now - this.lastListeningSwitchPressTime;
+              if (timeSinceLastPress < this.LOCK_INTERVAL_LISTENING_SWITCH) {
+                  const remaining = this.LOCK_INTERVAL_LISTENING_SWITCH - timeSinceLastPress;
+                  this.log.debug(
+                  `Listening switch pressed too soon, ignoring press. ${remaining} ms remaining.`
+                  );
+                  // Reset the switch state to the actual current state
+                  const currentState =
+                  this.avr.state.on &&
+                  [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
+                  this.listeningServiceSwitch
+                  .getCharacteristic(this.platform.characteristic.On)
+                  .updateValue(currentState);
+                  return;
+              }
 
-               setTimeout(() => {
+              this.lastListeningSwitchPressTime = now;
+
+              this.avr.toggleListeningMode();
+              this.avr.functionSetSwitchListeningMode();
+
+              if (this.timeoutFunctionSetSwitchListeningMode) {
+                  clearTimeout(this.timeoutFunctionSetSwitchListeningMode)
+              }
+              this.timeoutFunctionSetSwitchListeningMode = setTimeout(() => {
                   this.avr.functionSetSwitchListeningMode();
-               }, 2000)
-           });
+              }, 2000)
+        });
 
        addExitHandler(() => {
            this.listeningServiceSwitch.updateCharacteristic(
@@ -817,6 +843,12 @@ class PioneerAvrAccessory {
     }
 
 
+    // Timestamp for the last input switch press
+    // Lock interval in milliseconds for input switch commands
+    private lastInputSwitchPressTime: number = 0;
+    private timeoutUpdateSwitchStates: NodeJS.Timeout | null = null;
+    private readonly LOCK_INTERVAL_INPUT_SWITCH: number = 3000;
+
     public addInputSwitch(host: string, inputToSwitches: string[]): void {
         const cachedInputs = this.platform.cachedReceivers.get(host)?.inputs || [];
         if (cachedInputs.length === 0) {
@@ -916,50 +948,78 @@ class PioneerAvrAccessory {
             switchService
                 .getCharacteristic(this.platform.characteristic.On)
                 .onGet(async () => {
+                    // Return true if the receiver is on and the input matches the switch index
                     const isOn = this.avr.state.on && inputIndex === this.avr.state.input;
                     return isOn;
                 })
                 .onSet(async (value) => {
-                    if (value) {
-                        // Turn on the receiver if it is off
-                        if (!this.avr.state.on) {
-                            await this.avr.powerOn();
-                            await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
-                        } else {
+                    const now = Date.now();
+                    const timeSinceLastPress = now - this.lastInputSwitchPressTime;
 
-                            if ((this.platform.config.toggleOffIfActive ?? true) && this.avr.state.on && this.avr.state.input === inputIndex) {
-                                await this.avr.powerOff();
-                                return;
-                            }
+                    // If the last command was executed less than the lock interval ago, discard the press
+                    if (timeSinceLastPress < this.LOCK_INTERVAL_INPUT_SWITCH) {
+                        const remaining = this.LOCK_INTERVAL_INPUT_SWITCH - timeSinceLastPress;
+                        this.log.debug(`Pressed too soon, ignoring press. ${remaining} ms remaining.`);
 
-                            // Set the desired input
-                            await this.avr.setInput(input.id);
-                            this.log.debug(`Input set to ${input.name} (${input.id})`);
-
-                            // Update all switch states
-                            this.updateSwitchStates(input.id);
-
-                        }
-                    } else {
-                        this.log.debug(`Switch for ${switchName} turned off.`);
-                        // // Wait before validating the state
-                        // await new Promise((resolve) => setTimeout(resolve, 10000));
-
-                        // Check if the receiver is still on and the input matches
-                        if (this.avr.state.on && this.avr.state.input === inputIndex) {
-                            // this.log.debug(
-                            //     `Receiver is still on and input ${input.name} (${input.id}) is active. Re-enabling the switch.`
-                            // );
-
-                            // Re-enable the switch since the input is still active
-                            // switchService
-                            //     .getCharacteristic(this.platform.characteristic.On)
-                            //     .updateValue(true);
-
-                            await this.avr.powerOff();
-                        }
+                        // Reset the switch state to the current state so the UI reflects the actual state
+                        const currentState = this.avr.state.on && inputIndex === this.avr.state.input;
+                        switchService.getCharacteristic(this.platform.characteristic.On).updateValue(currentState);
+                        return;
                     }
-                });
+
+                  // Update the timestamp after waiting the necessary time
+                  this.lastInputSwitchPressTime = Date.now();
+
+                  if (this.timeoutUpdateSwitchStates) {
+                      clearTimeout(this.timeoutUpdateSwitchStates)
+                  }
+
+                  if (this.platform.config.toggleOffIfActive ?? true) {
+                        if (this.avr.state.on) {
+                          if (this.avr.state.input === inputIndex) {
+                            await this.avr.powerOff();
+                            return;
+                          }
+                      } else {
+                          await this.avr.powerOn();
+                          await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
+                      }
+
+                      // Set the desired input
+                      await this.avr.setInput(input.id);
+                      this.log.debug(`Input set to ${input.name} (${input.id})`);
+
+                      this.timeoutUpdateSwitchStates = setTimeout(() => {
+                          // Update all switch states
+                          this.updateSwitchStates(input.id);
+                      }, 2000)
+
+                  } else if (value) {
+                      // Turn on the receiver if it is off
+                      if (!this.avr.state.on) {
+                          await this.avr.powerOn();
+                          await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
+                      }
+
+                      // Set the desired input
+                      await this.avr.setInput(input.id);
+                      this.log.debug(`Input set to ${input.name} (${input.id})`);
+
+
+                      this.timeoutUpdateSwitchStates = setTimeout(() => {
+                          // Update all switch states
+                          this.updateSwitchStates(input.id);
+                      }, 2000)
+
+                  } else {
+                      this.log.debug(`Switch for ${switchName} turned off.`);
+                      // Check if the receiver is still on and the input matches
+                      if (this.avr.state.on && this.avr.state.input === inputIndex) {
+                          await this.avr.powerOff();
+                      }
+                  }
+              });
+
 
             addExitHandler(() => {
                 this.updateSwitchStates('-9999');

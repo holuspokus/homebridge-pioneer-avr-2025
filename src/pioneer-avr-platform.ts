@@ -9,6 +9,14 @@ import type {
     PlatformConfig,
     Service,
 } from 'homebridge';
+
+let HAPStorage: any;
+try {
+  HAPStorage = require('hap-nodejs').HAPStorage;
+} catch (error) {
+  HAPStorage = {}; // Hier ggf. eine Fallback-Implementierung bereitstellen.
+}
+
 import { findDevices } from './discovery';
 import PioneerAvrAccessory from './pioneer-avr-accessory.js';
 import * as fs from 'fs';
@@ -82,15 +90,20 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         this.platformName = platformName || 'pioneerAvr2025';
         this.pluginName = pluginName || 'homebridge-pioneer-avr-2025';
 
+        const storagePath = typeof (HAPStorage as any).storagePath === 'function'
+          ? (HAPStorage as any).storagePath() // Homebridge v2+
+          : this.api.user.storagePath(); // Homebridge v1
+
+
         this.prefsDir =
             this.config.prefsDir ||
-            this.api.user.storagePath() + '/pioneerAvr/';
+            storagePath + '/pioneerAvr/';
 
 
-        this.homebridgeConfigPath = path.join(this.api.user.storagePath(), 'config.json');
+        this.homebridgeConfigPath = path.join(storagePath, 'config.json');
 
         const possiblePaths = [
-            path.join(this.api.user.storagePath(), 'config.json'),
+            path.join(storagePath, 'config.json'),
             path.join(this.prefsDir, 'config.json'),
             path.resolve(__dirname, '../config.json')
         ];
@@ -148,7 +161,11 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
      * Ensures the cache remains accurate and prevents stale accessories from being loaded.
      */
     public cleanCachedAccessories() {
-        const cachedAccessoriesPath = path.join(this.api.user.storagePath(), 'accessories/cachedAccessories');
+      const storagePath = typeof (HAPStorage as any).storagePath === 'function'
+        ? (HAPStorage as any).storagePath() // Homebridge v2+
+        : this.api.user.storagePath(); // Homebridge v1
+
+        const cachedAccessoriesPath = path.join(storagePath, 'accessories/cachedAccessories');
 
         // Check if the cachedAccessories file exists
         if (fs.existsSync(cachedAccessoriesPath)) {
