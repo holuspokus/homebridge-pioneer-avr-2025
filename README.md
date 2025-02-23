@@ -421,6 +421,7 @@ Set input switches for discovered devices:
 
 ## Release Notes
 - **v0.2.9**:  
+  - Improved reconnect handling
   - Toggle Listening Mode as a Switch can now be disabled via the new **toggleListeningMode** option.
   - Added **toggleListeningModeLink** to control whether the listening mode toggle is displayed within the receiver view (when bundled) or as a separate switch.
 - **v0.2.8**: Improved switch stability by implementing a 3-second lock mechanism to prevent rapid or accidental activations.
