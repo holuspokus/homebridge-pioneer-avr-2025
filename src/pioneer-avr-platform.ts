@@ -608,6 +608,8 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             const enums = uniqueInputs.map((input) => input.id);
             const enumNames = uniqueInputs.map((input) => input.name);
 
+            let newProperties: any = {};
+
             if (enums.length > 0) {
                 // Add the 'toggleOffIfActive' field directly under schema.schema.properties
                 // schema.schema.properties.toggleOffIfActive = {
@@ -631,7 +633,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 }
 
                 // Reconstruct properties to insert 'toggleOffIfActive' before 'devices'
-                const newProperties: any = {};
+                newProperties = {};
                 for (const key in schema.schema.properties) {
                     if (key === 'devices') {
                         newProperties['toggleOffIfActive'] = toggleOffIfActive;
@@ -664,7 +666,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             }
 
             // Reconstruct properties to insert 'toggleListeningMode' before 'devices'
-            const newProperties: any = {};
+            newProperties = {};
             for (const key in schema.schema.properties) {
                 if (key === 'devices') {
                     newProperties['toggleListeningMode'] = toggleListeningMode;
@@ -673,7 +675,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             }
             schema.schema.properties = newProperties;
 
-            
+
             // Define the 'toggleListeningModeLink' field
             const toggleListeningModeLink = {
                 title: "Listening Mode Switch Display",
@@ -689,7 +691,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
             }
 
             // Reconstruct properties to insert 'toggleListeningModeLink' before 'devices'
-            const newProperties: any = {};
+            newProperties = {};
             for (const key in schema.schema.properties) {
                 newProperties[key] = schema.schema.properties[key];
                 if (key === 'toggleListeningMode') {
