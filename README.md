@@ -20,11 +20,10 @@ This plugin allows you to control various aspects of your Pioneer AVR directly f
 * Customizing the visibility of inputs
 * Renaming inputs for easier identification
 * Remote control functionality on iOS devices
-* Using the iOS Remote's "Play/Pause" button to toggle between EXTENDED STEREO and PRO LOGIC 2 MOVIE modes
+* Using the iOS Remote's "Play/Pause" button or a HomeKit-Switch to toggle between EXTENDED STEREO and PRO LOGIC 2 MOVIE modes (configurable)
 * Automatic input discovery for seamless setup
 * Automatic receiver discovery for effortless integration
 * Easily switch between inputs using HomeKit switches for direct control and enhanced automation capabilities
-* **Toggle Listening Mode Options**: Configure the availability and display style of a dedicated HomeKit switch for toggling between two predefined listening modes.
 <br>
 <br>
 
@@ -420,10 +419,8 @@ Set input switches for discovered devices:
 
 
 ## Release Notes
-- **v0.2.9**:  
-  - Improved reconnect handling
-  - Toggle Listening Mode as a Switch can now be disabled via the new **toggleListeningMode** option.
-  - Added **toggleListeningModeLink** to control whether the listening mode toggle is displayed within the receiver view (when bundled) or as a separate switch.
+- **v0.2.10**: -
+- **v0.2.9**: Improved reconnect handling; Listening Mode switch can now be disabled.
 - **v0.2.8**: Improved switch stability by implementing a 3-second lock mechanism to prevent rapid or accidental activations.
 - **v0.2.7**: Toggle Listening Mode is now configurable and available not only via the "Remote" but also through HomeKit.
 - **v0.2.5**: Added "Toggle Off If Already Active" configuration option (switches).  
