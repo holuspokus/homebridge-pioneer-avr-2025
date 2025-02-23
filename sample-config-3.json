@@ -34,6 +34,8 @@
             "maxVolume": 65,
             "minVolume": 30,
             "toggleOffIfActive": true,
+            "toggleListeningMode": true,
+            "toggleListeningModeLink": true,
             "_bridge": {
                 "username": "0E:D6:86:BA:AM:69",
                 "port": 35337

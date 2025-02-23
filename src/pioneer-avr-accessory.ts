@@ -101,7 +101,10 @@ class PioneerAvrAccessory {
                         await this.prepareInformationService();
                         await this.prepareTvService();
                         await this.prepareTvSpeakerService();
-                        await this.prepareListeningService();
+
+                        if (this.platform.config.toggleListeningMode ?? true) {
+                            await this.prepareListeningService();
+                        }
 
                         if (this.maxVolume !== 0) {
                             await this.prepareVolumeService();
@@ -481,14 +484,18 @@ class PioneerAvrAccessory {
               }, 2000)
         });
 
-       addExitHandler(() => {
+        addExitHandler(() => {
            this.listeningServiceSwitch.updateCharacteristic(
                this.platform.characteristic.On,
                false,
            );
-       }, this);
+        }, this);
 
-        this.tvService.addLinkedService(this.listeningServiceSwitch);
+
+        if (this.platform.config.toggleListeningModeLink ?? true) {
+            this.tvService.addLinkedService(this.listeningServiceSwitch);
+        }
+
         this.enabledServices.push(this.listeningServiceSwitch);
 
         this.avr.functionSetSwitchListeningMode = () => {

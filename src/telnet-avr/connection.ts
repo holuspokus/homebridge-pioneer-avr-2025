@@ -40,10 +40,11 @@ export class Connection {
         setTimeout(() => {
             clearInterval(this.checkConnInterval);
             this.checkConnInterval = setInterval(() => {
+
+
                 if (
                     this.connectionReady &&
                     this.reconnectCounter === 0 &&
-                    this.isConnecting === null &&
                     this.lastWrite !== null &&
                     this.lastMessageReceived !== null &&
                     this.lastWrite - this.lastMessageReceived > 10000 &&
@@ -56,6 +57,7 @@ export class Connection {
                     this.messageQueue.clearQueue();
                     this.disconnect();
                     this.connect();
+                    this.isConnecting = Date.now();
                 }
             }, 3107);
         }, 5000);
@@ -187,10 +189,16 @@ export class Connection {
 
     private handleError(err: Error) {
         this.isConnecting = null;
-        this.log.error('Connection error:', err);
-        if (err.message.includes('CONN')) {
+
+        if (err.message.includes('CONN') || err.message.includes('EHOSTUNREACH') || err.message.includes('ENOTFOUND')) {
             this.setConnectionReady(false);
             this.onDisconnect();
+        }
+
+        if (this.reconnectCounter > 1) {
+            this.log.debug('Connection error:', err);
+        }else{
+            this.log.error('Connection error:', err);
         }
     }
 
@@ -199,7 +207,7 @@ export class Connection {
             return;
         }
 
-        // this.log.debug('tryReconnect() called');
+        this.log.debug('tryReconnect() called', this.reconnectCounter);
 
         this.reconnectCounter++;
         const delay = this.reconnectCounter > 30 ? 60 : 15;
@@ -208,7 +216,12 @@ export class Connection {
             if (onExitCalled || this.connectionReady) {
                 return;
             }
-            this.log.info('Attempting reconnection...');
+
+            if (this.reconnectCounter > 1) {
+                this.log.debug('Attempting reconnection...');
+            }else{
+                this.log.info('Attempting reconnection...');
+            }
             this.connect();
         }, delay * 1000);
     }
@@ -258,10 +271,16 @@ export class Connection {
             !this.lastConnect ||
             Date.now() - (this.lastConnect ?? 0) > 15 * 1000
         ) {
+            this.disconnect();
             this.log.debug('Reconnecting socket.');
+            this.connect();
             this.isConnecting = Date.now();
-            this.socket.removeAllListeners('connect');
-            this.socket.connect(this.port, this.host, callback);
+
+            try {
+                callback();
+            } catch (error) {
+                this.log.debug('reconnect callback error', error);
+            }
         } else {
             setTimeout(() => {
                 try {
@@ -275,10 +294,12 @@ export class Connection {
 
     disconnect() {
         // this.log.debug('disconnect() called');
+        this.isConnecting = null;
         this.setConnectionReady(false);
         this.onDisconnect();
 
         if (this.socket) {
+            this.socket.removeAllListeners('connect');
             this.socket.end();
             this.socket.destroy();
             this.socket = null;

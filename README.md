@@ -1,5 +1,3 @@
-
-
 # homebridge-pioneer-avr-2025
 
 A [Homebridge](https://github.com/nfarina/homebridge) plugin that integrates your Pioneer AVR as a TV accessory in HomeKit. This project supports Node.js versions up to 22 and is compatible with Homebridge version 2 and earlier. Developed in TypeScript and as a Platform, it incorporates modern Homebridge practices and methods to provide a seamless setup process with optional manual configuration. With automatic receiver detection, the plugin enhances reliability and user-friendliness.
@@ -26,6 +24,7 @@ This plugin allows you to control various aspects of your Pioneer AVR directly f
 * Automatic input discovery for seamless setup
 * Automatic receiver discovery for effortless integration
 * Easily switch between inputs using HomeKit switches for direct control and enhanced automation capabilities
+* **Toggle Listening Mode Options**: Configure the availability and display style of a dedicated HomeKit switch for toggling between two predefined listening modes.
 <br>
 <br>
 
@@ -35,19 +34,28 @@ This plugin allows you to control various aspects of your Pioneer AVR directly f
 3. **Connect to HomeKit**: Open the Home app on your iOS device, tap Add Accessory, and scan the QR code displayed in the Homebridge Web Interface (Config-UI).
 
 ## Accessory Configuration
-The receiver is detected automatically over the network.
-You may also configure settings via the Config-UI interface.
+The receiver is detected automatically over the network.  
+You may also configure settings via the Config-UI interface.  
 Manual configuration is also available.
 
 ### Adding Input Switches
 Once the receiver's inputs are loaded, you can select up to five inputs through the plugin settings in Config-UI. These selected inputs will appear in HomeKit as individual switches, allowing direct selection, use in automations, or integration with physical switches.  
 
-If the receiver is already on and the input is selected, pressing the switch again will turn off the receiver. This behavior is particularly useful in HomeKit, where only one scene can be assigned to a button, not two separate scenes (e.g., one for turning on and another for turning off). With this feature, the same button can be used to turn on the receiver, switch input, and turn off the receiver.  
+If the receiver is already on and the input is selected, pressing the switch again will turn off the receiver. This behavior is particularly useful in HomeKit, where only one scene can be assigned to a button—not two separate scenes (e.g., one for turning on and another for turning off). With this feature, the same button can be used to turn on the receiver, switch input, and turn off the receiver.  
+
+The button can also serve as a trigger for other scenes but should not be included in the same scene with other devices (such as lights) to avoid unintended behavior.
+
+#### Toggle Listening Mode Options
+Two additional configuration options control how listening modes are toggled via HomeKit:
 
 The button can also serve as a trigger for other scenes but should not be included in the same scene with other devices, such as lights, to avoid unintended behavior.
+> **toggleListeningMode:**  
+> If enabled, the HomeKit receiver will display a switch that allows you to toggle between two predefined listening modes. If disabled, the switch will not be available in HomeKit.
 
 **Configuration Option**  
 Additionally, you can control this behavior via the plugin's configuration option **Toggle Off If Already Active**. When enabled (default), if the receiver is already on and the same input switch is pressed again, the receiver will be turned off. This allows a single button to handle turning the receiver on, switching inputs, and turning it off. If disabled, pressing the active switch will leave the receiver on and simply reselect the same input without turning off the receiver.
+> **toggleListeningModeLink:**  
+> This option controls how the listening mode toggle switch is displayed when devices are bundled. If enabled (default), the toggle appears directly within the receiver’s view when devices are grouped. If disabled, the toggle is presented as a separate switch, independent of the bundling setting.
 <br>
 
 ### Preparing the Receiver and Network
@@ -68,15 +76,16 @@ To ensure proper connectivity for the plugin, connect the receiver to the networ
 After confirming the network connection, restart the plugin to enable communication with the receiver.
 <br><br>
 
-## Manual installation:
+## Manual Installation
 1. **Install the Homebridge framework:**
    ```bash
    npm install -g homebridge
    ```
 
-2. **Update your configuration file:** Use the example below or check `sample-config.json` in this repository for a sample. Create or edit the `config.json` file in the Homebridge directory (typically `~/.homebridge/` or `/var/lib/homebridge/`) with the appropriate configuration for your Pioneer AVR.
+2. **Update your configuration file:**  
+   Use the example below or check `sample-config.json` in this repository for a sample. Create or edit the `config.json` file in the Homebridge directory (typically `~/.homebridge/` or `/var/lib/homebridge/`) with the appropriate configuration for your Pioneer AVR.
 
-3. **Install **homebridge-pioneer-avr-2025**:**
+3. **Install homebridge-pioneer-avr-2025:**
    ```bash
    sudo hb-service add homebridge-pioneer-avr-2025
       or
@@ -90,15 +99,13 @@ After confirming the network connection, restart the plugin to enable communicat
    homebridge
    ```
 
-5. **Connect to HomeKit**
-**Retrieve the Setup Code**: In your terminal run the following command to view the Homebridge logs, which include the setup code:
-
+5. **Connect to HomeKit**  
+   **Retrieve the Setup Code:**  
+   Run the following command to view the Homebridge logs, which include the setup code:
     ```bash
     sudo hb-service logs
     ```
-
-    Look for output similar to:
-
+   Look for output similar to:
     ```
     Enter this code with your HomeKit app on your iOS device to pair with Homebridge:
 
@@ -106,8 +113,7 @@ After confirming the network connection, restart the plugin to enable communicat
         │ 340-36-041 │     
         └────────────┘     
     ```
-
-	**Add Childbridge to HomeKit**:
+   **Add Childbridge to HomeKit:**
     - Open the **Home app** on your iOS device.
     - Tap **"Add Accessory"**.
     - Choose **"Don't Have a Code or Can't Scan?"**.
@@ -117,9 +123,8 @@ After confirming the network connection, restart the plugin to enable communicat
 ### Accessory Configuration Example
 Below is a sample configuration for your accessory:
 
-#### minimalistic Setup with Discovery
+#### Minimalistic Setup with Discovery
 For most users, the following minimal configuration is recommended. The plugin will automatically discover your receiver and configure it for use:
-
 ```json
 "platforms": [
     {
@@ -130,8 +135,7 @@ For most users, the following minimal configuration is recommended. The plugin w
 ```
 This setup simplifies installation and leverages the plugin's automatic discovery feature, ensuring ease of use and reliable integration.  
 
-
-#### minimalistic Setup with manual configured Receiver
+#### Minimalistic Setup with Manual Configured Receiver
 ```json
 "platforms": [
     {
@@ -140,27 +144,31 @@ This setup simplifies installation and leverages the plugin's automatic discover
         "host": "VSX-922.local",
         "port": 23,
         "maxVolume": 65,
-        "minVolume": 30
+        "minVolume": 30,
+        "toggleOffIfActive": true,
+        "toggleListeningMode": true
     }
 ]
 ```
 
-|                Key | Value                         |
-| -----------------: | :---------------------------- |
-|           platform | don't change                  |
-|               name | Custom input, can remain      |
-|               host | needs to be accurate or empty |
-|               port | needs to be accurate          |
-|          maxVolume | Optional input, can remain    |
-|          minVolume | Optional input, can remain    |
-|  toggleOffIfActive | Toggle receiver off if active |
+|                Key               | Value                                                      |
+| -------------------------------: | :--------------------------------------------------------- |
+|           platform               | don't change                                               |
+|               name               | Custom input, can remain                                   |
+|               host               | needs to be accurate or empty                              |
+|               port               | needs to be accurate                                       |
+|          maxVolume               | Optional input, can remain                                 |
+|          minVolume               | Optional input, can remain                                 |
+|      toggleOffIfActive           | Toggle receiver off if active                              |
+|      toggleListeningMode         | If enabled, the listening mode toggle is shown in HomeKit.   |
+|      toggleListeningModeLink     | Controls the display of the listening mode toggle: bundled in receiver view (enabled) or as a separate switch (disabled). |
 
-> **name:**
-> In the example above, the "name" field refers to the platform and is used to define the name of the platform in Homebridge, for example, as visible in the logs. The device name, in this case, is derived from the hostname unless the hostname is an IP address, in which case the platform name is used instead.
-> Characters that could cause issues are automatically removed.
+> **Note:**  
+> - For **toggleListeningMode**, when enabled the HomeKit receiver will display a switch to toggle between two predefined listening modes. If disabled, the switch will not appear.  
+> - For **toggleListeningModeLink**, when enabled (default) the toggle is displayed directly in the receiver view when devices are bundled. If disabled, it will appear as a separate switch, regardless of the bundling setting.
 
-> **host:**
-> To use the network scan (Multicast), leave `host` (Device IP Address) field empty in the plugin configuration.
+> **host:**  
+> To use the network scan (Multicast), leave the `host` field empty in the plugin configuration.
 
 > **port:**  
 > The port used for Telnet to connect to your receiver.  
@@ -168,7 +176,7 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > Alternatively, enable Web Interface (see user manual) and then try opening in your web browser something like:
 > `http://vsx-922.local/1000/port_number.asp` or  
 > `http://192.168.178.99/1000/port_number.asp`  
-> ... to find the port number.
+> to find the correct port.
 
 > **maxVolume:**  
 > A number between 0 and 100; for example, 60 means 60% of the max volume.  
@@ -259,6 +267,8 @@ This setup simplifies installation and leverages the plugin's automatic discover
         "maxVolume": 65,
         "minVolume": 30,
         "toggleOffIfActive": true,
+        "toggleListeningMode": true,
+        "toggleListeningModeLink": true,
         "_bridge": {
             "username": "0E:D6:86:BA:AM:69",
             "port": 35337
@@ -267,9 +277,8 @@ This setup simplifies installation and leverages the plugin's automatic discover
 ]
 ```
 
-#### Minimalistic Setup after discovery
-Set Input switches for discovered Devices
-
+#### Minimalistic Setup After Discovery
+Set input switches for discovered devices:
 ```json
 "platforms": [
     {
@@ -290,18 +299,18 @@ Set Input switches for discovered Devices
 ]
 ```
 
-> **Note:** The "discoveredDevices" section is automatically created when a receiver is detected. There is no need to manually add devices to this section, as it is specifically designed for configuring additional attributes for automatically discovered devices. Attributes such as `maxVolume`, `minVolume`, and `inputSwitches` can be customized here for greater control over the integration. Please note that the `host` attribute serves as a key and should not be modified.
+> **Note:**  
+> The "discoveredDevices" section is automatically created when a receiver is detected. There is no need to manually add devices to this section, as it is intended for configuring additional attributes for automatically discovered devices. Attributes such as `maxVolume`, `minVolume`, `inputSwitches`, `toggleListeningMode`, and `toggleListeningModeLink` can be customized here for enhanced control. The `host` attribute serves as a key and should not be modified.
 
 <br>
 
-
-#### Known Listeningmodes
-| Code  | Description |
-|-------|------------|
-| 0001  | STEREO (cyclic) |
-| 0009  | STEREO (direct set) (set to SCI-FI mode.) |
-| 0151  | Auto Level Control (A.L.C.) |
-| 0003  | Front Stage Surround Advance Focus |
+#### Known Listening Modes
+| Code  | Description                                     |
+| ----- | ----------------------------------------------- |
+| 0001  | STEREO (cyclic)                                 |
+| 0009  | STEREO (direct set) (set to SCI-FI mode.)         |
+| 0151  | Auto Level Control (A.L.C.)                     |
+| 0003  | Front Stage Surround Advance Focus            |
 | 0004  | Front Stage Surround Advance Wide (set to PURE DIRECT) |
 | 0153  | RETRIEVER AIR |
 | 0010  | STANDARD mode. |
@@ -411,7 +420,12 @@ Set Input switches for discovered Devices
 
 
 ## Release Notes
-- **v0.2.7**: Toggle Listening Mode is now configurable and available not only via "Remote" but also through HomeKit.
+- **v0.2.9**:  
+  - Improved reconnect handling
+  - Toggle Listening Mode as a Switch can now be disabled via the new **toggleListeningMode** option.
+  - Added **toggleListeningModeLink** to control whether the listening mode toggle is displayed within the receiver view (when bundled) or as a separate switch.
+- **v0.2.8**: Improved switch stability by implementing a 3-second lock mechanism to prevent rapid or accidental activations.
+- **v0.2.7**: Toggle Listening Mode is now configurable and available not only via the "Remote" but also through HomeKit.
 - **v0.2.5**: Added "Toggle Off If Already Active" configuration option (switches).  
 - **v0.2.4**: Added a serial number to switches for better device identification.  
 - **v0.2.3**: Fixed issue where `discoveredDevices` was not correctly saved in `config.json` across all environments.  
