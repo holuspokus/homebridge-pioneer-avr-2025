@@ -146,7 +146,7 @@ This setup simplifies installation and leverages the plugin's automatic discover
         "maxVolume": 65,
         "minVolume": 30,
         "toggleOffIfActive": true,
-        "toggleListeningMode": true,
+        "toggleListeningMode": true
     }
 ]
 ```
