@@ -648,6 +648,60 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
             }
 
+
+            // Define the 'toggleListeningMode' field
+            const toggleListeningMode = {
+                title: "Toggle Listening Mode",
+                type: "boolean",
+                default: this.config.toggleListeningMode ?? true,
+                description: "If enabled, the HomeKit receiver will display a switch that allows you to toggle between two predefined listening modes. If disabled, the switch will not be available in HomeKit."
+            };
+
+
+            // Remove 'toggleListeningMode' if it already exists to avoid duplication
+            if (schema.schema.properties.toggleListeningMode) {
+                delete schema.schema.properties.toggleListeningMode;
+            }
+
+            // Reconstruct properties to insert 'toggleListeningMode' before 'devices'
+            const newProperties: any = {};
+            for (const key in schema.schema.properties) {
+                if (key === 'devices') {
+                    newProperties['toggleListeningMode'] = toggleListeningMode;
+                }
+                newProperties[key] = schema.schema.properties[key];
+            }
+            schema.schema.properties = newProperties;
+
+            
+            // Define the 'toggleListeningModeLink' field
+            const toggleListeningModeLink = {
+                title: "Listening Mode Switch Display",
+                type: "boolean",
+                default: this.config.toggleListeningModeLink ?? true,
+                description: "If enabled, the HomeKit receiver will display the listening mode toggle directly within its view when devices are bundled (default behavior). If disabled, the toggle will appear as a separate switch, independent of the bundling setting."
+            };
+
+
+            // Remove 'toggleListeningModeLink' if it already exists to avoid duplication
+            if (schema.schema.properties.toggleListeningModeLink) {
+                delete schema.schema.properties.toggleListeningModeLink;
+            }
+
+            // Reconstruct properties to insert 'toggleListeningModeLink' before 'devices'
+            const newProperties: any = {};
+            for (const key in schema.schema.properties) {
+                newProperties[key] = schema.schema.properties[key];
+                if (key === 'toggleListeningMode') {
+                    newProperties['toggleListeningModeLink'] = toggleListeningModeLink;
+                }
+            }
+            schema.schema.properties = newProperties;
+
+
+
+
+
             if (bonjourCounter !== foundDevices.length) {
                 schema.schema.properties.devices.items.properties.inputSwitches = {
                     type: 'array',
