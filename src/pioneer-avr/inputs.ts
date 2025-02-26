@@ -14,6 +14,7 @@ export interface Device {
     host: string;
     port: number;
     source: string;
+    fqdn: string,
     maxVolume?: number;
     minVolume?: number;
     inputSwitches?: string[];

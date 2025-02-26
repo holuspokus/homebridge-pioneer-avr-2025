@@ -87,6 +87,14 @@
                 "maximum": 100,
                 "description": "Set the minimum volume level for all devices (0-100)."
             },
+            "maxReconnectAttempts": {
+                "title": "Maximum Reconnect Attempts",
+                "type": "integer",
+                "default": 1000,
+                "minimum": 100,
+                "maximum": 1000,
+                "description": "Set the total number of reconnect attempts before giving up on reconnecting to the device."
+            },
             "name": {
                 "title": "Platform Name",
                 "type": "string",
