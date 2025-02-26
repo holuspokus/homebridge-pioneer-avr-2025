@@ -44,17 +44,11 @@ If the receiver is already on and the input is selected, pressing the switch aga
 
 The button can also serve as a trigger for other scenes but should not be included in the same scene with other devices (such as lights) to avoid unintended behavior.
 
-#### Toggle Listening Mode Options
-Two additional configuration options control how listening modes are toggled via HomeKit:
-
-The button can also serve as a trigger for other scenes but should not be included in the same scene with other devices, such as lights, to avoid unintended behavior.
-> **toggleListeningMode:**  
-> If enabled, the HomeKit receiver will display a switch that allows you to toggle between two predefined listening modes. If disabled, the switch will not be available in HomeKit.
-
 **Configuration Option**  
 Additionally, you can control this behavior via the plugin's configuration option **Toggle Off If Already Active**. When enabled (default), if the receiver is already on and the same input switch is pressed again, the receiver will be turned off. This allows a single button to handle turning the receiver on, switching inputs, and turning it off. If disabled, pressing the active switch will leave the receiver on and simply reselect the same input without turning off the receiver.
-> **toggleListeningModeLink:**  
-> This option controls how the listening mode toggle switch is displayed when devices are bundled. If enabled (default), the toggle appears directly within the receiver’s view when devices are grouped. If disabled, the toggle is presented as a separate switch, independent of the bundling setting.
+
+#### Toggle Listening Mode Options
+When `toggleListeningMode` is enabled, this option adds a dedicated switch in HomeKit that lets you alternate between two predefined listening modes on your receiver with a single button press. Activating the switch toggles the receiver from the primary mode to the secondary mode and vice versa, providing an efficient way to manage your audio settings. Although the button can also trigger other scenes, it is best used exclusively for switching listening modes to avoid conflicts with other HomeKit accessories.
 <br>
 
 ### Preparing the Receiver and Network
@@ -211,6 +205,18 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > This allows a single button to toggle the receiver on and off, facilitating one-button control in HomeKit.
 > If disabled, the receiver will remain on and simply reselect the current input.
 
+> **toggleListeningMode:**  
+> If enabled, the HomeKit receiver will display a switch that allows you to toggle between two predefined listening modes. If disabled, the switch will not be available in HomeKit.
+
+> **toggleListeningModeLink:**  
+> This option controls how the listening mode toggle switch is displayed when devices are bundled. If enabled (default), the toggle appears directly within the receiver’s view when devices are grouped. If disabled, the toggle is presented as a separate switch, independent of the bundling setting.
+
+> **maxReconnectAttempts:**  
+> Set the total number of reconnect attempts before giving up on reconnecting to the device.
+
+> **maxReconnectAttemptsBeforeDiscover:**  
+> Set the maximum number of reconnect attempts before triggering a device rediscovery process.
+
 > **name:**
 > In the example below, "name" under "devices" refers to the name as it appears in HomeKit.
 > Characters that could cause issues are automatically removed.
@@ -268,6 +274,8 @@ This setup simplifies installation and leverages the plugin's automatic discover
         "toggleOffIfActive": true,
         "toggleListeningMode": true,
         "toggleListeningModeLink": true,
+        "maxReconnectAttempts": 1000,
+        "maxReconnectAttemptsBeforeDiscover": 10,
         "_bridge": {
             "username": "0E:D6:86:BA:AM:69",
             "port": 35337
@@ -419,7 +427,7 @@ Set input switches for discovered devices:
 
 
 ## Release Notes
-- **v0.2.10**: -
+- **v0.2.10**: Added maxReconnectAttempts configuration
 - **v0.2.9**: Improved reconnect handling; Listening Mode switch can now be disabled.
 - **v0.2.8**: Improved switch stability by implementing a 3-second lock mechanism to prevent rapid or accidental activations.
 - **v0.2.7**: Toggle Listening Mode is now configurable and available not only via the "Remote" but also through HomeKit.

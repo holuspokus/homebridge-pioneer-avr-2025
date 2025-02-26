@@ -29,6 +29,7 @@ export interface Device {
     host: string;
     port: number;
     source: string;
+    fqdn: string,
     maxVolume?: number;
     minVolume?: number;
     inputSwitches?: string[];
@@ -246,6 +247,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                         host: device.host || device.ip,
                         port: device.port || 23,
                         source: 'pluginConfig',
+                        fqdn: device.host || device.ip,
                     };
 
                     if (device.listeningMode) {
@@ -297,6 +299,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 host: this.config.device.host || this.config.device.ip,
                 port: this.config.device.port || 23,
                 source: 'pluginConfig',
+                fqdn: this.config.device.host || this.config.device.ip,
             };
 
             if (this.config.device.listeningMode) {
@@ -347,6 +350,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 host: this.config.host || this.config.ip,
                 port: this.config.port || 23,
                 source: 'pluginConfig',
+                fqdn: this.config.host || this.config.ip,
             };
 
             this.devicesFound.push(addDevice);
@@ -379,6 +383,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                             host: dDevice.host,
                             port: dDevice.port,
                             source: dDevice.source,
+                            fqdn: dDevice.fqdn,
                             minVolume: this.config.discoveredDevices?.find(
                                 (device: any) => device.host.toLowerCase() === dDevice.host.toLowerCase(),
                             )?.minVolume || undefined,
@@ -887,6 +892,33 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 };
             }
 
+            if (bonjourCounter > 0) {
+                // If the property already exists, remove it first
+                if (schema.schema.properties.maxReconnectAttemptsBeforeDiscover) {
+                    delete schema.schema.properties.maxReconnectAttemptsBeforeDiscover;
+                }
+
+                // Create a new properties object to ensure ordering
+                const newProperties = {};
+                for (const key in schema.schema.properties) {
+                    newProperties[key] = schema.schema.properties[key];
+                    // After 'maxReconnectAttempts', insert our new property
+                    if (key === "maxReconnectAttempts") {
+                        newProperties["maxReconnectAttemptsBeforeDiscover"] = {
+                            "title": "Maximum Reconnect Attempts Before Discovery",
+                            "type": "integer",
+                            "default": 10,
+                            "minimum": 10,
+                            "maximum": 100,
+                            "description": "Set the maximum number of reconnect attempts before triggering a device rediscovery process."
+                        };
+                    }
+                }
+                // Assign the new properties object back to schema.schema.properties
+                schema.schema.properties = newProperties;
+            } else if (schema.schema.properties.maxReconnectAttemptsBeforeDiscover) {
+                delete schema.schema.properties.maxReconnectAttemptsBeforeDiscover;
+            }
 
             const dynamicHost = firstDevice.host || 'vsx-922.local';
             const dynamicHeaderLink = `To open a telnet port on the receiver or set Network Standby, click here: [http://${dynamicHost}/1000/port_number.asp](http://${dynamicHost}/1000/port_number.asp).`;

@@ -11,6 +11,7 @@ export interface Device {
     host: string;
     port: number;
     source: string;
+    fqdn: string,
     maxVolume?: number;
     minVolume?: number;
     inputSwitches?: string[];
@@ -192,7 +193,7 @@ export function VolumeManagementMixin<
 
         public functionSetLightbulbMuted(_argument?: any) {}
 
-        public functionSetSwitchListeningMode(_argument?: any) {}        
+        public functionSetSwitchListeningMode(_argument?: any) {}
 
         /**
          * Sends a volume status query to the AVR and updates the volume state.

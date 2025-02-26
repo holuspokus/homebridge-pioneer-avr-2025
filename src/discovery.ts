@@ -16,6 +16,7 @@ async function findDevices(
             host: string;
             port: number;
             source: string;
+            fqdn: string;
         }[]
     > {
     const devices: {
@@ -24,6 +25,7 @@ async function findDevices(
         host: string;
         port: number;
         source: string;
+        fqdn: string;
         maxVolume?: number;
         minVolume?: number;
         inputSwitches?: string[];
@@ -54,6 +56,7 @@ async function discoverBonjourDevices(
         host: string;
         port: number;
         source: string;
+        fqdn: string;
         maxVolume?: number;
         minVolume?: number;
         inputSwitches?: string[];
@@ -196,6 +199,8 @@ async function discoverBonjourDevices(
                 //     .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '')
                 //     .trim();
 
+                const fqdn = service.fqdn || host;
+
 
                 if (!hostsFound.includes(host)) {
                     hostsFound.push(host);
@@ -205,6 +210,7 @@ async function discoverBonjourDevices(
                         origName,
                         telnetPorts,
                         'bonjour',
+                        fqdn,
                         log,
                     ).then((device) => {
                         if (
@@ -261,6 +267,7 @@ async function checkPorts(
     origName: string,
     ports: number[],
     source: string,
+    fqdn: string,
     log: any,
 ): Promise<{
     name: string;
@@ -268,10 +275,11 @@ async function checkPorts(
     host: string;
     port: number;
     source: string;
+    fqdn: string;
 } | null> {
     for (const port of ports) {
         if (await isPortOpen(host, port, log)) {
-            return { name, origName, host, port, source }; // Return device info if port is open
+            return { name, origName, host, port, source, fqdn }; // Return device info if port is open
         }
     }
     return null;
