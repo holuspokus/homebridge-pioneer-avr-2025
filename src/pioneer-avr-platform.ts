@@ -14,7 +14,7 @@ let HAPStorage: any;
 try {
   HAPStorage = require('hap-nodejs').HAPStorage;
 } catch (error) {
-  HAPStorage = {}; // Hier ggf. eine Fallback-Implementierung bereitstellen.
+  HAPStorage = {};
 }
 
 import { findDevices } from './discovery';

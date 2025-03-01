@@ -95,6 +95,14 @@
                 "maximum": 1000,
                 "description": "Set the total number of reconnect attempts before giving up on reconnecting to the device."
             },
+            "sendKeepAliveTimeoutMinutes": {
+                "title": "Send Keep Alive Timeout (minutes)",
+                "type": "integer",
+                "default": 2880,
+                "minimum": 5,
+                "maximum": 20160,
+                "description": "Set the send keep alive timeout in minutes. The value is clamped between 5 minutes and two weeks, defaults to 48 hours (2880 minutes)."
+            },
             "name": {
                 "title": "Platform Name",
                 "type": "string",

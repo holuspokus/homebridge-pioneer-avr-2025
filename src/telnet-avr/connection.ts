@@ -32,12 +32,14 @@ export class Connection {
     private reconnectTimeout!: NodeJS.Timeout;
     private reconnectCallbackTimeout!: NodeJS.Timeout;
     private device: any;
+    public lastUserInteraction: number = Date.now();
 
     constructor(telnetThis: TelnetAvr) {
         this.avr = telnetThis.avr;
         this.port = telnetThis.port;
         this.host = telnetThis.host;
         this.log = telnetThis.avr.log;
+        this.lastUserInteraction = telnetThis.avr.lastUserInteraction;
         this.device = telnetThis.device;
         this.discoveredDevices = telnetThis.platform.config.discoveredDevices ?? [];
         this.messageQueue = new MessageQueue(this);
@@ -425,7 +427,19 @@ export class Connection {
         callback?: (error: any, response: string) => void,
     ) {
         if (!this.connectionReady) {
-            this.tryReconnect();
+            if (
+                this.reconnectCounter > 10 &&
+                this.lastUserInteraction &&
+                Date.now() - this.lastUserInteraction <
+                    60 * 1000
+            ) {
+                this.reconnectCounter = 0;
+                this.connect();
+            } else {
+                this.tryReconnect();
+            }
+
+
         }
 
         if (this.disconnectTimeout) {

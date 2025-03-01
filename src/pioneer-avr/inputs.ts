@@ -7,6 +7,12 @@ import type { TelnetAvr } from '../telnet-avr/telnetAvr';
 import type { AVState } from './pioneerAvr'; // Imports AVState type from PioneerAvr
 import { addExitHandler } from '../exitHandler';
 
+let HAPStorage: any;
+try {
+  HAPStorage = require('hap-nodejs').HAPStorage;
+} catch (error) {
+  HAPStorage = {};
+}
 
 export interface Device {
     name: string;
@@ -62,11 +68,15 @@ export function InputManagementMixin<
         constructor(...args: any[]) {
             super(...args);
 
+            const storagePath = typeof (HAPStorage as any).storagePath === 'function'
+              ? (HAPStorage as any).storagePath() // Homebridge v2+
+              : this.platform?.api?.user?.storagePath(); // Homebridge v1
+
             // Set `prefsDir` and `inputCacheFile`
             this.prefsDir =
                 this.platform?.config?.prefsDir ||
-                this.platform?.api?.user?.storagePath() + '/pioneerAvr/' ||
-                '';
+                storagePath + '/pioneerAvr/';
+                
             this.inputCacheFile = path.join(
                 this.prefsDir,
                 `inputCache_${this.device.host}.json`,

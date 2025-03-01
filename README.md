@@ -217,6 +217,30 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > **maxReconnectAttemptsBeforeDiscover:**  
 > Set the maximum number of reconnect attempts before triggering a device rediscovery process.
 
+> **sendKeepAliveTimeoutMinutes:**  
+> Set the send keep alive timeout in minutes. This value determines how long after a user interaction the keepalive should be sent to maintain the connection. The timeout is clamped between 5 minutes and two weeks, with a default of 48 hours (2880 minutes).  
+> Examples:  
+> - 4 hours: 240 minutes  
+> - 2 days: 2880 minutes  
+> - 8 days: 11520 minutes  
+> - 14 days: 20160 minutes  
+>
+> **Short Keepalive Duration:**  
+> - **Advantages:**  
+>   - The keepalive is sent for a shorter period after user interaction, allowing the receiver to enter sleep mode sooner, which may reduce power consumption.  
+> - **Disadvantages:**  
+>   - If the keepalive stops too soon, the connection may close before the next user interaction, causing a delay when the plugin needs to re-establish communication.  
+>   - The receiver's state (e.g., volume or input changes made directly on the device) may not be reflected in the plugin if the connection is lost too early.  
+
+> **Long Keepalive Duration:**  
+> - **Advantages:**  
+>   - The plugin maintains the connection for a longer period after user interaction, ensuring a quick response and that all changes made directly on the receiver (e.g., volume or input adjustments) are reflected in HomeKit.  
+>   - Reduces the need for frequent reconnections, resulting in a smoother user experience.  
+> - **Disadvantages:**  
+>   - A longer keepalive duration may prevent the receiver from entering sleep mode, leading to increased power consumption.  
+
+
+
 > **name:**
 > In the example below, "name" under "devices" refers to the name as it appears in HomeKit.
 > Characters that could cause issues are automatically removed.
@@ -276,6 +300,7 @@ This setup simplifies installation and leverages the plugin's automatic discover
         "toggleListeningModeLink": true,
         "maxReconnectAttempts": 1000,
         "maxReconnectAttemptsBeforeDiscover": 10,
+        "sendKeepAliveTimeoutMinutes": 20160,
         "_bridge": {
             "username": "0E:D6:86:BA:AM:69",
             "port": 35337
@@ -427,6 +452,7 @@ Set input switches for discovered devices:
 
 
 ## Release Notes
+- **v0.2.11**: Added sendKeepAliveTimeoutMinutes configuration
 - **v0.2.10**: Added maxReconnectAttempts configuration
 - **v0.2.9**: Improved reconnect handling; Listening Mode switch can now be disabled.
 - **v0.2.8**: Improved switch stability by implementing a 3-second lock mechanism to prevent rapid or accidental activations.

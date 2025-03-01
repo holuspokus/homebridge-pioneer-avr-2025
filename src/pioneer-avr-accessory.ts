@@ -480,9 +480,10 @@ class PioneerAvrAccessory {
               if (this.timeoutFunctionSetSwitchListeningMode) {
                   clearTimeout(this.timeoutFunctionSetSwitchListeningMode)
               }
+              
               this.timeoutFunctionSetSwitchListeningMode = setTimeout(() => {
                   this.avr.functionSetSwitchListeningMode();
-              }, 2000)
+              }, 2000);
         });
 
         addExitHandler(() => {
