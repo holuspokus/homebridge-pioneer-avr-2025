@@ -452,7 +452,7 @@ Set input switches for discovered devices:
 
 
 ## Release Notes
-- **v0.2.11**: Added sendKeepAliveTimeoutMinutes configuration
+- **v0.2.11**: Added sendKeepAliveTimeoutMinutes configuration; also, the reconnect behavior has been debugged and now works much more reliably
 - **v0.2.10**: Added maxReconnectAttempts configuration
 - **v0.2.9**: Improved reconnect handling; Listening Mode switch can now be disabled.
 - **v0.2.8**: Improved switch stability by implementing a 3-second lock mechanism to prevent rapid or accidental activations.

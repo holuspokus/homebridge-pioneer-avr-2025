@@ -102,7 +102,7 @@ export class Connection {
                     this.messageQueue.clearQueue();
                     this.disconnect();
                     this.connect();
-                    this.isConnecting = Date.now();
+                    // this.isConnecting = Date.now();
                 }
             }, 3107);
         }, 5000);
@@ -130,6 +130,7 @@ export class Connection {
     }
 
     connect(callback: () => void = () => {}) {
+        // this.log.debug('connect called', this.connectionReady, this.isConnecting, this.socket)
         if (
             !this.connectionReady &&
             this.isConnecting !== null &&
@@ -140,6 +141,7 @@ export class Connection {
         }
 
         // this.log.debug('connect() called');
+
 
         if (this.socket) {
             if (
@@ -236,8 +238,17 @@ export class Connection {
         if (onExitCalled) {
             return;
         }
-        this.log.debug('Socket closed, attempting reconnect.');
-        this.tryReconnect();
+
+        if (!this.connectionReady) {
+            if (
+                this.lastUserInteraction &&
+                Date.now() - this.lastUserInteraction <
+                    60 * 1000
+            ) {
+                this.log.debug('Socket closed, attempting reconnect.');
+                this.tryReconnect();
+            }
+        }
     }
 
     private handleData(data: Buffer) {
@@ -381,7 +392,6 @@ export class Connection {
             this.disconnect();
             this.log.debug('Reconnecting socket.');
             this.connect();
-            this.isConnecting = Date.now();
 
             try {
                 callback();
@@ -404,6 +414,7 @@ export class Connection {
 
     disconnect() {
         // this.log.debug('disconnect() called');
+        this.lastMessageReceived = null;
         this.isConnecting = null;
         this.setConnectionReady(false);
         this.onDisconnect();
