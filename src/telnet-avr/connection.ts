@@ -13,7 +13,7 @@ export class Connection {
     private socket: net.Socket | null = null;
     private lastConnect: number | null = null;
     private messageQueue: MessageQueue;
-    private connectionReady: boolean = false;
+    public connectionReady: boolean = false;
     public lastWrite: number | null = null;
     private clearQueueTimeout: NodeJS.Timeout | null = null;
     private disconnectTimeout: NodeJS.Timeout | null = null;
@@ -32,14 +32,12 @@ export class Connection {
     private reconnectTimeout!: NodeJS.Timeout;
     private reconnectCallbackTimeout!: NodeJS.Timeout;
     private device: any;
-    public lastUserInteraction: number = Date.now();
 
     constructor(telnetThis: TelnetAvr) {
         this.avr = telnetThis.avr;
         this.port = telnetThis.port;
         this.host = telnetThis.host;
         this.log = telnetThis.avr.log;
-        this.lastUserInteraction = telnetThis.avr.lastUserInteraction;
         this.device = telnetThis.device;
         this.discoveredDevices = telnetThis.platform.config.discoveredDevices ?? [];
         this.messageQueue = new MessageQueue(this);
@@ -104,6 +102,7 @@ export class Connection {
                     this.connect();
                     // this.isConnecting = Date.now();
                 }
+
             }, 3107);
         }, 5000);
     }
@@ -241,8 +240,8 @@ export class Connection {
 
         if (!this.connectionReady) {
             if (
-                this.lastUserInteraction &&
-                Date.now() - this.lastUserInteraction <
+                this.avr.lastUserInteraction &&
+                Date.now() - this.avr.lastUserInteraction <
                     60 * 1000
             ) {
                 this.log.debug('Socket closed, attempting reconnect.');
@@ -252,6 +251,17 @@ export class Connection {
     }
 
     private handleData(data: Buffer) {
+        if (this.disconnectTimeout) {
+            clearTimeout(this.disconnectTimeout);
+        }
+
+        this.disconnectTimeout = setTimeout(
+            () => {
+                this.disconnect();
+            },
+            35 * 1000,
+        );
+
         this.dataHandler?.handleData(data);
     }
 
@@ -276,7 +286,7 @@ export class Connection {
         }
 
         this.reconnectCounter++;
-        const delay = this.reconnectCounter > 30 ? 60 : 15;
+        let delay = this.reconnectCounter > 30 ? 60 : 15;
 
         if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
@@ -285,6 +295,15 @@ export class Connection {
         if ( this.reconnectCounter >= ( this.maxReconnectAttempts * 2 ) ) {
             // process.exit(1);
             return;
+        }
+
+        if (
+            this.reconnectCounter <= 1 ||
+            !this.avr.lastUserInteraction ||
+            (Date.now() - this.avr.lastUserInteraction <
+                60 * 1000 )
+        ) {
+            delay = 0;
         }
 
         this.reconnectTimeout = setTimeout(() => {
@@ -440,8 +459,8 @@ export class Connection {
         if (!this.connectionReady) {
             if (
                 this.reconnectCounter > 10 &&
-                this.lastUserInteraction &&
-                Date.now() - this.lastUserInteraction <
+                this.avr.lastUserInteraction &&
+                Date.now() - this.avr.lastUserInteraction <
                     60 * 1000
             ) {
                 this.reconnectCounter = 0;
@@ -461,7 +480,7 @@ export class Connection {
             () => {
                 this.disconnect();
             },
-            5 * 60 * 1000,
+            35 * 1000,
         );
 
         // if (this.connectionReady && callbackChars === undefined) {
