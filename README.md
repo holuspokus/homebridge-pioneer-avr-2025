@@ -156,9 +156,8 @@ This setup simplifies installation and leverages the plugin's automatic discover
 |      toggleListeningMode         | If enabled, the listening mode toggle is shown in HomeKit.   |
 |      toggleListeningModeLink     | Controls the display of the listening mode toggle: bundled in receiver view (enabled) or as a separate switch (disabled). |
 
-> **Note:**  
-> - For **toggleListeningMode**, when enabled the HomeKit receiver will display a switch to toggle between two predefined listening modes. If disabled, the switch will not appear.  
-> - For **toggleListeningModeLink**, when enabled (default) the toggle is displayed directly in the receiver view when devices are bundled. If disabled, it will appear as a separate switch, regardless of the bundling setting.
+> - **toggleListeningMode**, when enabled (default) the HomeKit receiver will display a switch to toggle between two predefined listening modes. If disabled, the switch will not appear.  
+> - **toggleListeningModeLink**, when enabled (default) the toggle is displayed directly in the receiver view when devices are bundled. If disabled, it will appear as a separate switch, regardless of the bundling setting.
 
 > **host:**  
 > To use the network scan (Multicast), leave the `host` field empty in the plugin configuration.
@@ -225,14 +224,14 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > - 8 days: 11520 minutes  
 > - 14 days: 20160 minutes  
 >
-> **Short Keepalive Duration:**  
+> Short Keepalive Duration:  
 > - **Advantages:**  
 >   - The keepalive is sent for a shorter period after user interaction, allowing the receiver to enter sleep mode sooner, which may reduce power consumption.  
 > - **Disadvantages:**  
 >   - If the keepalive stops too soon, the connection may close before the next user interaction, causing a delay when the plugin needs to re-establish communication.  
 >   - The receiver's state (e.g., volume or input changes made directly on the device) may not be reflected in the plugin if the connection is lost too early.  
-
-> **Long Keepalive Duration:**  
+>  
+> Long Keepalive Duration:  
 > - **Advantages:**  
 >   - The plugin maintains the connection for a longer period after user interaction, ensuring a quick response and that all changes made directly on the receiver (e.g., volume or input adjustments) are reflected in HomeKit.  
 >   - Reduces the need for frequent reconnections, resulting in a smoother user experience.  
