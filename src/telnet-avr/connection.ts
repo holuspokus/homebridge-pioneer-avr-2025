@@ -13,7 +13,7 @@ export class Connection {
     private socket: net.Socket | null = null;
     private lastConnect: number | null = null;
     private messageQueue: MessageQueue;
-    private connectionReady: boolean = false;
+    public connectionReady: boolean = false;
     public lastWrite: number | null = null;
     private clearQueueTimeout: NodeJS.Timeout | null = null;
     private disconnectTimeout: NodeJS.Timeout | null = null;
@@ -100,8 +100,9 @@ export class Connection {
                     this.messageQueue.clearQueue();
                     this.disconnect();
                     this.connect();
-                    this.isConnecting = Date.now();
+                    // this.isConnecting = Date.now();
                 }
+
             }, 3107);
         }, 5000);
     }
@@ -128,6 +129,7 @@ export class Connection {
     }
 
     connect(callback: () => void = () => {}) {
+        // this.log.debug('connect called', this.connectionReady, this.isConnecting, this.socket)
         if (
             !this.connectionReady &&
             this.isConnecting !== null &&
@@ -138,6 +140,7 @@ export class Connection {
         }
 
         // this.log.debug('connect() called');
+
 
         if (this.socket) {
             if (
@@ -234,11 +237,31 @@ export class Connection {
         if (onExitCalled) {
             return;
         }
-        this.log.debug('Socket closed, attempting reconnect.');
-        this.tryReconnect();
+
+        if (!this.connectionReady) {
+            if (
+                this.avr.lastUserInteraction &&
+                Date.now() - this.avr.lastUserInteraction <
+                    60 * 1000
+            ) {
+                this.log.debug('Socket closed, attempting reconnect.');
+                this.tryReconnect();
+            }
+        }
     }
 
     private handleData(data: Buffer) {
+        if (this.disconnectTimeout) {
+            clearTimeout(this.disconnectTimeout);
+        }
+
+        this.disconnectTimeout = setTimeout(
+            () => {
+                this.disconnect();
+            },
+            35 * 1000,
+        );
+
         this.dataHandler?.handleData(data);
     }
 
@@ -263,7 +286,7 @@ export class Connection {
         }
 
         this.reconnectCounter++;
-        const delay = this.reconnectCounter > 30 ? 60 : 15;
+        let delay = this.reconnectCounter > 30 ? 60 : 15;
 
         if (this.reconnectTimeout) {
             clearTimeout(this.reconnectTimeout);
@@ -272,6 +295,15 @@ export class Connection {
         if ( this.reconnectCounter >= ( this.maxReconnectAttempts * 2 ) ) {
             // process.exit(1);
             return;
+        }
+
+        if (
+            this.reconnectCounter <= 1 ||
+            !this.avr.lastUserInteraction ||
+            (Date.now() - this.avr.lastUserInteraction <
+                60 * 1000 )
+        ) {
+            delay = 0;
         }
 
         this.reconnectTimeout = setTimeout(() => {
@@ -379,7 +411,6 @@ export class Connection {
             this.disconnect();
             this.log.debug('Reconnecting socket.');
             this.connect();
-            this.isConnecting = Date.now();
 
             try {
                 callback();
@@ -402,6 +433,7 @@ export class Connection {
 
     disconnect() {
         // this.log.debug('disconnect() called');
+        this.lastMessageReceived = null;
         this.isConnecting = null;
         this.setConnectionReady(false);
         this.onDisconnect();
@@ -425,7 +457,19 @@ export class Connection {
         callback?: (error: any, response: string) => void,
     ) {
         if (!this.connectionReady) {
-            this.tryReconnect();
+            if (
+                this.reconnectCounter > 10 &&
+                this.avr.lastUserInteraction &&
+                Date.now() - this.avr.lastUserInteraction <
+                    60 * 1000
+            ) {
+                this.reconnectCounter = 0;
+                this.connect();
+            } else {
+                this.tryReconnect();
+            }
+
+
         }
 
         if (this.disconnectTimeout) {
@@ -436,7 +480,7 @@ export class Connection {
             () => {
                 this.disconnect();
             },
-            5 * 60 * 1000,
+            35 * 1000,
         );
 
         // if (this.connectionReady && callbackChars === undefined) {

@@ -4,6 +4,7 @@ import type { Connection } from './connection';
 
 export class MessageQueue {
     public queue: [string, string][] = []; // Array storing message and its callback character string
+    private conn: Connection;
     public queueCallbackChars: Record<string, Function[]> = {}; // Maps callback character strings to an array of associated callbacks
     public callbackLocks: Record<
         string,
@@ -13,6 +14,7 @@ export class MessageQueue {
     constructor(private connection: Connection) {
         // Start periodic queue checking
         this.startQueueCheck();
+        this.conn = connection;
     }
 
     /**
@@ -22,7 +24,7 @@ export class MessageQueue {
     private startQueueCheck() {
         setInterval(() => {
             // Process the next item in the queue if it is not locked
-            if (this.queue.length > 0) {
+            if (this.queue.length > 0 && this.conn.connectionReady) {
                 // Unlock callbackLocks if they are active for more than 5 seconds
                 for (const key of Object.keys(this.callbackLocks)) {
                     const lock = this.callbackLocks[key];

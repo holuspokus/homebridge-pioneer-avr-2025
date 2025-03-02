@@ -480,9 +480,10 @@ class PioneerAvrAccessory {
               if (this.timeoutFunctionSetSwitchListeningMode) {
                   clearTimeout(this.timeoutFunctionSetSwitchListeningMode)
               }
+
               this.timeoutFunctionSetSwitchListeningMode = setTimeout(() => {
                   this.avr.functionSetSwitchListeningMode();
-              }, 2000)
+              }, 2000);
         });
 
         addExitHandler(() => {
@@ -683,9 +684,9 @@ class PioneerAvrAccessory {
 
     // Method to set the power status
     private async setPowerOn(on: CharacteristicValue): Promise<void> {
-        if (!this.avr.telnetAvr.connectionReady) {
-            return;
-        }
+        // if (!this.avr.telnetAvr.connectionReady) {
+        //     return;
+        // }
         if (on) {
             this.avr.powerOn();
         } else {

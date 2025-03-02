@@ -45,6 +45,7 @@ export function InitializeMixin<
         public onData!: (error: any, data: string, callback?: Function) => void;
         public __updateVolume!: any;
         public __updatePower!: any;
+        public platform!: any;
         public functionSetPowerState!: any;
         public functionSetLightbulbMuted!: any;
         public functionSetSwitchListeningMode!: any;
@@ -131,14 +132,41 @@ export function InitializeMixin<
                 clearInterval(this.allInterval);
                 this.allInterval = setInterval(async () => {
                     try {
+                        // Ensure sendKeepAliveTimeout is a number within the range [5 minutes, 2 weeks]
+                        // If not set, default to 48 hours
+                        let keepAliveTimeoutMinutes: number;
+                        let rawTimeout: unknown = this.platform?.config?.sendKeepAliveTimeoutMinutes;
+
+                        // If rawTimeout is a string, convert it to a number
+                        if (typeof rawTimeout === "string") {
+                            rawTimeout = parseInt(rawTimeout, 10);
+                        }
+
+                        // Process the timeout value, ensuring it falls within the allowed range (5 to 20160 minutes)
+                        if (typeof rawTimeout === "number" && !isNaN(rawTimeout)) {
+                            if (rawTimeout < 5) {
+                                keepAliveTimeoutMinutes = 5;
+                            } else if (rawTimeout > 20160) {
+                                keepAliveTimeoutMinutes = 20160;
+                            } else {
+                                keepAliveTimeoutMinutes = rawTimeout;
+                            }
+                        } else {
+                            keepAliveTimeoutMinutes = 2880; // Default to 48 hours (2880 minutes) if not set
+                        }
+
+                        // Convert minutes to milliseconds
+                        const keepAliveTimeoutMs = keepAliveTimeoutMinutes * 60 * 1000;
+
                         if (
-                            !this.state.on && this.lastUserInteraction &&
-                            Date.now() - this.lastUserInteraction >
-                                48 * 60 * 60 * 1000
+                            !this.state.on &&
+                            this.lastUserInteraction &&
+                            Date.now() - this.lastUserInteraction > keepAliveTimeoutMs
                         ) {
                             this.allIntervalCounter = 0;
                             return;
                         }
+
 
                         if (
                             this.isReady &&
