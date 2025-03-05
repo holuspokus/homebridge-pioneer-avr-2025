@@ -106,8 +106,8 @@ export function PowerManagementMixin<
         public async powerOn() {
             this.log.debug('Power on');
 
-            this.telnetAvr.sendMessage('PO');
             this.lastUserInteraction = Date.now();
+            this.telnetAvr.sendMessage('PO');
 
             // Allow some time for the command to take effect, then check status
             setTimeout(() => {
@@ -121,8 +121,8 @@ export function PowerManagementMixin<
         public async powerOff() {
             this.log.debug('Power off');
 
-            this.telnetAvr.sendMessage('PF');
             this.lastUserInteraction = Date.now();
+            this.telnetAvr.sendMessage('PF');
 
             // Allow some time for the command to take effect, then check status
             setTimeout(() => {

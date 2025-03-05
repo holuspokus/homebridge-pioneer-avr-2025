@@ -24,7 +24,7 @@ export class MessageQueue {
     private startQueueCheck() {
         setInterval(() => {
             // Process the next item in the queue if it is not locked
-            if (this.queue.length > 0 && this.conn.connectionReady) {
+            if (this.queue.length > 0 && this.conn?.socket && this.conn.socket.readyState === 'open') {
                 // Unlock callbackLocks if they are active for more than 5 seconds
                 for (const key of Object.keys(this.callbackLocks)) {
                     const lock = this.callbackLocks[key];
@@ -39,7 +39,7 @@ export class MessageQueue {
 
                 this.processQueue();
             }
-        }, 7); // Check every 17ms
+        }, 7); // Check every 7ms
     }
 
     /**
@@ -94,7 +94,9 @@ export class MessageQueue {
         }
 
         // Add the message to the queue if not already present
-        if (!this.queue.some((q) => q[0] === message)) {
+        if (message === '?P') {
+            this.queue.unshift([message, callbackChars]);
+        } else {
             this.queue.push([message, callbackChars]);
         }
 

@@ -10,7 +10,7 @@ import { findDevices } from '../discovery';
 let onExitCalled = false;
 
 export class Connection {
-    private socket: net.Socket | null = null;
+    public socket: net.Socket | null = null;
     private lastConnect: number | null = null;
     private messageQueue: MessageQueue;
     public connectionReady: boolean = false;
@@ -122,7 +122,7 @@ export class Connection {
             clearTimeout(this.reconnectCallbackTimeout);
         }
 
-        if (this.connectionReady) {
+        if (this.connectionReady || !this.socket || this.socket?.readyState === 'open') {
             this.connectionReady = false;
             this.disconnect();
         }
@@ -139,16 +139,13 @@ export class Connection {
             return;
         }
 
-        // this.log.debug('connect() called');
-
-
         if (this.socket) {
             if (
-                !this.connectionReady &&
+                (!this.connectionReady || this.socket.readyState !== 'open') &&
                 Date.now() - (this.lastConnect ?? 0) > 15 * 1000
             ) {
                 this.reconnect(callback);
-            } else if (this.connectionReady) {
+            } else if (this.connectionReady || this.socket.readyState === 'open') {
                 this.log.debug('Already connected, delaying callback.');
                 setTimeout(callback, 1500);
             } else {
@@ -185,11 +182,12 @@ export class Connection {
 
             this.reconnectCounter = 0;
             this.lastMessageReceived = null;
-            this.setConnectionReady(true);
             this.lastConnect = Date.now();
             this.log.debug('Socket connected.');
 
             this.sendMessage('?P', 'PWR', async () => {
+                this.setConnectionReady(true);
+
                 if (!this.isReconnect) {
                     try {
                         callback();
@@ -238,7 +236,7 @@ export class Connection {
             return;
         }
 
-        if (!this.connectionReady) {
+        if (!this.connectionReady || !this.socket || !this.socket?.connecting || this.socket?.readyState !== 'open') {
             if (
                 this.avr.lastUserInteraction &&
                 Date.now() - this.avr.lastUserInteraction <
@@ -323,15 +321,16 @@ export class Connection {
     async reconnect(callback: () => void) {
         // this.log.debug('reconnect() called');
 
-        if (onExitCalled || this.connectionReady || !this.socket) {
+        if (onExitCalled) {
             return;
         }
-        if (this.socket.connecting || this.socket.readyState === 'open') {
+        if (this.connectionReady || !this.socket || this.socket.connecting || this.socket.readyState === 'open') {
             try {
                 callback();
             } catch (error) {
                 this.log.debug('reconnect callback error', error);
             }
+            return;
         }
 
         if ( this.reconnectCounter >= this.maxReconnectAttempts ) {
@@ -349,6 +348,7 @@ export class Connection {
             return;
         }
         if ( this.reconnectCounter >= ( this.maxReconnectAttempts * 2 ) ) {
+            // no callback.
             return;
         }
 
@@ -456,7 +456,7 @@ export class Connection {
         callbackChars?: string,
         callback?: (error: any, response: string) => void,
     ) {
-        if (!this.connectionReady) {
+        if (!this.socket || !this.socket?.connecting && this.socket?.readyState !== 'open') {
             if (
                 this.reconnectCounter > 10 &&
                 this.avr.lastUserInteraction &&
@@ -468,8 +468,6 @@ export class Connection {
             } else {
                 this.tryReconnect();
             }
-
-
         }
 
         if (this.disconnectTimeout) {
@@ -483,14 +481,11 @@ export class Connection {
             35 * 1000,
         );
 
-        // if (this.connectionReady && callbackChars === undefined) {
-        //     if (Date.now() - (this.lastWrite ?? 0) < 38) {
-        //         await new Promise(resolve => setTimeout(resolve, 50));
-        //     }
+
         if (
             !message.startsWith('?') &&
             !message.startsWith('!') &&
-            this.connectionReady &&
+            this.socket && this.socket?.readyState === 'open' &&
             callbackChars === undefined &&
             this.messageQueue.queue.length === 0
         ) {
@@ -504,7 +499,7 @@ export class Connection {
         message: string,
         callback?: (error: any, response: string) => void,
     ) {
-        if (!this.connectionReady) {
+        if (!this.socket || this.socket.connecting || this.socket.readyState !== 'open') {
             this.log.warn('Connection not ready, skipping direct send.');
             return;
         }
