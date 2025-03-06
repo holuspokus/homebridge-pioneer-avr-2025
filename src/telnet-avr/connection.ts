@@ -12,14 +12,15 @@ let onExitCalled = false;
 export class Connection {
     public socket: net.Socket | null = null;
     private lastConnect: number | null = null;
-    private messageQueue: MessageQueue;
+    public messageQueue: MessageQueue;
     public connectionReady: boolean = false;
     public lastWrite: number | null = null;
     private clearQueueTimeout: NodeJS.Timeout | null = null;
     private disconnectTimeout: NodeJS.Timeout | null = null;
     private reconnectCounter = 0;
+    public forcedDisconnect: boolean = false;
     private isConnecting: number | null = null;
-    private log: any;
+    public log: any;
     private discoveredDevices: any[] = [];
     private dataHandler: DataHandler;
     private host: string;
@@ -185,34 +186,36 @@ export class Connection {
             this.lastConnect = Date.now();
             this.log.debug('Socket connected.');
 
-            this.sendMessage('?P', 'PWR', async () => {
-                this.setConnectionReady(true);
+            setTimeout(() => {
+                this.sendMessage('?P', 'PWR', async () => {
+                    this.setConnectionReady(true);
 
-                if (!this.isReconnect) {
+                    if (!this.isReconnect) {
+                        try {
+                            callback();
+                        } catch (e) {
+                            this.log.error(
+                                'Connect initializeSocket callback error:',
+                                e,
+                            );
+                        }
+                        this.isReconnect = true;
+                    } else {
+                        this.log.info(
+                            '>> successfuly reconnected ' + this.avr.device.name,
+                        );
+                    }
+
                     try {
-                        callback();
+                        this.onConnect();
                     } catch (e) {
                         this.log.error(
-                            'Connect initializeSocket callback error:',
+                            'Connect initializeSocket onConnect error:',
                             e,
                         );
                     }
-                    this.isReconnect = true;
-                } else {
-                    this.log.info(
-                        '>> successfuly reconnected ' + this.avr.device.name,
-                    );
-                }
-
-                try {
-                    this.onConnect();
-                } catch (e) {
-                    this.log.error(
-                        'Connect initializeSocket onConnect error:',
-                        e,
-                    );
-                }
-            });
+                });
+            }, 500);
         });
 
         this.socket.on('close', () => {
@@ -242,8 +245,12 @@ export class Connection {
                 Date.now() - this.avr.lastUserInteraction <
                     60 * 1000
             ) {
+                this.forcedDisconnect = false;
                 this.log.debug('Socket closed, attempting reconnect.');
-                this.tryReconnect();
+                setTimeout(() => {
+                    this.tryReconnect();
+                }, 100);
+
             }
         }
     }
@@ -456,6 +463,7 @@ export class Connection {
         callbackChars?: string,
         callback?: (error: any, response: string) => void,
     ) {
+        // this.log.debug('in sendMessage', message);
         if (!this.socket || !this.socket?.connecting && this.socket?.readyState !== 'open') {
             if (
                 this.reconnectCounter > 10 &&
@@ -464,6 +472,7 @@ export class Connection {
                     60 * 1000
             ) {
                 this.reconnectCounter = 0;
+                this.forcedDisconnect = false;
                 this.connect();
             } else {
                 this.tryReconnect();
@@ -499,6 +508,7 @@ export class Connection {
         message: string,
         callback?: (error: any, response: string) => void,
     ) {
+        // this.log.debug('in directSend', message);
         if (!this.socket || this.socket.connecting || this.socket.readyState !== 'open') {
             this.log.warn('Connection not ready, skipping direct send.');
             return;
@@ -521,6 +531,8 @@ export class Connection {
         callbackChars?: string,
         callback?: (error: any, response: string) => void,
     ) {
+        // this.log.debug('in queueMessage', message);
+
         this.messageQueue.enqueue(message, callbackChars, callback!);
 
         if (this.clearQueueTimeout) {
@@ -529,7 +541,7 @@ export class Connection {
 
         this.clearQueueTimeout = setTimeout(() => {
             this.messageQueue.clearQueue();
-        }, 15 * 1000);
+        }, 25 * 1000);
     }
 
     public onDisconnect() {

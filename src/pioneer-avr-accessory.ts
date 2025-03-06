@@ -34,6 +34,7 @@ class PioneerAvrAccessory {
     public tvService!: Service;
     private volumeServiceLightbulb!: Service;
     private listeningServiceSwitch!: Service;
+    private telnetConnectedServiceSwitch!: Service;
     private tvSpeakerService!: Service;
     public enabledServices: Service[] = [];
     public avr!: PioneerAvr;
@@ -102,6 +103,10 @@ class PioneerAvrAccessory {
                         await this.prepareInformationService();
                         await this.prepareTvService();
                         await this.prepareTvSpeakerService();
+
+                        if (this.platform.config.telnetSwitch ?? true) {
+                            await this.prepareTelnetConnectedService();
+                        }
 
                         if (this.platform.config.toggleListeningMode ?? true) {
                             await this.prepareListeningService();
@@ -413,6 +418,136 @@ class PioneerAvrAccessory {
         this.avr.functionSetLightbulbMuted(this.avr.state.muted);
     }
 
+    /**
+    * Prepares the Switch service for check/control if telnet connected.
+    */
+    private timeoutFunctionSetSwitchTelnetConnected: NodeJS.Timeout | null = null;
+
+    private async prepareTelnetConnectedService() {
+        while (
+           !this.tvService ||
+           !this.enabledServices.includes(this.tvService)
+        ) {
+           await new Promise((resolve) => setTimeout(resolve, 180));
+        }
+
+        this.log.debug('preparing prepareTelnetConnectedService()');
+
+        try {
+
+          this.telnetConnectedServiceSwitch =
+              this.accessory.getServiceById(this.platform.service.Switch, 'telnetState') ||
+              this.accessory.addService(
+                this.platform.service.Switch,
+                this.name + ' telnet',
+                'telnetState'
+              );
+
+
+
+            this.telnetConnectedServiceSwitch
+              .getCharacteristic(this.platform.characteristic.On)
+              .onGet(async () => {
+                  return !!(this.avr?.telnetAvr?.connection?.socket?.readyState === 'open')
+              })
+              .onSet(async (value) => {
+                this.log.debug('telnetConnectedServiceSwitch pressed:', value);
+                  const currentState = !!(this.avr?.telnetAvr?.connection?.socket?.readyState === 'open');
+                  if (!!value !== !!currentState) {
+                      if (value) {
+                          //connect?
+                          if (this.avr?.lastUserInteraction) {
+                              this.avr.lastUserInteraction = Date.now();
+                          }
+
+                          if (this.avr?.telnetAvr?.connection?.connect) {
+                              this.avr.telnetAvr.connection.connect();
+                          }
+
+                      } else if (!this.avr.state.on) {
+                          //disconnect?
+
+                          if (!this.avr.lastUserInteraction ||
+                          Date.now() - this.avr.lastUserInteraction > 61 * 1000) {
+                              if (this.avr?.telnetAvr?.connectionReady) {
+                                  this.avr.telnetAvr.connectionReady = false;
+                              }
+
+                              if (this.avr?.telnetAvr?.connection) {
+                                  this.avr.telnetAvr.connection.forcedDisconnect = true;
+                              }
+
+                              if (this.avr?.telnetAvr?.connection?.messageQueue?.clearQueue) {
+                                  this.avr.telnetAvr.connection.messageQueue.clearQueue();
+                              }
+
+                              if (this.avr?.telnetAvr?.connection?.disconnect) {
+                                  this.avr.telnetAvr.connection.disconnect();
+                              }
+                          }
+                      }
+                  }
+
+                  this.avr.functionSetSwitchTelnetConnected();
+
+                  if (this.timeoutFunctionSetSwitchTelnetConnected) {
+                      clearTimeout(this.timeoutFunctionSetSwitchTelnetConnected)
+                  }
+
+                  this.timeoutFunctionSetSwitchTelnetConnected = setTimeout(() => {
+                      this.avr.functionSetSwitchTelnetConnected();
+                  }, 10000);
+            });
+
+            addExitHandler(() => {
+               this.telnetConnectedServiceSwitch.updateCharacteristic(
+                   this.platform.characteristic.On,
+                   false,
+               );
+            }, this);
+
+
+            this.enabledServices.push(this.telnetConnectedServiceSwitch);
+
+            this.avr.functionSetSwitchTelnetConnected = () => {
+               try {
+                  const currentOnState =
+                     this.telnetConnectedServiceSwitch.getCharacteristic(
+                         this.platform.characteristic.On,
+                     ).value;
+
+
+                   // Update On state based on whether a listening mode is active
+                   if ((this.avr?.telnetAvr?.connection?.socket?.readyState === 'open') !== currentOnState) {
+                       this.telnetConnectedServiceSwitch.updateCharacteristic(
+                           this.platform.characteristic.On,
+                           !!(this.avr?.telnetAvr?.connection?.socket?.readyState === 'open'),
+                       );
+                   }
+               } catch (e) {
+                   this.log.debug('Error updating Switch listening mode:', e);
+               }
+            };
+
+            // Initial listening mode setup
+            this.avr.functionSetSwitchTelnetConnected();
+
+            this.avr.telnetAvr.addOnDisconnectCallback(() => {
+                this.avr.functionSetSwitchTelnetConnected();
+            });
+
+            this.avr.telnetAvr.addOnConnectCallback(async () => {
+                this.avr.functionSetSwitchTelnetConnected();
+            });
+
+        } catch (error) {
+           this.log.error('telnetConnectedServiceSwitchError:', error);
+        }
+
+
+
+    }
+
 
     /**
     * Prepares the Switch service for listening mode control.
@@ -440,15 +575,14 @@ class PioneerAvrAccessory {
 
 
         this.listeningServiceSwitch =
-           this.accessory.getService(this.platform.service.Switch) ||
-           this.accessory.addService(
-               this.platform.service.Switch,
-               this.name + ' Audio',
-               'listeningMode',
-           );
+            this.accessory.getServiceById(this.platform.service.Switch, 'listeningMode') ||
+            this.accessory.addService(
+              this.platform.service.Switch,
+              this.name + ' Audio',
+              'listeningMode'
+            );
 
-
-          this.listeningServiceSwitch
+        this.listeningServiceSwitch
           .getCharacteristic(this.platform.characteristic.On)
           .onGet(async () => {
               const isOn = this.avr.state.on && [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
@@ -907,12 +1041,8 @@ class PioneerAvrAccessory {
 
             // Add or update Switch service
             const switchService =
-                accessory.getService(this.platform.service.Switch) ||
-                accessory.addService(
-                    this.platform.service.Switch,
-                    switchName,
-                    input.id,
-                );
+                accessory.getServiceById(this.platform.service.Switch, input.id) ||
+                accessory.addService(this.platform.service.Switch, switchName, input.id);
 
             const inputIndex = this.avr.inputs.findIndex(
                 (findInput) => findInput.id === input.id,

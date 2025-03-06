@@ -60,7 +60,6 @@ export function InputManagementMixin<
         public inputToType: Record<string, number> = {};
         public pioneerAvrClassCallbackCalled: boolean = false;
         public initCount: number = 0;
-        public oldInputVisibilityFile: string;
         public booleanToVisibilityState: (visible: boolean) => number;
         public visibilityStateToBoolean: (state: number) => boolean;
         public saveInputsTimeout!: NodeJS.Timeout;
@@ -76,17 +75,11 @@ export function InputManagementMixin<
             this.prefsDir =
                 this.platform?.config?.prefsDir ||
                 storagePath + '/pioneerAvr/';
-                
+
             this.inputCacheFile = path.join(
                 this.prefsDir,
                 `inputCache_${this.device.host}.json`,
             );
-
-            this.oldInputVisibilityFile =
-                `${this.prefsDir}/inputsVisibility_${this.device.host}`.replace(
-                    /\/{2,}/g,
-                    '/',
-                );
 
             this.inputs = [];
 
@@ -101,35 +94,48 @@ export function InputManagementMixin<
             // Map HomeKit visibility state -> boolean
             this.visibilityStateToBoolean = (state: number): boolean => state === 0;
 
+            let disconnectTime: number | null = null;
+            this.telnetAvr.addOnDisconnectCallback(async () => {
+                disconnectTime = Date.now();
+            });
 
             // Add a callback to manage inputs when the Telnet connection is established
             this.telnetAvr.addOnConnectCallback(async () => {
-                await this.loadInputs(async () => {
-                    // Callback from pioneerAvr class
-                    if (!this.pioneerAvrClassCallbackCalled) {
-                        this.pioneerAvrClassCallbackCalled = true;
-                        await new Promise((resolve) => setTimeout(resolve, 50));
+              if (
+                  disconnectTime === null ||
+                  ((Date.now() - disconnectTime) > (30 * 60 * 1000))
+              ) {
+                  // refresh inputs
+                  setTimeout(() => {
+                    this.loadInputs(async () => {
+                        // Callback from pioneerAvr class
+                        if (!this.pioneerAvrClassCallbackCalled) {
+                            this.pioneerAvrClassCallbackCalled = true;
+                            await new Promise((resolve) => setTimeout(resolve, 50));
 
-                        setTimeout(() => {
-                            try {
-                                const runThis =
-                                    this.pioneerAvrClassCallback?.bind(this);
-                                if (runThis) {
-                                    runThis();
+                            setTimeout(() => {
+                                try {
+                                    const runThis =
+                                        this.pioneerAvrClassCallback?.bind(this);
+                                    if (runThis) {
+                                        runThis();
+                                    }
+                                } catch (e) {
+                                    this.log.debug(
+                                        'pioneerAvrClassCallback() inputs.ts Error',
+                                        e,
+                                    );
                                 }
-                            } catch (e) {
-                                this.log.debug(
-                                    'pioneerAvrClassCallback() inputs.ts Error',
-                                    e,
-                                );
-                            }
 
+                                this.__updateInput(() => {});
+                            }, 1500);
+                        } else {
                             this.__updateInput(() => {});
-                        }, 1500);
-                    } else {
-                        this.__updateInput(() => {});
-                    }
-                });
+                        }
+                    });
+                  }, disconnectTime===null?0:(35 * 1000));
+              }
+
             });
 
             addExitHandler(() => {
@@ -148,24 +154,23 @@ export function InputManagementMixin<
          * @param callback - Optional callback function to run after loading inputs.
          */
         public async loadInputs(callback?: () => void) {
+
+            let refresh = false;
+
             if (this.isReady) {
-                if (callback) {
-                    try {
-                        callback();
-                    } catch (e) {
-                        this.log.debug(
-                            'loadInputs already isReady callback',
-                            e,
-                        );
-                    }
+                if (this.inputs.length > 0){
+                    refresh = true;
+                } else {
+                    refresh = false;
                 }
-                return;
             }
 
             const savedVisibility = {};
 
             // Check if cached inputs are valid
-            if (fs.existsSync(this.inputCacheFile)) {
+            if (
+                fs.existsSync(this.inputCacheFile)
+            ) {
                 try {
                     const cache = JSON.parse(
                         fs.readFileSync(this.inputCacheFile, 'utf-8'),
@@ -190,11 +195,12 @@ export function InputManagementMixin<
 
                     // Use cached inputs if they are less than 30 minutes old
                     if (
+                        !refresh &&
                         cacheTimestamp !== null && cache.inputs.length > 0 && now.getTime() - cacheTimestamp.getTime() <=
                         30 * 60 * 1000
                     ) {
                         this.inputs = cache.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
-                        this.log.info('Load inputs from cache.');
+                        this.log.info('Load inputs from cache.', this.device.host);
 
                         setTimeout(async () => {
                             while (
@@ -242,8 +248,13 @@ export function InputManagementMixin<
             }
 
             // Refresh inputs if no valid cache is available
-            this.log.info('Refreshing inputs...');
-            this.inputs = [];
+
+            if (!refresh) {
+                this.log.info('Getting inputs...', this.device.host);
+                this.inputs = [];
+            } else {
+                this.log.info('Refreshing inputs...', this.device.host);
+            }
             for (let i = 1; i <= 60; i++) {
                 const key = i.toString().padStart(2, '0');
 
@@ -267,13 +278,9 @@ export function InputManagementMixin<
                 //
                 // While this compact approach minimizes code size, it retains functionality and ensures that each
                 // input ID is correctly assigned a `Characteristic.InputSourceType` value.
-                this.inputToType[key] = [2, 18, 38].includes(i)
-                    ?2
-                    :[
+                this.inputToType[key] = [2, 18, 38].includes(i)?2:[
                         19, 20, 21, 22, 23, 24, 25, 26, 31, 5, 6, 15,
-                    ].includes(i)
-                        ?3
-                        :i==10?4:i==14?6:i==17?9:i==26?10:i==46?8:0;
+                    ].includes(i)?3:i==10?4:i==14?6:i==17?9:i==26?10:i==46?8:0;
 
                 if (
                     typeof this.inputBeingAdded === 'string' &&
@@ -323,23 +330,6 @@ export function InputManagementMixin<
                 this.inputs = this.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
 
                 try {
-                    let importedFromOldInputVisibilityFile: Record<string, number> = {};
-
-                    // Check if the old visibility file exists
-                    if (fs.existsSync(this.oldInputVisibilityFile)) {
-                        // File exists: read and parse its content
-                        const fileData = fs.readFileSync(this.oldInputVisibilityFile, 'utf-8');
-                        importedFromOldInputVisibilityFile = JSON.parse(fileData);
-
-                        // Delete the old file after reading it
-                        fs.unlink(this.oldInputVisibilityFile, (unlinkErr) => {
-                            if (unlinkErr) {
-                                console.error(`Error deleting file: ${this.oldInputVisibilityFile}`, unlinkErr);
-                            } else {
-                                console.log(`File deleted: ${this.oldInputVisibilityFile}`);
-                            }
-                        });
-                    }
 
                     for (const [index, input] of this.inputs.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10)).entries()) {
 
@@ -349,45 +339,50 @@ export function InputManagementMixin<
                         }
 
                         // Only set visibility if it hasn't been already defined
-                        if (this.inputs[index].visible === undefined || input.id in savedVisibility) {
+                        if (this.inputs[index].visible === undefined) {
                             this.inputs[index].visible =
-                                input.id in savedVisibility ? savedVisibility[input.id] : input.id in importedFromOldInputVisibilityFile
-                                    ? this.visibilityStateToBoolean(importedFromOldInputVisibilityFile[input.id]) // Use saved visibility state
-                                    : true; // Default to visible
+                                input.id in savedVisibility ? savedVisibility[input.id] : true; // Default to visible
                         }
                     }
 
-                    setTimeout(async () => {
-                        while (
-                            !this.accessory.tvService ||
-                            !this.accessory.enabledServices.includes(this.accessory.tvService)
-                        ) {
-                            await new Promise((resolve) => setTimeout(resolve, 50));
-                        }
+                    if (!refresh) {
 
-                        // Sort inputs by `id`, assign original index, reverse order, and iterate
-                        const sortedInputs = [...this.inputs]
-                            .sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10)) // Sort inputs numerically by `id`
-                            .map((input, index) => ({ ...input, originalIndex: index })) // Assign original index
-                            .sort((a, b) => a.name.localeCompare(b.name));
+                        setTimeout(async () => {
+                            while (
+                                !this.accessory.tvService ||
+                                !this.accessory.enabledServices.includes(this.accessory.tvService)
+                            ) {
+                                await new Promise((resolve) => setTimeout(resolve, 50));
+                            }
 
-                        for (const [_sortedIndex, input] of sortedInputs.entries()) {
-                            // Map input ID to its type
-                            // this.inputToType[input.id] = input.type;
+                            // Sort inputs by `id`, assign original index, reverse order, and iterate
+                            const sortedInputs = [...this.inputs]
+                                .sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10)) // Sort inputs numerically by `id`
+                                .map((input, index) => ({ ...input, originalIndex: index })) // Assign original index
+                                .sort((a, b) => a.name.localeCompare(b.name));
 
-                            // Add the input source service for the current input
-                            // The originalIndex reflects the position in the sorted order (before reversing)
-                            await this.addInputSourceService(null, input.originalIndex);
-                            // this.log.debug('addInputSourceService called', input.name, input.originalIndex);
+                            for (const [_sortedIndex, input] of sortedInputs.entries()) {
+                                // Map input ID to its type
+                                // this.inputToType[input.id] = input.type;
 
-                            // Add a small delay between adding inputs to prevent potential issues
-                            await new Promise((resolve) => setTimeout(resolve, 100));
-                        }
-                    }, 100);
+                                // Add the input source service for the current input
+                                // The originalIndex reflects the position in the sorted order (before reversing)
+                                await this.addInputSourceService(null, input.originalIndex);
+                                // this.log.debug('addInputSourceService called', input.name, input.originalIndex);
 
+                                // Add a small delay between adding inputs to prevent potential issues
+                                await new Promise((resolve) => setTimeout(resolve, 100));
+                            }
+                        }, 100);
+
+                    }
 
                     // Save inputs to the cache file
+                    if (this.saveInputsTimeout) {
+                        clearTimeout(this.saveInputsTimeout);
+                    }
                     this.saveInputs();
+
                 } catch (error) {
                     // Catch and log any unexpected errors during processing
                     this.log.debug('Error processing input visibility file:', error);
@@ -397,7 +392,10 @@ export function InputManagementMixin<
                 this.isReady = true;
 
                 await this.platform.updateConfigSchema(this.platform.devicesFound, this.device.host, this.inputs);
-                this.accessory.handleInputSwitches();
+
+                if (!refresh) {
+                    this.accessory.handleInputSwitches();
+                }
             }
 
             if (callback) {
@@ -462,9 +460,6 @@ export function InputManagementMixin<
             );
 
             if (
-                !this.telnetAvr ||
-                !this.telnetAvr.connectionReady ||
-                !this.state.on ||
                 this.state.input === inputIndex
             ) {
                 return;

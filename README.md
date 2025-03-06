@@ -152,6 +152,7 @@ This setup simplifies installation and leverages the plugin's automatic discover
 |               port               | needs to be accurate                                       |
 |          maxVolume               | Optional input, can remain                                 |
 |          minVolume               | Optional input, can remain                                 |
+|          telnetSwitch            | Optional input, can remain
 |      toggleOffIfActive           | Toggle receiver off if active                              |
 |      toggleListeningMode         | If enabled, the listening mode toggle is shown in HomeKit.   |
 |      toggleListeningModeLink     | Controls the display of the listening mode toggle: bundled in receiver view (enabled) or as a separate switch (disabled). |
@@ -198,6 +199,9 @@ This setup simplifies installation and leverages the plugin's automatic discover
 
 > **inputSwitches:**
 > Set up to 5 inputs to expose as switches in HomeKit   
+
+> **telnetSwitch:**
+> Enables control of the Telnet connection to the receiver via a HomeKit switch. This is a global setting that applies to all receivers. The switch will only function 60 seconds after a user interaction with both the plugin and the receiver, and only when the receiver is turned off.
 
 > **toggleOffIfActive:**
 > If enabled, pressing an input switch that is already active will turn off the receiver.
@@ -299,6 +303,7 @@ This setup simplifies installation and leverages the plugin's automatic discover
         "toggleListeningModeLink": true,
         "maxReconnectAttempts": 1000,
         "maxReconnectAttemptsBeforeDiscover": 10,
+        "telnetSwitch": true,
         "sendKeepAliveTimeoutMinutes": 20160,
         "_bridge": {
             "username": "0E:D6:86:BA:AM:69",
