@@ -200,9 +200,6 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > **inputSwitches:**
 > Set up to 5 inputs to expose as switches in HomeKit   
 
-> **telnetSwitch:**
-> Enables control of the Telnet connection to the receiver via a HomeKit switch. This is a global setting that applies to all receivers. The switch will only function 60 seconds after a user interaction with both the plugin and the receiver, and only when the receiver is turned off.
-
 > **toggleOffIfActive:**
 > If enabled, pressing an input switch that is already active will turn off the receiver.
 > This allows a single button to toggle the receiver on and off, facilitating one-button control in HomeKit.
@@ -242,7 +239,10 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > - **Disadvantages:**  
 >   - A longer keepalive duration may prevent the receiver from entering sleep mode, leading to increased power consumption.  
 
-
+> **telnetSwitch:**
+> Enables control of the Telnet connection to the receiver via a HomeKit switch. This is a global setting that applies to all receivers.
+> The switch will only function 60 seconds after a user interaction with both the plugin and the receiver, and only when the receiver is turned off. It is especially useful for HomeKit automation (e.g., in combination with geofencing or time-based control), since establishing a connection with the receiver takes approximately 10-20 seconds when the plugin is not already connected.  
+> The connection remains active for as long as the sendKeepAliveTimeoutMinutes is set or when the receiver is turned on.
 
 > **name:**
 > In the example below, "name" under "devices" refers to the name as it appears in HomeKit.
@@ -456,6 +456,7 @@ Set input switches for discovered devices:
 
 
 ## Release Notes
+- **v0.2.12**: Added telnetSwitch
 - **v0.2.11**: Added sendKeepAliveTimeoutMinutes configuration; also, the reconnect behavior has been debugged and now works much more reliably
 - **v0.2.10**: Added maxReconnectAttempts configuration
 - **v0.2.9**: Improved reconnect handling; Listening Mode switch can now be disabled.
