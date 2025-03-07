@@ -103,6 +103,12 @@
                 "maximum": 20160,
                 "description": "Set the send keep alive timeout in minutes. The value is clamped between 5 minutes and two weeks, defaults to 48 hours (2880 minutes)."
             },
+            "telnetSwitch": {
+                "title": "Telnet Switch",
+                "type": "boolean",
+                "default": true,
+                "description": "Enables control of the Telnet connection to the receiver via a HomeKit switch. This is a global setting that applies to all receivers."
+            },
             "name": {
                 "title": "Platform Name",
                 "type": "string",

@@ -17,6 +17,7 @@ export class TelnetAvr {
     public avr: PioneerAvr;
     public device: any;
     public platform: any;
+    private connectionStateForRunningCallbacks: 'connected' | 'disconnected' = 'disconnected';
 
     constructor(pioneerAvr: any) {
         // Use the properties from the passed-in PioneerAvr instance
@@ -30,6 +31,12 @@ export class TelnetAvr {
         this.connection = new Connection(this);
 
         this.connection.onDisconnect = () => {
+            if (this.connectionStateForRunningCallbacks === 'disconnected') {
+                // this.log.debug('onDisconnect called while already disconnected. Skipping.');
+                return;
+            }
+            this.connectionStateForRunningCallbacks = 'disconnected';
+
             this.connectionReady = false;
             this.log.debug('Running onDisconnect callbacks...');
             for (const callback of this.onDisconnectCallbacks) {
@@ -38,6 +45,11 @@ export class TelnetAvr {
         };
 
         this.connection.onConnect = () => {
+            if (this.connectionStateForRunningCallbacks === 'connected') {
+                return;
+            }
+            this.connectionStateForRunningCallbacks = 'connected';
+
             this.connectionReady = true;
             for (const callback of this.onConnectCallbacks) {
                 callback();

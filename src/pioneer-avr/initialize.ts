@@ -49,6 +49,7 @@ export function InitializeMixin<
         public functionSetPowerState!: any;
         public functionSetLightbulbMuted!: any;
         public functionSetSwitchListeningMode!: any;
+        public functionSetSwitchTelnetConnected!: any;
         public allIntervalCounter: number = 0;
 
         constructor(...args: any[]) {
@@ -171,12 +172,9 @@ export function InitializeMixin<
                         if (
                             this.isReady &&
                             this.telnetAvr.connectionReady &&
-                            this.telnetAvr.connection.lastMessageReceived !==
-                                null &&
-                                Date.now() -
-                                this.telnetAvr.connection.lastMessageReceived >
-                                29000
-
+                            this.telnetAvr.connection.lastMessageReceived !== null &&
+                            Date.now() - this.telnetAvr.connection.lastMessageReceived > 29000 &&
+                            this.telnetAvr.connection.forcedDisconnect !== true
                         ) {
                             if (this.allIntervalCounter % 2 === 0) {
                                 this.__updatePower?.(() => {});
@@ -189,7 +187,7 @@ export function InitializeMixin<
                     } catch (e) {
                         this.log.debug('Polling error', e);
                     }
-                }, 2000);
+                }, 2031);
             } catch (error) {
                 console.log('setupConnectionCallbacks() error' + String(error));
             }

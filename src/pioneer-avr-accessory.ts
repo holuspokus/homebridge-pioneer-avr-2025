@@ -34,6 +34,7 @@ class PioneerAvrAccessory {
     public tvService!: Service;
     private volumeServiceLightbulb!: Service;
     private listeningServiceSwitch!: Service;
+    private telnetConnectedServiceSwitch!: Service;
     private tvSpeakerService!: Service;
     public enabledServices: Service[] = [];
     public avr!: PioneerAvr;
@@ -50,6 +51,7 @@ class PioneerAvrAccessory {
     public accessory: PlatformAccessory;
     private version: string;
     private writeVisbilityTimeout: NodeJS.Timeout | null = null;
+    private telnetConnectedServiceSwitchDisconnectTimeout: NodeJS.Timeout | null = null;
 
     constructor(
         private device: Device,
@@ -109,6 +111,10 @@ class PioneerAvrAccessory {
 
                         if (this.maxVolume !== 0) {
                             await this.prepareVolumeService();
+                        }
+
+                        if (this.platform.config.telnetSwitch ?? true) {
+                            await this.prepareTelnetConnectedService();
                         }
 
                         this.log.info(
@@ -413,6 +419,195 @@ class PioneerAvrAccessory {
         this.avr.functionSetLightbulbMuted(this.avr.state.muted);
     }
 
+    /**
+    * Prepares the Switch service for check/control if telnet connected.
+    */
+    private timeoutFunctionSetSwitchTelnetConnected: NodeJS.Timeout | null = null;
+
+    private async prepareTelnetConnectedService() {
+        while (
+           !this.tvService ||
+           !this.enabledServices.includes(this.tvService)
+        ) {
+           await new Promise((resolve) => setTimeout(resolve, 180));
+        }
+
+        this.log.debug('preparing prepareTelnetConnectedService()');
+
+        try {
+
+          let switchName = `${this.name} telnet`;
+          switchName = switchName.replace(/(^[^a-zA-Z0-9]+)|([^a-zA-Z0-9]+$)|([^a-zA-Z0-9 '])/g, '')
+              .trim();
+
+          this.log.debug(`Creating switch accessory: ${switchName} for: ${this.name}`);
+
+          const uuid = this.platform.api.hap.uuid.generate(`${this.host}-telnetState`);
+
+          // Check if accessory already exists
+          let accessory = this.platform.accessories.find(
+              (existing) => existing.UUID === uuid,
+          );
+
+          if (!accessory) {
+              accessory = new this.platform.api.platformAccessory(switchName, uuid);
+
+              this.platform.accessories.push(accessory);
+              this.platform.api.registerPlatformAccessories(
+                  this.platform.pluginName,
+                  this.platform.platformName,
+                  [accessory],
+              );
+          }
+
+          // Add or update Switch service
+          this.telnetConnectedServiceSwitch =
+              accessory.getServiceById(this.platform.service.Switch, this.name + 'telnetState') ||
+              accessory.addService(
+                this.platform.service.Switch,
+                switchName,
+                this.name + 'telnetState'
+              );
+
+
+
+            this.telnetConnectedServiceSwitch
+              .getCharacteristic(this.platform.characteristic.On)
+              .onGet(async () => {
+                  return !!(this.avr?.telnetAvr?.connection?.socket?.readyState === 'open')
+              })
+              .onSet(async (value) => {
+                  this.log.debug('telnetConnectedServiceSwitch pressed:', value);
+                  if (this.timeoutFunctionSetSwitchTelnetConnected) {
+                      clearTimeout(this.timeoutFunctionSetSwitchTelnetConnected)
+                  }
+
+                  const currentState = !!(this.avr?.telnetAvr?.connection?.socket?.readyState === 'open');
+                  if (!!value !== !!currentState) {
+                      if (value) {
+                          //connect?
+
+                          if (this.telnetConnectedServiceSwitchDisconnectTimeout) {
+                              clearTimeout(this.telnetConnectedServiceSwitchDisconnectTimeout);
+                          }
+
+                          if (this.avr?.lastUserInteraction) {
+                              this.avr.lastUserInteraction = Date.now();
+                          }
+
+                          if (this.avr?.telnetAvr?.connection?.connect) {
+                              this.avr.telnetAvr.connection.connect();
+                          }
+
+                      } else if (!this.avr.state.on) {
+                          //disconnect?
+
+                          let timeoutToDisconnect = 5000;
+                          if (this.avr?.lastUserInteraction) {
+                              if ((((5 * 60 * 1000) + 5000) - (Date.now() - this.avr.lastUserInteraction)) > 5000) {
+                                  timeoutToDisconnect = (((5 * 60 * 1000) + 5000) - (Date.now() - this.avr.lastUserInteraction));
+                              }else {
+                                  timeoutToDisconnect = 5000;
+                              }
+
+                              if (Date.now() - this.avr.lastUserInteraction < 62 * 1000) {
+                                  timeoutToDisconnect = 62 * 1000;
+                              }
+                          }
+
+                          if (this.telnetConnectedServiceSwitchDisconnectTimeout) {
+                              clearTimeout(this.telnetConnectedServiceSwitchDisconnectTimeout);
+                          }
+
+                          this.telnetConnectedServiceSwitchDisconnectTimeout = setTimeout(() => {
+                              if (this.avr?.telnetAvr?.connection?.socket?.readyState === 'open' && !this.avr?.lastUserInteraction ||
+                              Date.now() - this.avr.lastUserInteraction > 61 * 1000) {
+                                  if (this.avr?.telnetAvr?.connectionReady) {
+                                      this.avr.telnetAvr.connectionReady = false;
+                                  }
+
+                                  if (this.avr?.telnetAvr?.connection) {
+                                      this.avr.telnetAvr.connection.forcedDisconnect = true;
+                                  }
+
+                                  if (this.avr?.telnetAvr?.connection?.messageQueue?.clearQueue) {
+                                      this.avr.telnetAvr.connection.messageQueue.clearQueue();
+                                  }
+
+                                  if (this.avr?.telnetAvr?.connection?.disconnect) {
+                                      this.avr.telnetAvr.connection.disconnect();
+                                  }
+                              }
+
+                              if (this.timeoutFunctionSetSwitchTelnetConnected) {
+                                  clearTimeout(this.timeoutFunctionSetSwitchTelnetConnected)
+                              }
+
+                              this.avr.functionSetSwitchTelnetConnected();
+                          }, timeoutToDisconnect);
+                          this.log.debug('time to disconnect ms:', timeoutToDisconnect);
+
+                      }
+
+                      if (this.timeoutFunctionSetSwitchTelnetConnected) {
+                          clearTimeout(this.timeoutFunctionSetSwitchTelnetConnected)
+                      }
+                      this.timeoutFunctionSetSwitchTelnetConnected = setTimeout(() => {
+                          this.avr.functionSetSwitchTelnetConnected();
+                      }, 5000);
+                  }
+            });
+
+            addExitHandler(() => {
+               this.telnetConnectedServiceSwitch.updateCharacteristic(
+                   this.platform.characteristic.On,
+                   false,
+               );
+            }, this);
+
+
+            this.enabledServices.push(this.telnetConnectedServiceSwitch);
+
+            this.avr.functionSetSwitchTelnetConnected = () => {
+
+               try {
+                  const currentOnState =
+                     this.telnetConnectedServiceSwitch.getCharacteristic(
+                         this.platform.characteristic.On,
+                     ).value;
+
+
+                   // Update On state based on whether a listening mode is active
+                   if ((this.avr?.telnetAvr?.connection?.socket?.readyState === 'open') !== currentOnState) {
+                       this.telnetConnectedServiceSwitch.updateCharacteristic(
+                           this.platform.characteristic.On,
+                           !!(this.avr?.telnetAvr?.connection?.socket?.readyState === 'open'),
+                       );
+                   }
+               } catch (e) {
+                   this.log.debug('Error updating Switch listening mode:', e);
+               }
+            };
+
+            // Initial listening mode setup
+            this.avr.functionSetSwitchTelnetConnected();
+
+            this.avr.telnetAvr.addOnDisconnectCallback(() => {
+                this.avr.functionSetSwitchTelnetConnected();
+            });
+
+            this.avr.telnetAvr.addOnConnectCallback(async () => {
+                this.avr.functionSetSwitchTelnetConnected();
+            });
+
+        } catch (error) {
+           this.log.error('telnetConnectedServiceSwitchError:', error);
+        }
+
+
+
+    }
+
 
     /**
     * Prepares the Switch service for listening mode control.
@@ -439,16 +634,52 @@ class PioneerAvrAccessory {
         // const listeningModeOther = isValidListeningMode(this.device.listeningModeOther || this.platform.config.listeningModeOther, '0112'); // EXTENDED STEREO
 
 
-        this.listeningServiceSwitch =
-           this.accessory.getService(this.platform.service.Switch) ||
-           this.accessory.addService(
-               this.platform.service.Switch,
-               this.name + ' Audio',
-               'listeningMode',
-           );
+        let switchName = `${this.name} Audio`;
+        switchName = switchName.replace(/(^[^a-zA-Z0-9]+)|([^a-zA-Z0-9]+$)|([^a-zA-Z0-9 '])/g, '')
+            .trim();
 
 
-          this.listeningServiceSwitch
+        // Add or update Switch service
+        if (this.platform.config.toggleListeningModeLink ?? true) {
+            this.listeningServiceSwitch =
+                this.accessory.getServiceById(this.platform.service.Switch, this.name + 'listeningMode') ||
+                this.accessory.addService(
+                  this.platform.service.Switch,
+                  switchName,
+                  this.name + 'listeningMode'
+                );
+        } else {
+            const uuid = this.platform.api.hap.uuid.generate(`${this.host}-listeningMode`);
+
+            // Check if accessory already exists
+            let accessory = this.platform.accessories.find(
+                (existing) => existing.UUID === uuid,
+            );
+
+            if (!accessory) {
+                accessory = new this.platform.api.platformAccessory(switchName, uuid);
+
+                this.platform.accessories.push(accessory);
+                this.platform.api.registerPlatformAccessories(
+                    this.platform.pluginName,
+                    this.platform.platformName,
+                    [accessory],
+                );
+            }
+
+            this.listeningServiceSwitch =
+                accessory.getServiceById(this.platform.service.Switch, this.name + 'listeningMode') ||
+                accessory.addService(
+                  this.platform.service.Switch,
+                  switchName,
+                  this.name + 'listeningMode'
+                );
+        }
+
+
+
+
+        this.listeningServiceSwitch
           .getCharacteristic(this.platform.characteristic.On)
           .onGet(async () => {
               const isOn = this.avr.state.on && [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
@@ -833,14 +1064,15 @@ class PioneerAvrAccessory {
     }
 
 
-    public updateSwitchStates(activeInputId: string): void {
+    public updateInputSwitchStates(activeInputId: string): void {
         // Iterate through all accessories
         this.platform.accessories.forEach((accessory) => {
             const service = accessory.getService(this.platform.service.Switch);
 
             // not listeningMode
-            if (service && service.subtype !== 'listeningMode') {
+            if (service && accessory?.context?.inputId) {
                 // Check if the current accessory corresponds to the active input
+                // only input switches have inputId
                 const isActive = accessory.context.inputId === activeInputId;
 
                 // Update the switch state
@@ -855,7 +1087,7 @@ class PioneerAvrAccessory {
     // Timestamp for the last input switch press
     // Lock interval in milliseconds for input switch commands
     private lastInputSwitchPressTime: number = 0;
-    private timeoutUpdateSwitchStates: NodeJS.Timeout | null = null;
+    private timeoutupdateInputSwitchStates: NodeJS.Timeout | null = null;
     private readonly LOCK_INTERVAL_INPUT_SWITCH: number = 3000;
 
     public addInputSwitch(host: string, inputToSwitches: string[]): void {
@@ -907,12 +1139,8 @@ class PioneerAvrAccessory {
 
             // Add or update Switch service
             const switchService =
-                accessory.getService(this.platform.service.Switch) ||
-                accessory.addService(
-                    this.platform.service.Switch,
-                    switchName,
-                    input.id,
-                );
+                accessory.getServiceById(this.platform.service.Switch, this.name + input.id) ||
+                accessory.addService(this.platform.service.Switch, switchName, this.name + input.id);
 
             const inputIndex = this.avr.inputs.findIndex(
                 (findInput) => findInput.id === input.id,
@@ -979,8 +1207,8 @@ class PioneerAvrAccessory {
                   // Update the timestamp after waiting the necessary time
                   this.lastInputSwitchPressTime = Date.now();
 
-                  if (this.timeoutUpdateSwitchStates) {
-                      clearTimeout(this.timeoutUpdateSwitchStates)
+                  if (this.timeoutupdateInputSwitchStates) {
+                      clearTimeout(this.timeoutupdateInputSwitchStates)
                   }
 
                   if (this.platform.config.toggleOffIfActive ?? true) {
@@ -991,23 +1219,37 @@ class PioneerAvrAccessory {
                           }
                       } else {
                           await this.avr.powerOn();
-                          await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
+
+                          let c = 1000;
+                          while (
+                              !this.avr.state.on && c-- > 0
+                          ) {
+                              await new Promise((resolve) => setTimeout(resolve, 1555)); // Wait
+                          }
+                          await new Promise((resolve) => setTimeout(resolve, 5000));
                       }
 
                       // Set the desired input
                       await this.avr.setInput(input.id);
                       this.log.debug(`Input set to ${input.name} (${input.id})`);
 
-                      this.timeoutUpdateSwitchStates = setTimeout(() => {
+                      this.timeoutupdateInputSwitchStates = setTimeout(() => {
                           // Update all switch states
-                          this.updateSwitchStates(input.id);
+                          this.updateInputSwitchStates(input.id);
                       }, 2000)
 
                   } else if (value) {
                       // Turn on the receiver if it is off
                       if (!this.avr.state.on) {
                           await this.avr.powerOn();
-                          await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
+
+                          let c = 1000;
+                          while (
+                              !this.avr.state.on && c-- > 0
+                          ) {
+                              await new Promise((resolve) => setTimeout(resolve, 1555)); // Wait
+                          }
+                          await new Promise((resolve) => setTimeout(resolve, 5000));
                       }
 
                       // Set the desired input
@@ -1015,9 +1257,9 @@ class PioneerAvrAccessory {
                       this.log.debug(`Input set to ${input.name} (${input.id})`);
 
 
-                      this.timeoutUpdateSwitchStates = setTimeout(() => {
+                      this.timeoutupdateInputSwitchStates = setTimeout(() => {
                           // Update all switch states
-                          this.updateSwitchStates(input.id);
+                          this.updateInputSwitchStates(input.id);
                       }, 2000)
 
                   } else {
@@ -1031,7 +1273,7 @@ class PioneerAvrAccessory {
 
 
             addExitHandler(() => {
-                this.updateSwitchStates('-9999');
+                this.updateInputSwitchStates('-9999');
             }, this);
 
 
@@ -1045,7 +1287,7 @@ class PioneerAvrAccessory {
         this.platform.accessories = this.platform.accessories.filter((accessory) => {
             const isValid = validAccessoryUUIDs.has(accessory.UUID);
 
-            if (!isValid && accessory.context.host && host && accessory.context.host.toLowerCase() === host.toLowerCase()) {
+            if (!isValid && accessory?.context?.host && host && accessory.context.host.toLowerCase() === host.toLowerCase()) {
                 this.log.info(
                     `Removing accessory: ${accessory.displayName} (no longer valid)`,
                 );

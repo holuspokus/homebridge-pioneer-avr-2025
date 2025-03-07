@@ -5,16 +5,18 @@ import type { Connection } from './connection';
 export class MessageQueue {
     public queue: [string, string][] = []; // Array storing message and its callback character string
     private conn: Connection;
+    public log: any; // Logger instance for logging debug/error messages
     public queueCallbackChars: Record<string, Function[]> = {}; // Maps callback character strings to an array of associated callbacks
     public callbackLocks: Record<
         string,
-        { queueLock: boolean; queueLockDate: number | null }
+        { queueLock: boolean; queueLockDate: number | null, message: string | undefined }
     > = {}; // Locks specific to callback characters
 
     constructor(private connection: Connection) {
         // Start periodic queue checking
         this.startQueueCheck();
         this.conn = connection;
+        this.log = connection.log;
     }
 
     /**
@@ -24,14 +26,23 @@ export class MessageQueue {
     private startQueueCheck() {
         setInterval(() => {
             // Process the next item in the queue if it is not locked
-            if (this.queue.length > 0 && this.conn.connectionReady) {
+            if (this.queue.length > 0 && this.conn?.socket && this.conn.socket.readyState === 'open') {
                 // Unlock callbackLocks if they are active for more than 5 seconds
                 for (const key of Object.keys(this.callbackLocks)) {
                     const lock = this.callbackLocks[key];
                     if (
+                        lock.message &&
+                        key !== '!none' &&
                         lock.queueLock &&
                         lock.queueLockDate &&
-                        Date.now() - lock.queueLockDate > 15000
+                        Date.now() - lock.queueLockDate > 13000
+                    ) {
+                        this.connection.directSend(lock.message);
+                        lock.message = undefined;
+                    } else if (
+                        lock.queueLock &&
+                        lock.queueLockDate &&
+                        Date.now() - lock.queueLockDate > 25000
                     ) {
                         delete this.callbackLocks[key];
                     }
@@ -39,7 +50,7 @@ export class MessageQueue {
 
                 this.processQueue();
             }
-        }, 7); // Check every 17ms
+        }, 7); // Check every 7ms
     }
 
     /**
@@ -54,6 +65,8 @@ export class MessageQueue {
 
         // Skip processing if the lock for the callback key is active
         const lock = this.callbackLocks[callbackKey];
+
+        // this.log.debug('in processQueue', message, lock?.queueLock);
         if (lock?.queueLock) {
             return;
         }
@@ -63,6 +76,7 @@ export class MessageQueue {
             this.callbackLocks[callbackKey] = {
                 queueLock: true,
                 queueLockDate: Date.now(),
+                message: message,
             };
         } else {
             this.callbackLocks[callbackKey].queueLock = true;
@@ -94,7 +108,9 @@ export class MessageQueue {
         }
 
         // Add the message to the queue if not already present
-        if (!this.queue.some((q) => q[0] === message)) {
+        if (message === '?P') {
+            this.queue.unshift([message, callbackChars]);
+        } else {
             this.queue.push([message, callbackChars]);
         }
 
@@ -111,6 +127,7 @@ export class MessageQueue {
      * Clears the entire queue and resets all locks and callbacks.
      */
     public clearQueue() {
+        // this.log.debug('clearQueue called', this.queue, this.queueCallbackChars, this.callbackLocks);
         this.queue = [];
         this.queueCallbackChars = {};
         this.callbackLocks = {};
