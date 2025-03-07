@@ -648,7 +648,7 @@ class PioneerAvrAccessory {
                   this.name + 'listeningMode'
                 );
         } else {
-            const uuid = this.platform.api.hap.uuid.generate(`${this.host}-telnetState`);
+            const uuid = this.platform.api.hap.uuid.generate(`${this.host}-listeningMode`);
 
             // Check if accessory already exists
             let accessory = this.platform.accessories.find(
@@ -671,7 +671,7 @@ class PioneerAvrAccessory {
                 accessory.addService(
                   this.platform.service.Switch,
                   switchName,
-                  this.name + 'telnetState'
+                  this.name + 'listeningMode'
                 );
         }
 

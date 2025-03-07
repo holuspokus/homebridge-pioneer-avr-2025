@@ -22,6 +22,7 @@ import PioneerAvrAccessory from './pioneer-avr-accessory.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import packageJson from '../package.json'; // Import package.json
+import { addExitHandler } from './exitHandler';
 
 export interface Device {
     name: string;
@@ -197,14 +198,14 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         }
     }
 
-    /**
-     * Retrieves the cached receiver data for a specific host.
-     * @param host The host to retrieve inputs for.
-     * @returns The cached inputs, or undefined if the host is not found.
-     */
-    public getCachedInputsForHost(host: string): { id: string; name: string }[] | undefined {
-        return this.cachedReceivers.get(host)?.inputs;
-    }
+    // /**
+    //  * Retrieves the cached receiver data for a specific host.
+    //  * @param host The host to retrieve inputs for.
+    //  * @returns The cached inputs, or undefined if the host is not found.
+    //  */
+    // public getCachedInputsForHost(host: string): { id: string; name: string }[] | undefined {
+    //     return this.cachedReceivers.get(host)?.inputs;
+    // }
 
 
     /**
@@ -215,6 +216,9 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
         this.log.info('Loading accessory from cache:', accessory.displayName);
         this.accessories.push(accessory);
     }
+
+
+
 
     /**
      * Initiates the device discovery process or uses a manually configured device.
@@ -424,6 +428,10 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 this.log.error(
                     'No devices found after maximum retry attempts. Please configure manually.',
                 );
+
+                addExitHandler(() => {
+                    this.cleanCachedAccessories();
+                }, this);
                 return;
             }
         }
