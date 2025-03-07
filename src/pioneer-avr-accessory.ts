@@ -105,12 +105,12 @@ class PioneerAvrAccessory {
                         await this.prepareTvService();
                         await this.prepareTvSpeakerService();
 
-                        if (this.maxVolume !== 0) {
-                            await this.prepareVolumeService();
-                        }
-
                         if (this.platform.config.toggleListeningMode ?? true) {
                             await this.prepareListeningService();
+                        }
+
+                        if (this.maxVolume !== 0) {
+                            await this.prepareVolumeService();
                         }
 
                         if (this.platform.config.telnetSwitch ?? true) {
@@ -569,6 +569,7 @@ class PioneerAvrAccessory {
             this.enabledServices.push(this.telnetConnectedServiceSwitch);
 
             this.avr.functionSetSwitchTelnetConnected = () => {
+                            
                try {
                   const currentOnState =
                      this.telnetConnectedServiceSwitch.getCharacteristic(
@@ -1063,14 +1064,15 @@ class PioneerAvrAccessory {
     }
 
 
-    public updateSwitchStates(activeInputId: string): void {
+    public updateInputSwitchStates(activeInputId: string): void {
         // Iterate through all accessories
         this.platform.accessories.forEach((accessory) => {
             const service = accessory.getService(this.platform.service.Switch);
 
             // not listeningMode
-            if (service && service.subtype !== 'listeningMode') {
+            if (service && accessory?.context?.inputId) {
                 // Check if the current accessory corresponds to the active input
+                // only input switches have inputId
                 const isActive = accessory.context.inputId === activeInputId;
 
                 // Update the switch state
@@ -1085,7 +1087,7 @@ class PioneerAvrAccessory {
     // Timestamp for the last input switch press
     // Lock interval in milliseconds for input switch commands
     private lastInputSwitchPressTime: number = 0;
-    private timeoutUpdateSwitchStates: NodeJS.Timeout | null = null;
+    private timeoutupdateInputSwitchStates: NodeJS.Timeout | null = null;
     private readonly LOCK_INTERVAL_INPUT_SWITCH: number = 3000;
 
     public addInputSwitch(host: string, inputToSwitches: string[]): void {
@@ -1205,8 +1207,8 @@ class PioneerAvrAccessory {
                   // Update the timestamp after waiting the necessary time
                   this.lastInputSwitchPressTime = Date.now();
 
-                  if (this.timeoutUpdateSwitchStates) {
-                      clearTimeout(this.timeoutUpdateSwitchStates)
+                  if (this.timeoutupdateInputSwitchStates) {
+                      clearTimeout(this.timeoutupdateInputSwitchStates)
                   }
 
                   if (this.platform.config.toggleOffIfActive ?? true) {
@@ -1224,9 +1226,9 @@ class PioneerAvrAccessory {
                       await this.avr.setInput(input.id);
                       this.log.debug(`Input set to ${input.name} (${input.id})`);
 
-                      this.timeoutUpdateSwitchStates = setTimeout(() => {
+                      this.timeoutupdateInputSwitchStates = setTimeout(() => {
                           // Update all switch states
-                          this.updateSwitchStates(input.id);
+                          this.updateInputSwitchStates(input.id);
                       }, 2000)
 
                   } else if (value) {
@@ -1241,9 +1243,9 @@ class PioneerAvrAccessory {
                       this.log.debug(`Input set to ${input.name} (${input.id})`);
 
 
-                      this.timeoutUpdateSwitchStates = setTimeout(() => {
+                      this.timeoutupdateInputSwitchStates = setTimeout(() => {
                           // Update all switch states
-                          this.updateSwitchStates(input.id);
+                          this.updateInputSwitchStates(input.id);
                       }, 2000)
 
                   } else {
@@ -1257,7 +1259,7 @@ class PioneerAvrAccessory {
 
 
             addExitHandler(() => {
-                this.updateSwitchStates('-9999');
+                this.updateInputSwitchStates('-9999');
             }, this);
 
 

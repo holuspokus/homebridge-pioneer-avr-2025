@@ -38,6 +38,7 @@ export class MessageQueue {
                         Date.now() - lock.queueLockDate > 13000
                     ) {
                         this.connection.directSend(lock.message);
+                        lock.message = undefined;
                     } else if (
                         lock.queueLock &&
                         lock.queueLockDate &&
