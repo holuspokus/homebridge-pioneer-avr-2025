@@ -569,7 +569,7 @@ class PioneerAvrAccessory {
             this.enabledServices.push(this.telnetConnectedServiceSwitch);
 
             this.avr.functionSetSwitchTelnetConnected = () => {
-                            
+
                try {
                   const currentOnState =
                      this.telnetConnectedServiceSwitch.getCharacteristic(
@@ -1219,7 +1219,14 @@ class PioneerAvrAccessory {
                           }
                       } else {
                           await this.avr.powerOn();
-                          await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
+
+                          let c = 1000;
+                          while (
+                              !this.avr.state.on && c-- > 0
+                          ) {
+                              await new Promise((resolve) => setTimeout(resolve, 1555)); // Wait
+                          }
+                          await new Promise((resolve) => setTimeout(resolve, 5000));
                       }
 
                       // Set the desired input
@@ -1235,7 +1242,14 @@ class PioneerAvrAccessory {
                       // Turn on the receiver if it is off
                       if (!this.avr.state.on) {
                           await this.avr.powerOn();
-                          await new Promise((resolve) => setTimeout(resolve, 3000)); // Wait 3 seconds
+
+                          let c = 1000;
+                          while (
+                              !this.avr.state.on && c-- > 0
+                          ) {
+                              await new Promise((resolve) => setTimeout(resolve, 1555)); // Wait
+                          }
+                          await new Promise((resolve) => setTimeout(resolve, 5000));
                       }
 
                       // Set the desired input
