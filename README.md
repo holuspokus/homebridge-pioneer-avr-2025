@@ -241,8 +241,9 @@ This setup simplifies installation and leverages the plugin's automatic discover
 
 > **telnetSwitch:**
 > Enables control of the Telnet connection to the receiver via a HomeKit switch. This is a global setting that applies to all receivers.
-> The switch will only function 60 seconds after a user interaction with both the plugin and the receiver, and only when the receiver is turned off. It is especially useful for HomeKit automation (e.g., in combination with geofencing or time-based control), since establishing a connection with the receiver takes approximately 10-20 seconds when the plugin is not already connected.  
-> The connection remains active for as long as the sendKeepAliveTimeoutMinutes is set or when the receiver is turned on.
+> The switch executes its command only after a 60-second delay following the last user interaction and only when the receiver is off; if the delay hasn't been met, it simply waits until the full 60 seconds have passed before acting.  
+> It is especially useful for HomeKit automation (e.g., in combination with geofencing or time-based control), since establishing a connection with the receiver takes approximately 10-20 seconds when the plugin is not already connected.  
+> The connection stays active as long as the receiver is on. However, if the receiver is off and the sendKeepAliveTimeoutMinutes period expires, the connection is terminated until a new user interaction occurs.
 
 > **name:**
 > In the example below, "name" under "devices" refers to the name as it appears in HomeKit.
