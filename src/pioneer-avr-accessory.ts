@@ -344,6 +344,10 @@ class PioneerAvrAccessory {
                 'volumeInput',
             );
 
+        this.volumeServiceLightbulb.addOptionalCharacteristic(this.platform.characteristic.ConfiguredName);
+        this.volumeServiceLightbulb.setCharacteristic(this.platform.characteristic.Name, 'Volume');
+        this.volumeServiceLightbulb.setCharacteristic(this.platform.characteristic.ConfiguredName, 'Volume');
+
         this.volumeServiceLightbulb
             .getCharacteristic(this.platform.characteristic.On)
             .onGet(this.getMutedInverted.bind(this))
@@ -432,8 +436,6 @@ class PioneerAvrAccessory {
            await new Promise((resolve) => setTimeout(resolve, 180));
         }
 
-        this.log.debug('preparing prepareTelnetConnectedService()');
-
         try {
 
           let switchName = `${this.name} telnet`;
@@ -469,26 +471,55 @@ class PioneerAvrAccessory {
                 this.name + 'telnetState'
               );
 
+          const informationService =
+              accessory.getService(
+                  this.platform.service.AccessoryInformation,
+              ) ||
+              accessory.addService(
+                  this.platform.service.AccessoryInformation,
+              );
 
+          informationService
+              .setCharacteristic(
+                  this.platform.characteristic.Name,
+                  switchName.replace(/(^[^a-zA-Z0-9]+)|([^a-zA-Z0-9]+$)|([^a-zA-Z0-9 '])/g, '')
+              )
+              .setCharacteristic(
+                  this.platform.characteristic.Manufacturer,
+                  this.manufacturer,
+              )
+              .setCharacteristic(this.platform.characteristic.Model, this.model)
+              .setCharacteristic(
+                  this.platform.characteristic.SerialNumber,
+                  `${this.name}-telnetState`.replace(/(^[^a-zA-Z0-9]+)|([^a-zA-Z0-9]+$)|([^a-zA-Z0-9\-\. '])/g, ''),
+              )
+              .setCharacteristic(
+                  this.platform.characteristic.FirmwareRevision,
+                  this.version,
+              );
 
             this.telnetConnectedServiceSwitch
               .getCharacteristic(this.platform.characteristic.On)
               .onGet(async () => {
-                  return !!(this.avr?.telnetAvr?.connection?.socket?.readyState === 'open')
+                  return !!(this.avr?.telnetAvr?.connection?.socket?.connecting || this.avr?.telnetAvr?.connection?.socket?.readyState === 'open')
               })
               .onSet(async (value) => {
-                  this.log.debug('telnetConnectedServiceSwitch pressed:', value);
+                  // this.log.debug('telnetConnectedServiceSwitch pressed:', value);
                   if (this.timeoutFunctionSetSwitchTelnetConnected) {
                       clearTimeout(this.timeoutFunctionSetSwitchTelnetConnected)
                   }
 
-                  const currentState = !!(this.avr?.telnetAvr?.connection?.socket?.readyState === 'open');
+                  const currentState = !!(this.avr?.telnetAvr?.connection?.socket?.connecting || this.avr?.telnetAvr?.connection?.socket?.readyState === 'open');
                   if (!!value !== !!currentState) {
-                      if (value) {
+                      if (!!value) {
                           //connect?
 
                           if (this.telnetConnectedServiceSwitchDisconnectTimeout) {
                               clearTimeout(this.telnetConnectedServiceSwitchDisconnectTimeout);
+                          }
+
+                          if (this.avr?.telnetAvr?.connection && 'forcedDisconnect' in this.avr.telnetAvr.connection) {
+                              this.avr.telnetAvr.connection.forcedDisconnect = false;
                           }
 
                           if (this.avr?.lastUserInteraction) {
@@ -499,20 +530,26 @@ class PioneerAvrAccessory {
                               this.avr.telnetAvr.connection.connect();
                           }
 
-                      } else if (!this.avr.state.on) {
+                      } else {
                           //disconnect?
 
-                          let timeoutToDisconnect = 5000;
+                          let timeoutToDisconnect = 4900;
                           if (this.avr?.lastUserInteraction) {
-                              if ((((5 * 60 * 1000) + 5000) - (Date.now() - this.avr.lastUserInteraction)) > 5000) {
-                                  timeoutToDisconnect = (((5 * 60 * 1000) + 5000) - (Date.now() - this.avr.lastUserInteraction));
+                              if ((((5 * 60 * 1000) + 4900) - (Date.now() - this.avr.lastUserInteraction)) > 5000) {
+                                  timeoutToDisconnect = (((5 * 60 * 1000) + 4900) - (Date.now() - this.avr.lastUserInteraction));
                               }else {
-                                  timeoutToDisconnect = 5000;
+                                  timeoutToDisconnect = 4900;
                               }
 
-                              if (Date.now() - this.avr.lastUserInteraction < 62 * 1000) {
+                              // this.log.debug('lastUserInteraction', Date.now(), this.avr.lastUserInteraction, (Date.now() - this.avr.lastUserInteraction) / 1000, ((Date.now() - this.avr.lastUserInteraction) < (62 * 1000)));
+
+                              if ((Date.now() - this.avr.lastUserInteraction) < (62 * 1000)) {
                                   timeoutToDisconnect = 62 * 1000;
                               }
+                          }
+
+                          if (timeoutToDisconnect < 4900) {
+                              timeoutToDisconnect = 4900;
                           }
 
                           if (this.telnetConnectedServiceSwitchDisconnectTimeout) {
@@ -520,21 +557,30 @@ class PioneerAvrAccessory {
                           }
 
                           this.telnetConnectedServiceSwitchDisconnectTimeout = setTimeout(() => {
-                              if (this.avr?.telnetAvr?.connection?.socket?.readyState === 'open' && !this.avr?.lastUserInteraction ||
-                              Date.now() - this.avr.lastUserInteraction > 61 * 1000) {
-                                  if (this.avr?.telnetAvr?.connectionReady) {
+                              if (!this.avr?.state?.on && (this.avr?.telnetAvr?.connection?.socket?.readyState === 'open' || this.avr?.telnetAvr?.connection?.socket?.connecting) && (!this.avr?.lastUserInteraction ||
+                              ((Date.now() - this.avr.lastUserInteraction) > (61 * 1000)))) {
+
+                                  let runDisconnect = false;
+                                  if (this.avr?.telnetAvr && 'connectionReady' in this.avr.telnetAvr) {
+                                      if (this.avr?.telnetAvr?.connectionReady) {
+                                          runDisconnect = true;
+                                      }
+
                                       this.avr.telnetAvr.connectionReady = false;
+                                  } else {
+                                      runDisconnect = true;
                                   }
 
-                                  if (this.avr?.telnetAvr?.connection) {
+                                  if (this.avr?.telnetAvr?.connection && 'forcedDisconnect' in this.avr.telnetAvr.connection) {
                                       this.avr.telnetAvr.connection.forcedDisconnect = true;
                                   }
+
 
                                   if (this.avr?.telnetAvr?.connection?.messageQueue?.clearQueue) {
                                       this.avr.telnetAvr.connection.messageQueue.clearQueue();
                                   }
 
-                                  if (this.avr?.telnetAvr?.connection?.disconnect) {
+                                  if (runDisconnect && this.avr?.telnetAvr?.connection?.disconnect) {
                                       this.avr.telnetAvr.connection.disconnect();
                                   }
                               }
@@ -648,6 +694,11 @@ class PioneerAvrAccessory {
                   switchName,
                   this.name + 'listeningMode'
                 );
+
+
+            this.listeningServiceSwitch.addOptionalCharacteristic(this.platform.characteristic.ConfiguredName);
+            this.listeningServiceSwitch.setCharacteristic(this.platform.characteristic.Name, 'listeningMode');
+            this.listeningServiceSwitch.setCharacteristic(this.platform.characteristic.ConfiguredName, 'listeningMode');
         } else {
             const uuid = this.platform.api.hap.uuid.generate(`${this.host}-listeningMode`);
 
@@ -674,10 +725,35 @@ class PioneerAvrAccessory {
                   switchName,
                   this.name + 'listeningMode'
                 );
+
+
+            const informationService =
+                accessory.getService(
+                    this.platform.service.AccessoryInformation,
+                ) ||
+                accessory.addService(
+                    this.platform.service.AccessoryInformation,
+                );
+
+            informationService
+                .setCharacteristic(
+                    this.platform.characteristic.Name,
+                    switchName.replace(/(^[^a-zA-Z0-9]+)|([^a-zA-Z0-9]+$)|([^a-zA-Z0-9 '])/g, '')
+                )
+                .setCharacteristic(
+                    this.platform.characteristic.Manufacturer,
+                    this.manufacturer,
+                )
+                .setCharacteristic(this.platform.characteristic.Model, this.model)
+                .setCharacteristic(
+                    this.platform.characteristic.SerialNumber,
+                    `${this.name}-listeningMode`.replace(/(^[^a-zA-Z0-9]+)|([^a-zA-Z0-9]+$)|([^a-zA-Z0-9\-\. '])/g, ''),
+                )
+                .setCharacteristic(
+                    this.platform.characteristic.FirmwareRevision,
+                    this.version,
+                );
         }
-
-
-
 
         this.listeningServiceSwitch
           .getCharacteristic(this.platform.characteristic.On)
@@ -1073,7 +1149,7 @@ class PioneerAvrAccessory {
             if (service && accessory?.context?.inputId) {
                 // Check if the current accessory corresponds to the active input
                 // only input switches have inputId
-                const isActive = accessory.context.inputId === activeInputId;
+                const isActive = !!(this.avr?.state?.on && (accessory.context.inputId === activeInputId));
 
                 // Update the switch state
                 service.getCharacteristic(this.platform.characteristic.On).updateValue(isActive);

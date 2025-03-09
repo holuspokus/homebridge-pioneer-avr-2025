@@ -36,6 +36,10 @@
             "toggleOffIfActive": true,
             "toggleListeningMode": true,
             "toggleListeningModeLink": true,
+            "maxReconnectAttempts": 1000,
+            "maxReconnectAttemptsBeforeDiscover": 10,
+            "telnetSwitch": true,
+            "sendKeepAliveTimeoutMinutes": 20160,
             "_bridge": {
                 "username": "0E:D6:86:BA:AM:69",
                 "port": 35337

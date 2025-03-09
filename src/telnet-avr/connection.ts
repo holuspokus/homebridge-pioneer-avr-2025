@@ -99,7 +99,10 @@ export class Connection {
                     );
                     this.connectionReady = false;
                     this.messageQueue.clearQueue();
-                    this.disconnect();
+                    if (this.connectionReady || !this.socket || this.socket?.readyState === 'open') {
+                        this.connectionReady = false;
+                        this.disconnect();
+                    }
                     this.connect();
                     // this.isConnecting = Date.now();
                 }
@@ -262,7 +265,10 @@ export class Connection {
 
         this.disconnectTimeout = setTimeout(
             () => {
-                this.disconnect();
+                if (this.connectionReady || !this.socket || this.socket?.readyState === 'open') {
+                    this.connectionReady = false;
+                    this.disconnect();
+                }
             },
             35 * 1000,
         );
@@ -331,6 +337,11 @@ export class Connection {
         if (onExitCalled) {
             return;
         }
+
+        if (this.forcedDisconnect) {
+            return;
+        }
+
         if (this.connectionReady || !this.socket || this.socket.connecting || this.socket.readyState === 'open') {
             try {
                 callback();
@@ -338,6 +349,7 @@ export class Connection {
                 this.log.debug('reconnect callback error', error);
             }
             return;
+
         }
 
         if ( this.reconnectCounter >= this.maxReconnectAttempts ) {
@@ -359,8 +371,8 @@ export class Connection {
             return;
         }
 
-
         if (
+            !this.forcedDisconnect &&
             this.reconnectCounter >= this.maxReconnectAttemptsBeforeDiscover &&
             this.avr.device.source == 'bonjour'
         ) {
@@ -415,7 +427,12 @@ export class Connection {
             !this.lastConnect ||
             Date.now() - (this.lastConnect ?? 0) > 15 * 1000
         ) {
-            this.disconnect();
+
+            if (this.connectionReady) {
+                this.connectionReady = false;
+                this.disconnect();
+            }
+
             this.log.debug('Reconnecting socket.');
             this.connect();
 
@@ -450,8 +467,8 @@ export class Connection {
             this.socket.end();
             this.socket.destroy();
             this.socket = null;
+            this.log.info(`telnet> ${this.avr.device.name} disconnected`);
         }
-        this.log.debug('telnet> disconnected!');
     }
 
     isConnected() {
@@ -485,7 +502,10 @@ export class Connection {
 
         this.disconnectTimeout = setTimeout(
             () => {
-                this.disconnect();
+                if (this.connectionReady || !this.socket || this.socket?.readyState === 'open') {
+                    this.connectionReady = false;
+                    this.disconnect();
+                }
             },
             35 * 1000,
         );

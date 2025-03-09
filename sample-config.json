@@ -17,9 +17,15 @@
         {
             "platform": "pioneerAvr2025",
             "name": "pioneerAvr2025",
+            "toggleOffIfActive": true,
+            "toggleListeningMode": true,
+            "toggleListeningModeLink": true,
             "maxVolume": 65,
             "minVolume": 30,
-            "toggleOffIfActive": true,
+            "maxReconnectAttempts": 1000,
+            "maxReconnectAttemptsBeforeDiscover": 10,
+            "sendKeepAliveTimeoutMinutes": 2880,
+            "telnetSwitch": true,
             "_bridge": {
                 "username": "0E:D6:86:BA:AM:69",
                 "port": 35337
