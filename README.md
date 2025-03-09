@@ -239,11 +239,11 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > - **Disadvantages:**  
 >   - A longer keepalive duration may prevent the receiver from entering sleep mode, leading to increased power consumption.  
 
-> **telnetSwitch:**
-> Enables control of the Telnet connection to the receiver via a HomeKit switch. This is a global setting that applies to all receivers.
-> The switch executes its command only after a 60-second delay following the last user interaction and only when the receiver is off; if the delay hasn't been met, it simply waits until the full 60 seconds have passed before acting.  
-> It is especially useful for HomeKit automation (e.g., in combination with geofencing or time-based control), since establishing a connection with the receiver takes approximately 10-20 seconds when the plugin is not already connected.  
-> The connection stays active as long as the receiver is on. However, if the receiver is off and the sendKeepAliveTimeoutMinutes period expires, the connection is terminated until a new user interaction occurs.
+> **telnetSwitch:**  
+> Enables control of the Telnet connection to the receiver via a HomeKit switch. This is a global setting that applies to all receivers.  
+> The switch executes its command only after a 60-second delay following the last user interaction and only when the receiver is off; if the delay hasn't been met, it simply waits until the full 60 seconds have passed before acting. Once pressed, the switch can revert to its original state until the action is effectively executed. No worries—these timeouts are deliberately in place to prevent constant reconnecting.  
+> It is especially useful for HomeKit automation (e.g., in combination with geofencing or time-based control), since establishing a connection with the receiver takes approximately 10 - 20 seconds when the plugin is not already connected.  
+> The connection stays active as long as the receiver is on. However, if the receiver is off and the sendKeepAliveTimeoutMinutes period expires, the connection is terminated until a new user interaction via HomeKit occurs.
 
 > **name:**
 > In the example below, "name" under "devices" refers to the name as it appears in HomeKit.
@@ -457,6 +457,7 @@ Set input switches for discovered devices:
 
 
 ## Release Notes
+- **v0.2.13**: Fixed an issue where the state of the input switches did not always reflect whether the receiver was on or off.
 - **v0.2.12**: Added telnetSwitch
 - **v0.2.11**: Added sendKeepAliveTimeoutMinutes configuration; also, the reconnect behavior has been debugged and now works much more reliably
 - **v0.2.10**: Added maxReconnectAttempts configuration

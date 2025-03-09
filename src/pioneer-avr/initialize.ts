@@ -58,7 +58,9 @@ export function InitializeMixin<
 
 
             addExitHandler(() => {
-                clearInterval(this.allInterval);
+                if (this.allInterval) {
+                    clearInterval(this.allInterval);
+                }
             }, this);
 
 
@@ -130,7 +132,9 @@ export function InitializeMixin<
                     }
                 };
 
-                clearInterval(this.allInterval);
+                if (this.allInterval) {
+                    clearInterval(this.allInterval);
+                }
                 this.allInterval = setInterval(async () => {
                     try {
                         // Ensure sendKeepAliveTimeout is a number within the range [5 minutes, 2 weeks]
