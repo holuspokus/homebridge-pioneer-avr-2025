@@ -125,9 +125,6 @@ After confirming the network connection, restart the plugin to enable communicat
 
 <br>
 
-| <img src="screenshots/image2_add_switch-min.png" alt="Add Switch" style="max-width: 100%;"> | <img src="screenshots/image3_homekit_view-min.png" alt="HomeKit View" style="max-width: 100%;"> | <img src="screenshots/image4_homekit_receiver-min.png" alt="HomeKit Receiver" style="max-width: 100%;"> |
-
-
 ### Accessory Configuration Example
 Below is a sample configuration for your accessory:
 
