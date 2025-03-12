@@ -470,31 +470,22 @@ export function VolumeManagementMixin<
                 this.telnetAvr.sendMessage(listeningModeOther + 'SR');
                 this.state.listeningMode = listeningModeOther;
 
-                // Execute the callback with a delay if provided
                 if (callback) {
-                    setTimeout(
-                        () => {
-                            callback(null, this.state.listeningMode!);
-                        },
-                        100,
-                    );
+                    callback(null, this.state.listeningMode!);
                 }
             } else {
                 this.state.listeningMode = listeningModeOne;
                 this.telnetAvr.sendMessage('!' + listeningModeOne + 'SR', 'SR', (error, _data) => {
                     if (error) {
                         this.state.listeningMode = listeningModeFallback;
-                        this.telnetAvr.sendMessage(listeningModeFallback + 'SR');
+                        setTimeout(() => {
+                            this.telnetAvr.sendMessage(listeningModeFallback + 'SR');
+                        }, 100);
+
                     }
 
-                    // Execute the callback with a delay if provided
                     if (callback) {
-                        setTimeout(
-                            () => {
-                                callback(null, this.state.listeningMode!);
-                            },
-                            100,
-                        );
+                        callback(null, this.state.listeningMode!);
                     }
                 });
             }
