@@ -115,12 +115,19 @@ After confirming the network connection, restart the plugin to enable communicat
 - Choose **"Don't Have a Code or Can't Scan?"**.
 - Select **"Enter Code"** and input the 8-digit code (e.g. `340-36-041`) displayed in the logs.
 <br>
-
-<img src="screenshots/image2_add_switch-min.png" alt="Add Switch" style="display: inline-block; width: 32%;" />
-<img src="screenshots/image3_homekit_view-min.png" alt="HomeKit View" style="display: inline-block; width: 32%;" />
-<img src="screenshots/image4_homekit_receiver-min.png" alt="HomeKit Receiver" style="display: inline-block; width: 32%;" />
+![Homebridge startup](screenshots/image2_add_switch-min.png)
+![Home View](screenshots/image3_homekit_view-min.png)
+![Receiver view](screenshots/image4_homekit_receiver-min.png)
 
 <br>
+
+<table>
+  <tr>
+    <td><img src="screenshots/image2_add_switch-min.png" alt="Add Switch" style="max-width: 100%;"></td>
+    <td><img src="screenshots/image3_homekit_view-min.png" alt="HomeKit View" style="max-width: 100%;"></td>
+    <td><img src="screenshots/image4_homekit_receiver-min.png" alt="HomeKit Receiver" style="max-width: 100%;"></td>
+  </tr>
+</table>
 
 
 ### Accessory Configuration Example
