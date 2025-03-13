@@ -40,7 +40,7 @@ Manual configuration is also available.
 ### Adding Input Switches
 Once the receiver's inputs are loaded, you can select up to five inputs through the plugin settings in Config-UI. These selected inputs will appear in HomeKit as individual switches, allowing direct selection, use in automations, or integration with physical switches.  
 
-If the receiver is already on and the input is selected, pressing the switch again will turn off the receiver. This behavior is particularly useful in HomeKit, where only one scene can be assigned to a button—not two separate scenes (e.g., one for turning on and another for turning off). With this feature, the same button can be used to turn on the receiver, switch input, and turn off the receiver.  
+If the receiver is already on and the input is selected, pressing the switch again will turn off the receiver. This behavior is particularly useful in HomeKit, where only one scene can be assigned to a button - not two separate scenes (e.g., one for turning on and another for turning off). With this feature, the same button can be used to turn on the receiver, switch input, and turn off the receiver.  
 
 The button can also serve as a trigger for other scenes but should not be included in the same scene with other devices (such as lights) to avoid unintended behavior.
 
@@ -469,7 +469,7 @@ Set input switches for discovered devices:
 
 
 ## Release Notes
-- **v0.2.14**:
+- **v0.2.14**: Enhanced the ListeningMode switch's reliability when the current value couldn't be retrieved, and stabilized reconnect behavior.
 - **v0.2.13**: Fixed an issue where the state of the input switches did not always reflect whether the receiver was on or off.
 - **v0.2.12**: Added telnetSwitch
 - **v0.2.11**: Added sendKeepAliveTimeoutMinutes configuration; also, the reconnect behavior has been debugged and now works much more reliably
