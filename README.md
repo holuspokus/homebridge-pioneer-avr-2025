@@ -92,7 +92,7 @@ After confirming the network connection, restart the plugin to enable communicat
    homebridge
    ```
 
-   ![Homebridge startup](screenshots/image1_startup-min.png)
+   ![Homebridge startup](https://github.com/holuspokus/homebridge-pioneer-avr-2025/raw/main/screenshots/image1_startup-min.png)
 
 5. **Connect to HomeKit**  
    **Retrieve the Setup Code:**  
@@ -117,9 +117,9 @@ After confirming the network connection, restart the plugin to enable communicat
 <br>
 <table>
   <tr>
-    <td><img src="screenshots/image2_add_switch-min.png" alt="Add Switch" style="max-width: 100%;"></td>
-    <td><img src="screenshots/image3_homekit_view-min.png" alt="HomeKit View" style="max-width: 100%;"></td>
-    <td><img src="screenshots/image4_homekit_receiver-min.png" alt="HomeKit Receiver" style="max-width: 100%;"></td>
+    <td><img src="https://github.com/holuspokus/homebridge-pioneer-avr-2025/raw/main/screenshots/image2_add_switch-min.png" alt="Add Switch" style="max-width: 100%;"></td>
+    <td><img src="https://github.com/holuspokus/homebridge-pioneer-avr-2025/raw/main/screenshots/image3_homekit_view-min.png" alt="HomeKit View" style="max-width: 100%;"></td>
+    <td><img src="https://github.com/holuspokus/homebridge-pioneer-avr-2025/raw/main/screenshots/image4_homekit_receiver-min.png" alt="HomeKit Receiver" style="max-width: 100%;"></td>
   </tr>
 </table>
 
