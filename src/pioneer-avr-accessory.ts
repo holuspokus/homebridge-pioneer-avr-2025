@@ -53,6 +53,10 @@ class PioneerAvrAccessory {
     private writeVisbilityTimeout: NodeJS.Timeout | null = null;
     private telnetConnectedServiceSwitchDisconnectTimeout: NodeJS.Timeout | null = null;
 
+    private lastListeningSwitchPressTime: number = 0;
+    private readonly LOCK_INTERVAL_LISTENING_SWITCH: number = 2000;
+    // private timeoutFunctionSetSwitchListeningMode: NodeJS.Timeout | null = null;
+
     constructor(
         private device: Device,
         platform: PioneerAvrPlatform,
@@ -534,6 +538,10 @@ class PioneerAvrAccessory {
                           //disconnect?
 
                           let timeoutToDisconnect = 4900;
+
+                          if (this.avr?.state?.on) {
+                              timeoutToDisconnect = ((5 * 60 * 1000) + 4900);
+                          } else
                           if (this.avr?.lastUserInteraction) {
                               if ((((5 * 60 * 1000) + 4900) - (Date.now() - this.avr.lastUserInteraction)) > 5000) {
                                   timeoutToDisconnect = (((5 * 60 * 1000) + 4900) - (Date.now() - this.avr.lastUserInteraction));
@@ -556,6 +564,10 @@ class PioneerAvrAccessory {
                               clearTimeout(this.telnetConnectedServiceSwitchDisconnectTimeout);
                           }
 
+                          if (this.avr?.telnetAvr?.connection && 'forcedDisconnect' in this.avr.telnetAvr.connection) {
+                              this.avr.telnetAvr.connection.forcedDisconnect = true;
+                          }
+
                           this.telnetConnectedServiceSwitchDisconnectTimeout = setTimeout(() => {
                               if (!this.avr?.state?.on && (this.avr?.telnetAvr?.connection?.socket?.readyState === 'open' || this.avr?.telnetAvr?.connection?.socket?.connecting) && (!this.avr?.lastUserInteraction ||
                               ((Date.now() - this.avr.lastUserInteraction) > (61 * 1000)))) {
@@ -571,18 +583,22 @@ class PioneerAvrAccessory {
                                       runDisconnect = true;
                                   }
 
-                                  if (this.avr?.telnetAvr?.connection && 'forcedDisconnect' in this.avr.telnetAvr.connection) {
-                                      this.avr.telnetAvr.connection.forcedDisconnect = true;
-                                  }
+                                  if (runDisconnect) {
+                                      if (this.avr?.telnetAvr?.connection && 'forcedDisconnect' in this.avr.telnetAvr.connection) {
+                                          this.avr.telnetAvr.connection.forcedDisconnect = true;
+                                      }
 
 
-                                  if (this.avr?.telnetAvr?.connection?.messageQueue?.clearQueue) {
-                                      this.avr.telnetAvr.connection.messageQueue.clearQueue();
-                                  }
+                                      if (this.avr?.telnetAvr?.connection?.messageQueue?.clearQueue) {
+                                          this.avr.telnetAvr.connection.messageQueue.clearQueue();
+                                      }
 
-                                  if (runDisconnect && this.avr?.telnetAvr?.connection?.disconnect) {
-                                      this.avr.telnetAvr.connection.disconnect();
+                                      if (this.avr?.telnetAvr?.connection?.disconnect) {
+                                          this.avr.telnetAvr.connection.disconnect();
+                                      }
                                   }
+                              } else if (this.avr?.state?.on) {
+                                  this.log.debug('the receiver is still on, no disconnect.');
                               }
 
                               if (this.timeoutFunctionSetSwitchTelnetConnected) {
@@ -658,10 +674,6 @@ class PioneerAvrAccessory {
     /**
     * Prepares the Switch service for listening mode control.
     */
-    private lastListeningSwitchPressTime: number = 0;
-    private readonly LOCK_INTERVAL_LISTENING_SWITCH: number = 3000;
-    private timeoutFunctionSetSwitchListeningMode: NodeJS.Timeout | null = null;
-
     private async prepareListeningService() {
         while (
            !this.tvService ||
@@ -782,15 +794,7 @@ class PioneerAvrAccessory {
               this.lastListeningSwitchPressTime = now;
 
               this.avr.toggleListeningMode();
-              this.avr.functionSetSwitchListeningMode();
 
-              if (this.timeoutFunctionSetSwitchListeningMode) {
-                  clearTimeout(this.timeoutFunctionSetSwitchListeningMode)
-              }
-
-              this.timeoutFunctionSetSwitchListeningMode = setTimeout(() => {
-                  this.avr.functionSetSwitchListeningMode();
-              }, 2000);
         });
 
         addExitHandler(() => {
@@ -807,9 +811,21 @@ class PioneerAvrAccessory {
 
         this.enabledServices.push(this.listeningServiceSwitch);
 
-        this.avr.functionSetSwitchListeningMode = () => {
-           try {
-               const currentOnState =
+        this.avr.functionSetSwitchListeningMode = async () => {
+            if (
+                !this.tvService ||
+                !this.enabledServices.includes(this.tvService) ||
+                !this?.avr?.isReady || !this?.avr?.state?.listeningMode
+            ) {
+                this.listeningServiceSwitch.updateCharacteristic(
+                    this.platform.characteristic.On,
+                    false,
+                );
+                return;
+            }
+
+            try {
+              const currentOnState =
                    this.listeningServiceSwitch.getCharacteristic(
                        this.platform.characteristic.On,
                    ).value;
@@ -822,10 +838,12 @@ class PioneerAvrAccessory {
                const listeningModeFallback = isValidListeningMode(this.device.listeningModeFallback || this.platform.config.listeningModeFallback, '0101'); // ACTION
                // const listeningModeOther = isValidListeningMode(this.device.listeningModeOther || this.platform.config.listeningModeOther, '0112'); // EXTENDED STEREO
 
-               const currentState = this.avr.state.on && [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
+               const listeningModeActive = isValidListeningMode(this.avr.state.listeningMode || '', ''); // EXTENDED STEREO
+
+               const currentState = this.avr.state.on && [listeningModeOne, listeningModeFallback].includes(listeningModeActive);
 
                // Update On state based on whether a listening mode is active
-               if (currentOnState !== currentState) {
+               if (!!currentOnState !== !!currentState) {
                    this.listeningServiceSwitch.updateCharacteristic(
                        this.platform.characteristic.On,
                        !!currentState,
@@ -836,8 +854,6 @@ class PioneerAvrAccessory {
            }
         };
 
-        // Initial listening mode setup
-        this.avr.functionSetSwitchListeningMode();
     }
 
 

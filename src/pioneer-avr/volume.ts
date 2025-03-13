@@ -157,19 +157,66 @@ export function VolumeManagementMixin<
                 } catch (e) {
                     this.log.debug('functionSetLightbulbVolume error', e);
                 }
+
+                try {
+                    this.functionSetSwitchListeningMode?.();
+                } catch (e) {
+                    this.log.debug('functionSetSwitchListeningMode error', e);
+                }
             });
 
             // Handle reconnection by updating the volume, mute, and listening mode
             this.telnetAvr.addOnConnectCallback(async () => {
-                try {
-                    this.functionSetLightbulbVolume?.(this.state.volume);
-                    this.__updateListeningMode(() => {});
-                    this.__updateVolume(() => {});
-                    this.__updateMute(() => {});
-                } catch (e) {
-                    this.log.debug('functionSetLightbulbVolume error', e);
-                }
+                setTimeout(async () => {
+                    try {
+                        let error: any = null;
+                        let attempts = 0;
+
+                        if (this.state.on) {
+                            do {
+                                error = await new Promise<any>((resolve) => {
+                                    this.__updateListeningMode((err: any) => resolve(err));
+                                });
+                                if (error) {
+                                    await new Promise((resolve) => setTimeout(resolve, 1500));
+                                    attempts++;
+                                }
+                            } while (error && attempts < 10);
+                        }
+
+                        error = null;
+                        attempts = 0;
+                        do {
+                            error = await new Promise<any>((resolve) => {
+                                this.__updateVolume((err: any) => resolve(err));
+                            });
+                            if (error) {
+                                await new Promise((resolve) => setTimeout(resolve, 1500));
+                                attempts++;
+                            }
+                        } while (error && attempts < 10);
+
+                        error = null;
+                        attempts = 0;
+                        do {
+                            error = await new Promise<any>((resolve) => {
+                                this.__updateMute((err: any) => resolve(err));
+                            });
+                            if (error) {
+                                await new Promise((resolve) => setTimeout(resolve, 1500));
+                                attempts++;
+                            }
+                        } while (error && attempts < 10);
+
+                        this.functionSetLightbulbVolume?.(this.state.volume);
+                        this.functionSetSwitchListeningMode?.();
+
+                    } catch (e) {
+                        this.log.debug('functionSetLightbulbVolume error', e);
+                    }
+                }, 5321);
             });
+
 
             // Handle exit by resetting the volume display before shutdown
             addExitHandler(() => {
@@ -430,15 +477,20 @@ export function VolumeManagementMixin<
             this.telnetAvr.sendMessage('?S', 'SR', callback);
         }
 
-        /**
-         * Retrieves the current listening mode.
-         * @param callback - The function to handle the listening mode result.
-         */
-        public getListeningMode(callback: (err: any, mode?: string) => void) {
-            this.__updateListeningMode(() => {
-                callback(null, this.state.listeningMode ?? undefined);
-            });
-        }
+        // /**
+        //  * Retrieves the current listening mode.
+        //  * @param callback - The function to handle the listening mode result.
+        //  */
+        // public getListeningMode(callback: (err: any, mode?: string) => void) {
+        //     if (this.state.listeningMode) {
+        //         callback(null, this.state.listeningMode);
+        //
+        //     } else {
+        //         this.__updateListeningMode(() => {
+        //             callback(null, this.state.listeningMode ?? undefined);
+        //         });
+        //     }
+        // }
 
         /**
          * Toggles the listening mode between presets.
@@ -470,31 +522,22 @@ export function VolumeManagementMixin<
                 this.telnetAvr.sendMessage(listeningModeOther + 'SR');
                 this.state.listeningMode = listeningModeOther;
 
-                // Execute the callback with a delay if provided
                 if (callback) {
-                    setTimeout(
-                        () => {
-                            callback(null, this.state.listeningMode!);
-                        },
-                        100,
-                    );
+                    callback(null, this.state.listeningMode!);
                 }
             } else {
                 this.state.listeningMode = listeningModeOne;
                 this.telnetAvr.sendMessage('!' + listeningModeOne + 'SR', 'SR', (error, _data) => {
                     if (error) {
                         this.state.listeningMode = listeningModeFallback;
-                        this.telnetAvr.sendMessage(listeningModeFallback + 'SR');
+                        setTimeout(() => {
+                            this.telnetAvr.sendMessage(listeningModeFallback + 'SR');
+                        }, 100);
+
                     }
 
-                    // Execute the callback with a delay if provided
                     if (callback) {
-                        setTimeout(
-                            () => {
-                                callback(null, this.state.listeningMode!);
-                            },
-                            100,
-                        );
+                        callback(null, this.state.listeningMode!);
                     }
                 });
             }

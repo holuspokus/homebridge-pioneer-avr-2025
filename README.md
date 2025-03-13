@@ -40,7 +40,7 @@ Manual configuration is also available.
 ### Adding Input Switches
 Once the receiver's inputs are loaded, you can select up to five inputs through the plugin settings in Config-UI. These selected inputs will appear in HomeKit as individual switches, allowing direct selection, use in automations, or integration with physical switches.  
 
-If the receiver is already on and the input is selected, pressing the switch again will turn off the receiver. This behavior is particularly useful in HomeKit, where only one scene can be assigned to a button—not two separate scenes (e.g., one for turning on and another for turning off). With this feature, the same button can be used to turn on the receiver, switch input, and turn off the receiver.  
+If the receiver is already on and the input is selected, pressing the switch again will turn off the receiver. This behavior is particularly useful in HomeKit, where only one scene can be assigned to a button - not two separate scenes (e.g., one for turning on and another for turning off). With this feature, the same button can be used to turn on the receiver, switch input, and turn off the receiver.  
 
 The button can also serve as a trigger for other scenes but should not be included in the same scene with other devices (such as lights) to avoid unintended behavior.
 
@@ -92,6 +92,8 @@ After confirming the network connection, restart the plugin to enable communicat
    homebridge
    ```
 
+   ![Homebridge startup](screenshots/image1_startup-min.png)
+
 5. **Connect to HomeKit**  
    **Retrieve the Setup Code:**  
    Run the following command to view the Homebridge logs, which include the setup code:
@@ -106,11 +108,21 @@ After confirming the network connection, restart the plugin to enable communicat
         │ 340-36-041 │     
         └────────────┘     
     ```
-   **Add Childbridge to HomeKit:**
-    - Open the **Home app** on your iOS device.
-    - Tap **"Add Accessory"**.
-    - Choose **"Don't Have a Code or Can't Scan?"**.
-    - Select **"Enter Code"** and input the 8-digit code (e.g. `340-36-041`) displayed in the logs.
+
+### Add Childbridge to HomeKit
+- Open the **Home app** on your iOS device.
+- Tap **"Add Accessory"**.
+- Choose **"Don't Have a Code or Can't Scan?"**.
+- Select **"Enter Code"** and input the 8-digit code (e.g. `340-36-041`) displayed in the logs.
+<br>
+<table>
+  <tr>
+    <td><img src="screenshots/image2_add_switch-min.png" alt="Add Switch" style="max-width: 100%;"></td>
+    <td><img src="screenshots/image3_homekit_view-min.png" alt="HomeKit View" style="max-width: 100%;"></td>
+    <td><img src="screenshots/image4_homekit_receiver-min.png" alt="HomeKit Receiver" style="max-width: 100%;"></td>
+  </tr>
+</table>
+
 <br>
 
 ### Accessory Configuration Example
@@ -241,7 +253,7 @@ This setup simplifies installation and leverages the plugin's automatic discover
 
 > **telnetSwitch:**  
 > Enables control of the Telnet connection to the receiver via a HomeKit switch. This is a global setting that applies to all receivers.  
-> The switch executes its command only after a 60-second delay following the last user interaction and only when the receiver is off; if the delay hasn't been met, it simply waits until the full 60 seconds have passed before acting. Once pressed, the switch can revert to its original state until the action is effectively executed. No worries—these timeouts are deliberately in place to prevent constant reconnecting.  
+> The switch executes its command only after a 60-second delay following the last user interaction and only when the receiver is off; if the delay hasn't been met, it simply waits until the full 60 seconds have passed before acting. Once pressed, the switch can revert to its original state until the action is effectively executed. No worries - these timeouts are deliberately in place to prevent constant reconnecting.  
 > It is especially useful for HomeKit automation (e.g., in combination with geofencing or time-based control), since establishing a connection with the receiver takes approximately 10 - 20 seconds when the plugin is not already connected.  
 > The connection stays active as long as the receiver is on. However, if the receiver is off and the sendKeepAliveTimeoutMinutes period expires, the connection is terminated until a new user interaction via HomeKit occurs.
 
@@ -457,6 +469,7 @@ Set input switches for discovered devices:
 
 
 ## Release Notes
+- **v0.2.14**: Enhanced the ListeningMode switch's reliability when the current value couldn't be retrieved, and stabilized reconnect behavior.
 - **v0.2.13**: Fixed an issue where the state of the input switches did not always reflect whether the receiver was on or off.
 - **v0.2.12**: Added telnetSwitch
 - **v0.2.11**: Added sendKeepAliveTimeoutMinutes configuration; also, the reconnect behavior has been debugged and now works much more reliably

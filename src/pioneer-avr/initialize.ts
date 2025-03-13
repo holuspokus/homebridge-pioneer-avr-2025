@@ -45,6 +45,7 @@ export function InitializeMixin<
         public onData!: (error: any, data: string, callback?: Function) => void;
         public __updateVolume!: any;
         public __updatePower!: any;
+        public __updateListeningMode!: any;
         public platform!: any;
         public functionSetPowerState!: any;
         public functionSetLightbulbMuted!: any;
@@ -178,12 +179,16 @@ export function InitializeMixin<
                             this.telnetAvr.connectionReady &&
                             this.telnetAvr.connection.lastMessageReceived !== null &&
                             Date.now() - this.telnetAvr.connection.lastMessageReceived > 29000 &&
-                            this.telnetAvr.connection.forcedDisconnect !== true
+                            (this.state.on || this.telnetAvr.connection.forcedDisconnect !== true)
                         ) {
                             if (this.allIntervalCounter % 2 === 0) {
                                 this.__updatePower?.(() => {});
                             } else {
-                                this.__updateVolume?.(() => {});
+                                if (this.state.on && !this.state.listeningMode) {
+                                    this.__updateListeningMode?.(() => {});
+                                } else {
+                                    this.__updateVolume?.(() => {});
+                                }
                             }
 
                             this.allIntervalCounter++;

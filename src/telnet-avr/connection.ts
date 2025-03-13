@@ -33,6 +33,7 @@ export class Connection {
     private reconnectTimeout!: NodeJS.Timeout;
     private reconnectCallbackTimeout!: NodeJS.Timeout;
     private device: any;
+    public reconnectFunctionFlag: boolean = false;
 
     constructor(telnetThis: TelnetAvr) {
         this.avr = telnetThis.avr;
@@ -254,6 +255,11 @@ export class Connection {
                     this.tryReconnect();
                 }, 100);
 
+            } else if (!this.forcedDisconnect) {
+                this.log.debug('Socket closed, attempting reconnect. (1)');
+                setTimeout(() => {
+                    this.tryReconnect();
+                }, 100);
             }
         }
     }
@@ -279,9 +285,9 @@ export class Connection {
     private handleError(err: Error) {
         this.isConnecting = null;
 
-        if (err.message.includes('CONN') || err.message.includes('EHOSTUNREACH') || err.message.includes('ENOTFOUND')) {
+        if (err.message.includes('CONN') || err.message.includes('EHOSTUNREACH') || err.message.includes('ENOTFOUND') || err.message.includes('ETIMEDOUT')) {
             this.setConnectionReady(false);
-            this.onDisconnect();
+            this.disconnect();
         }
 
         if (this.reconnectCounter > 1) {
@@ -327,7 +333,7 @@ export class Connection {
             }else{
                 this.log.info('Attempting reconnection...');
             }
-            this.connect();
+            this.reconnect(()=>{});
         }, delay * 1000);
     }
 
@@ -342,12 +348,21 @@ export class Connection {
             return;
         }
 
-        if (this.connectionReady || !this.socket || this.socket.connecting || this.socket.readyState === 'open') {
+        if (this.reconnectFunctionFlag){
+            // this.log.debug('reconnect blocked by this.reconnectFunctionFlag');
+            return;
+        }
+        // this.log.debug('set true this.reconnectFunctionFlag', !!this.socket);
+        this.reconnectFunctionFlag = true;
+
+        if (this.connectionReady || (this.socket && (this?.socket?.connecting || this?.socket?.readyState === 'open'))) {
             try {
                 callback();
             } catch (error) {
                 this.log.debug('reconnect callback error', error);
             }
+
+            this.reconnectFunctionFlag = false;
             return;
 
         }
@@ -364,10 +379,12 @@ export class Connection {
                 }
             }, 1 * 24 * 60 * 60 * 1000);
 
+            this.reconnectFunctionFlag = false;
             return;
         }
         if ( this.reconnectCounter >= ( this.maxReconnectAttempts * 2 ) ) {
             // no callback.
+            this.reconnectFunctionFlag = false;
             return;
         }
 
@@ -453,10 +470,13 @@ export class Connection {
                 }
             }, 30000);
         }
+
+        this.reconnectFunctionFlag = false;
     }
 
     disconnect() {
         // this.log.debug('disconnect() called');
+        // this.reconnectFunctionFlag = false;
         this.lastMessageReceived = null;
         this.isConnecting = null;
         this.setConnectionReady(false);
