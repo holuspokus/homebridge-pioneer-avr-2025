@@ -417,7 +417,7 @@ export function InputManagementMixin<
                             inputs: this.inputs, // Save the current inputs
                         })
                     );
-                    this.log.debug('Inputs saved to cache file.'); // Log success message
+                    this.log.debug('Inputs saved to cache file [' + this.inputCacheFile + '].'); // Log success message
                 }
             } catch (error) {
                 // Log any errors encountered during the file write operation

@@ -32,6 +32,21 @@ This plugin allows you to control various aspects of your Pioneer AVR directly f
 2. **Install the Plugin**: Use the Homebridge Web Interface (Config-UI) to install **homebridge-pioneer-avr-2025**.
 3. **Connect to HomeKit**: Open the Home app on your iOS device, tap Add Accessory, and scan the QR code displayed in the Homebridge Web Interface (Config-UI).
 
+<table style="border: none; border-collapse: collapse;">
+  <tr>
+    <td style="border: none;">
+      <img src="https://github.com/holuspokus/homebridge-pioneer-avr-2025/raw/main/screenshots/image2_add_switch-min.png" alt="Add Switch" style="max-width: 100%;">
+    </td>
+    <td style="border: none;">
+      <img src="https://github.com/holuspokus/homebridge-pioneer-avr-2025/raw/main/screenshots/image3_homekit_view-min.png" alt="HomeKit View" style="max-width: 100%;">
+    </td>
+    <td style="border: none;">
+      <img src="https://github.com/holuspokus/homebridge-pioneer-avr-2025/raw/main/screenshots/image4_homekit_receiver-min.png" alt="HomeKit Receiver" style="max-width: 100%;">
+    </td>
+  </tr>
+</table>
+<br>
+
 ## Accessory Configuration
 The receiver is detected automatically over the network.  
 You may also configure settings via the Config-UI interface.  
@@ -109,19 +124,11 @@ After confirming the network connection, restart the plugin to enable communicat
         └────────────┘     
     ```
 
-### Add Childbridge to HomeKit
-- Open the **Home app** on your iOS device.
-- Tap **"Add Accessory"**.
-- Choose **"Don't Have a Code or Can't Scan?"**.
-- Select **"Enter Code"** and input the 8-digit code (e.g. `340-36-041`) displayed in the logs.
-<br>
-<table>
-  <tr>
-    <td><img src="https://github.com/holuspokus/homebridge-pioneer-avr-2025/raw/main/screenshots/image2_add_switch-min.png" alt="Add Switch" style="max-width: 100%;"></td>
-    <td><img src="https://github.com/holuspokus/homebridge-pioneer-avr-2025/raw/main/screenshots/image3_homekit_view-min.png" alt="HomeKit View" style="max-width: 100%;"></td>
-    <td><img src="https://github.com/holuspokus/homebridge-pioneer-avr-2025/raw/main/screenshots/image4_homekit_receiver-min.png" alt="HomeKit Receiver" style="max-width: 100%;"></td>
-  </tr>
-</table>
+6. Add Childbridge to HomeKit
+    - Open the **Home app** on your iOS device.
+    - Tap **"Add Accessory"**.
+    - Choose **"Don't Have a Code or Can't Scan?"**.
+    - Select **"Enter Code"** and input the 8-digit code (e.g. `340-36-041`) displayed in the logs.
 
 <br>
 
@@ -469,6 +476,7 @@ Set input switches for discovered devices:
 
 
 ## Release Notes
+- **v0.2.15**:
 - **v0.2.14**: Enhanced the ListeningMode switch's reliability when the current value couldn't be retrieved, and stabilized reconnect behavior.
 - **v0.2.13**: Fixed an issue where the state of the input switches did not always reflect whether the receiver was on or off.
 - **v0.2.12**: Added telnetSwitch

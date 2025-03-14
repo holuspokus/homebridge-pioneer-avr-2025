@@ -432,7 +432,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 addExitHandler(() => {
                     this.cleanCachedAccessories();
                 }, this);
-                
+
                 return;
             }
         }

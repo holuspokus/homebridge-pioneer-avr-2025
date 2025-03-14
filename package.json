@@ -2,7 +2,7 @@
     "name": "homebridge-pioneer-avr-2025",
     "displayName": "Pioneer AVR 2025",
     "platformName": "pioneerAvr2025",
-    "version": "0.2.14",
+    "version": "0.2.15",
     "description": "A Pioneer AVR plugin for homebridge. This plugin is designed for Pioneer models that use Telnet Commands (e.g., VSX-922). It may not be compatible with newer models (e.g., VSX-LX304).",
     "main": "dist/index.js",
     "scripts": {

@@ -1370,7 +1370,7 @@ class PioneerAvrAccessory {
 
 
             this.log.info(
-                `Switch accessory created for input: ${input.name} (${input.id}) on host: ${host}`,
+                `${this.name}> Switch accessory created for input: ${input.name} (${input.id}) on host: ${host}`,
             );
         });
 
@@ -1381,7 +1381,7 @@ class PioneerAvrAccessory {
 
             if (!isValid && accessory?.context?.host && host && accessory.context.host.toLowerCase() === host.toLowerCase()) {
                 this.log.info(
-                    `Removing accessory: ${accessory.displayName} (no longer valid)`,
+                    `${this.name}> Removing accessory: ${accessory.displayName} (no longer valid)`,
                 );
                 this.platform.api.unregisterPlatformAccessories(
                     this.platform.pluginName,
