@@ -770,24 +770,36 @@ class PioneerAvrAccessory {
         this.listeningServiceSwitch
           .getCharacteristic(this.platform.characteristic.On)
           .onGet(async () => {
-              const isOn = this.avr.state.on && [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
+              let isOn = this?.avr?.state?.on && [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
+
+              if (this?.avr?.state?.on && !this?.avr?.state?.listeningMode) {
+                  isOn = true;
+              }
+
               return isOn;
           })
           .onSet(async () => {
               const now = Date.now();
               const timeSinceLastPress = now - this.lastListeningSwitchPressTime;
+
+              if (this?.avr?.state?.on && !this?.avr?.state?.listeningMode) {
+                  return;
+              }
+
+
               if (timeSinceLastPress < this.LOCK_INTERVAL_LISTENING_SWITCH) {
                   const remaining = this.LOCK_INTERVAL_LISTENING_SWITCH - timeSinceLastPress;
                   this.log.debug(
                   `Listening switch pressed too soon, ignoring press. ${remaining} ms remaining.`
                   );
                   // Reset the switch state to the actual current state
-                  const currentState =
-                  this.avr.state.on &&
-                  [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
+                  const currentState = this.avr.state.on &&
+                      [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
+
                   this.listeningServiceSwitch
-                  .getCharacteristic(this.platform.characteristic.On)
-                  .updateValue(currentState);
+                      .getCharacteristic(this.platform.characteristic.On)
+                      .updateValue(currentState);
+
                   return;
               }
 
