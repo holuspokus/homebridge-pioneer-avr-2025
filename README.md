@@ -478,7 +478,7 @@ Set input switches for discovered devices:
 
 
 ## Release Notes
-- **v0.2.15**: Minor stability improvements.
+- **v0.2.15**: Minor stability improvements, including a small fix to the keepalive behavior.
 - **v0.2.14**: Enhanced the ListeningMode switch's reliability when the current value couldn't be retrieved, and stabilized reconnect behavior.
 - **v0.2.13**: Fixed an issue where the state of the input switches did not always reflect whether the receiver was on or off.
 - **v0.2.12**: Added telnetSwitch

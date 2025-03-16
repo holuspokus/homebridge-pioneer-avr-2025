@@ -167,9 +167,22 @@ export function InitializeMixin<
                         if (
                             !this.state.on &&
                             this.lastUserInteraction &&
-                            Date.now() - this.lastUserInteraction > keepAliveTimeoutMs
+                            ((Date.now() - this.lastUserInteraction) > keepAliveTimeoutMs)
                         ) {
                             this.allIntervalCounter = 0;
+
+                            if (
+                                this.isReady &&
+                                this.telnetAvr.connectionReady &&
+                                ((Date.now() - this.lastUserInteraction) > (keepAliveTimeoutMs + (59 * 1000)))
+                            ) {
+                                if (this.telnetAvr?.connection?.forcedDisconnect){
+                                    this.telnetAvr.connection.forcedDisconnect = true;
+                                }
+
+                                this.telnetAvr.connection?.disconnect?.();
+                            }
+
                             return;
                         }
 
@@ -181,14 +194,11 @@ export function InitializeMixin<
                             Date.now() - this.telnetAvr.connection.lastMessageReceived > 29000 &&
                             (this.state.on || this.telnetAvr.connection.forcedDisconnect !== true)
                         ) {
+
                             if (this.allIntervalCounter % 2 === 0) {
                                 this.__updatePower?.(() => {});
                             } else {
-                                if (this.state.on && !this.state.listeningMode) {
-                                    this.__updateListeningMode?.(() => {});
-                                } else {
-                                    this.__updateVolume?.(() => {});
-                                }
+                                this.__updateVolume?.(() => {});
                             }
 
                             this.allIntervalCounter++;

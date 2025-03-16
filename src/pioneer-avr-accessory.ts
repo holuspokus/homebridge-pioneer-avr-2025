@@ -825,15 +825,21 @@ class PioneerAvrAccessory {
 
         this.avr.functionSetSwitchListeningMode = async () => {
             if (
-                !this.tvService ||
-                !this.enabledServices.includes(this.tvService) ||
-                !this?.avr?.isReady || !this?.avr?.state?.listeningMode
+                !this?.avr?.state?.on && (
+                  !this.tvService ||
+                  !this.enabledServices.includes(this.tvService) ||
+                  !this?.avr?.isReady || !this?.avr?.state?.listeningMode
+                )
             ) {
                 this.listeningServiceSwitch.updateCharacteristic(
                     this.platform.characteristic.On,
                     false,
                 );
                 return;
+            }
+
+            if (this.avr.state.on && !this.avr.state.listeningMode) {
+                await this?.avr?.__updateListeningMode?.(() => {});
             }
 
             try {

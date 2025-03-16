@@ -115,6 +115,10 @@ export class Connection {
     private disconnectOnExit() {
         onExitCalled = true;
 
+        if (this.disconnectTimeout) {
+            clearTimeout(this.disconnectTimeout);
+        }
+
         if (this.checkConnInterval) {
             clearInterval(this.checkConnInterval);
         }
@@ -255,11 +259,6 @@ export class Connection {
                     this.tryReconnect();
                 }, 100);
 
-            } else if (!this.forcedDisconnect) {
-                this.log.debug('Socket closed, attempting reconnect. (1)');
-                setTimeout(() => {
-                    this.tryReconnect();
-                }, 100);
             }
         }
     }
@@ -285,15 +284,26 @@ export class Connection {
     private handleError(err: Error) {
         this.isConnecting = null;
 
-        if (err.message.includes('CONN') || err.message.includes('EHOSTUNREACH') || err.message.includes('ENOTFOUND') || err.message.includes('ETIMEDOUT')) {
-            this.setConnectionReady(false);
-            this.disconnect();
-        }
-
         if (this.reconnectCounter > 1) {
             this.log.debug('Connection error:', err);
         }else{
             this.log.error('Connection error:', err);
+        }
+
+        if (this.disconnectTimeout) {
+            clearTimeout(this.disconnectTimeout);
+        }
+
+        if (err.message.includes('CONN') || err.message.includes('EHOSTUNREACH') || err.message.includes('ENOTFOUND') || err.message.includes('ETIMEDOUT')) {
+            this.setConnectionReady(false);
+            this.disconnect();
+
+            if (!this.forcedDisconnect) {
+                this.log.debug('Socket closed, attempting reconnect. (1)');
+                setTimeout(() => {
+                    this.tryReconnect();
+                }, 100);
+            }
         }
     }
 
@@ -302,18 +312,17 @@ export class Connection {
             return;
         }
 
-        this.reconnectCounter++;
-        let delay = this.reconnectCounter > 30 ? 60 : 15;
-
-        if (this.reconnectTimeout) {
-            clearTimeout(this.reconnectTimeout);
-        }
-
         if ( this.reconnectCounter >= ( this.maxReconnectAttempts * 2 ) ) {
             // process.exit(1);
             return;
         }
 
+        if (this.disconnectTimeout) {
+            clearTimeout(this.disconnectTimeout);
+        }
+
+        this.reconnectCounter++;
+        let delay = this.reconnectCounter > 30 ? 60 : 15;
         if (
             this.reconnectCounter <= 1 ||
             !this.avr.lastUserInteraction ||
@@ -323,18 +332,24 @@ export class Connection {
             delay = 0;
         }
 
-        this.reconnectTimeout = setTimeout(() => {
-            if (onExitCalled || this.connectionReady) {
-                return;
+        if (delay === 0 || this.reconnectTimeout) {
+            if (this.reconnectTimeout) {
+                clearTimeout(this.reconnectTimeout);
             }
 
-            if (this.reconnectCounter > 1) {
-                this.log.debug('Attempting reconnection...', this.reconnectCounter);
-            }else{
-                this.log.info('Attempting reconnection...');
-            }
-            this.reconnect(()=>{});
-        }, delay * 1000);
+            this.reconnectTimeout = setTimeout(() => {
+                if (onExitCalled || this.connectionReady) {
+                    return;
+                }
+
+                if (this.reconnectCounter > 1) {
+                    this.log.debug('Attempting reconnection...', this.reconnectCounter);
+                }else{
+                    this.log.info('Attempting reconnection...');
+                }
+                this.reconnect(()=>{});
+            }, delay * 1000);
+        }
     }
 
     async reconnect(callback: () => void) {
@@ -354,6 +369,10 @@ export class Connection {
         }
         // this.log.debug('set true this.reconnectFunctionFlag', !!this.socket);
         this.reconnectFunctionFlag = true;
+
+        if (this.disconnectTimeout) {
+            clearTimeout(this.disconnectTimeout);
+        }
 
         if (this.connectionReady || (this.socket && (this?.socket?.connecting || this?.socket?.readyState === 'open'))) {
             try {
@@ -481,6 +500,10 @@ export class Connection {
         this.isConnecting = null;
         this.setConnectionReady(false);
         this.onDisconnect();
+
+        if (this.disconnectTimeout) {
+            clearTimeout(this.disconnectTimeout);
+        }
 
         if (this.socket) {
             this.socket.removeAllListeners('connect');
