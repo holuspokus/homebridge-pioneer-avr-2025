@@ -770,24 +770,36 @@ class PioneerAvrAccessory {
         this.listeningServiceSwitch
           .getCharacteristic(this.platform.characteristic.On)
           .onGet(async () => {
-              const isOn = this.avr.state.on && [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
+              let isOn = this?.avr?.state?.on && [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
+
+              if (this?.avr?.state?.on && !this?.avr?.state?.listeningMode) {
+                  isOn = true;
+              }
+
               return isOn;
           })
           .onSet(async () => {
               const now = Date.now();
               const timeSinceLastPress = now - this.lastListeningSwitchPressTime;
+
+              if (this?.avr?.state?.on && !this?.avr?.state?.listeningMode) {
+                  return;
+              }
+
+
               if (timeSinceLastPress < this.LOCK_INTERVAL_LISTENING_SWITCH) {
                   const remaining = this.LOCK_INTERVAL_LISTENING_SWITCH - timeSinceLastPress;
                   this.log.debug(
                   `Listening switch pressed too soon, ignoring press. ${remaining} ms remaining.`
                   );
                   // Reset the switch state to the actual current state
-                  const currentState =
-                  this.avr.state.on &&
-                  [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
+                  const currentState = this.avr.state.on &&
+                      [listeningModeOne, listeningModeFallback].includes(this.avr.state.listeningMode || '');
+
                   this.listeningServiceSwitch
-                  .getCharacteristic(this.platform.characteristic.On)
-                  .updateValue(currentState);
+                      .getCharacteristic(this.platform.characteristic.On)
+                      .updateValue(currentState);
+
                   return;
               }
 
@@ -813,15 +825,21 @@ class PioneerAvrAccessory {
 
         this.avr.functionSetSwitchListeningMode = async () => {
             if (
-                !this.tvService ||
-                !this.enabledServices.includes(this.tvService) ||
-                !this?.avr?.isReady || !this?.avr?.state?.listeningMode
+                !this?.avr?.state?.on && (
+                  !this.tvService ||
+                  !this.enabledServices.includes(this.tvService) ||
+                  !this?.avr?.isReady || !this?.avr?.state?.listeningMode
+                )
             ) {
                 this.listeningServiceSwitch.updateCharacteristic(
                     this.platform.characteristic.On,
                     false,
                 );
                 return;
+            }
+
+            if (this.avr.state.on && !this.avr.state.listeningMode) {
+                await this?.avr?.__updateListeningMode?.(() => {});
             }
 
             try {
@@ -1370,7 +1388,7 @@ class PioneerAvrAccessory {
 
 
             this.log.info(
-                `Switch accessory created for input: ${input.name} (${input.id}) on host: ${host}`,
+                `${this.name}> Switch accessory created for input: ${input.name} (${input.id}) on host: ${host}`,
             );
         });
 
@@ -1381,7 +1399,7 @@ class PioneerAvrAccessory {
 
             if (!isValid && accessory?.context?.host && host && accessory.context.host.toLowerCase() === host.toLowerCase()) {
                 this.log.info(
-                    `Removing accessory: ${accessory.displayName} (no longer valid)`,
+                    `${this.name}> Removing accessory: ${accessory.displayName} (no longer valid)`,
                 );
                 this.platform.api.unregisterPlatformAccessories(
                     this.platform.pluginName,

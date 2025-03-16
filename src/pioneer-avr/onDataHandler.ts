@@ -336,7 +336,7 @@ function handleInputDiscovery(
         //     `Input [${tmpInput.name}] discovered (id: ${tmpInput.id}, type: ${tmpInput.type}). InitCount=${pioneerThis.initCount}/${Object.keys(pioneerThis.inputToType).length}` +
         //     (pioneerThis.inputMissing.length > 0 ? `, inputMissing: ${pioneerThis.inputMissing}` : '')
         // );
-        pioneerThis.log.info(`Input [${tmpInput.name}] discovered`);
+        pioneerThis.log.info(`${pioneerThis.accessory.name}> Input [${tmpInput.id}] '${tmpInput.name}' discovered`);
     } else {
         // Update the name of the existing input if it has changed
         const existingInput = pioneerThis.inputs.find(
@@ -344,9 +344,9 @@ function handleInputDiscovery(
         );
         if (existingInput && existingInput.name !== tmpInput.name) {
             existingInput.name = tmpInput.name;
-            // pioneerThis.log.info(
-            //     `Input [${tmpInput.id}] name updated to [${tmpInput.name}]`
-            // );
+            pioneerThis.log.debug(
+                `${pioneerThis.accessory.name}> Input [${tmpInput.id}] '${tmpInput.id}' name updated to '${tmpInput.name}'`
+            );
 
 
             if (pioneerThis.saveInputsTimeout) {

@@ -432,7 +432,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 addExitHandler(() => {
                     this.cleanCachedAccessories();
                 }, this);
-                
+
                 return;
             }
         }
@@ -949,7 +949,7 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                 'utf8',
             );
 
-            this.log.debug('Updated config.schema.json successfully.');
+            this.log.debug('Updated config.schema.json successfully.', schemaPath);
 
 
             if (schema.schema.properties.discoveredDevices && schema.schema.properties.discoveredDevices.default.length > 0) {
@@ -991,9 +991,8 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
                     // Write back the updated config.json
                     if (writeConfig && Object.keys(config).length > 1) {
                         fs.writeFileSync(this.homebridgeConfigPath, JSON.stringify(config, null, 4), 'utf8');
+                        this.log.debug('Successfully updated discoveredDevices in config.json.', this.homebridgeConfigPath);
                     }
-
-                    this.log.debug('Successfully updated discoveredDevices in config.json.', this.homebridgeConfigPath);
                 } catch (error) {
                     this.log.error('Failed to update config.json with discoveredDevices:', error);
                 }

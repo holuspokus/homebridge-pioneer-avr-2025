@@ -102,23 +102,23 @@ export function InitializeMixin<
         public async setupConnectionCallbacks() {
             try {
                 if (!this.telnetAvr) {
-                    this.log.error('TelnetAvr instance is not initialized.');
+                    this.log.error(this.device.name + '> ' + 'TelnetAvr instance is not initialized.');
                     return;
                 }
 
                 if (!this.telnetAvr.connectionReady) {
-                    this.log.info('Telnet is not ready :(');
+                    this.log.info(this.device.name + '> ' + 'Telnet is not ready :(');
                     return;
                 }
 
-                this.log.info('Telnet connected, starting up');
+                this.log.info(this.device.name + '> ' + 'Telnet connected, starting up');
 
                 this.telnetAvr.addOnDisconnectCallback(() => {
                     // this.log.info('Telnet Disconnected!');
                 });
 
                 this.telnetAvr.addOnConnectCallback(async () => {
-                    this.log.debug('Telnet connected, waited for PWR...');
+                    this.log.debug(this.device.name + '> ' + 'Telnet connected, waited for PWR...');
                 });
 
                 this.telnetAvr.displayChanged = (text: string) => {
@@ -167,9 +167,22 @@ export function InitializeMixin<
                         if (
                             !this.state.on &&
                             this.lastUserInteraction &&
-                            Date.now() - this.lastUserInteraction > keepAliveTimeoutMs
+                            ((Date.now() - this.lastUserInteraction) > keepAliveTimeoutMs)
                         ) {
                             this.allIntervalCounter = 0;
+
+                            if (
+                                this.isReady &&
+                                this.telnetAvr.connectionReady &&
+                                ((Date.now() - this.lastUserInteraction) > (keepAliveTimeoutMs + (59 * 1000)))
+                            ) {
+                                if (this.telnetAvr?.connection?.forcedDisconnect){
+                                    this.telnetAvr.connection.forcedDisconnect = true;
+                                }
+
+                                this.telnetAvr.connection?.disconnect?.();
+                            }
+
                             return;
                         }
 
@@ -181,14 +194,11 @@ export function InitializeMixin<
                             Date.now() - this.telnetAvr.connection.lastMessageReceived > 29000 &&
                             (this.state.on || this.telnetAvr.connection.forcedDisconnect !== true)
                         ) {
+
                             if (this.allIntervalCounter % 2 === 0) {
                                 this.__updatePower?.(() => {});
                             } else {
-                                if (this.state.on && !this.state.listeningMode) {
-                                    this.__updateListeningMode?.(() => {});
-                                } else {
-                                    this.__updateVolume?.(() => {});
-                                }
+                                this.__updateVolume?.(() => {});
                             }
 
                             this.allIntervalCounter++;
