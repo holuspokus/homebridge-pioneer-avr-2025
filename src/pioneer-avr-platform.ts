@@ -990,7 +990,159 @@ export class PioneerAvrPlatform implements DynamicPlatformPlugin {
 
                     // Write back the updated config.json
                     if (writeConfig && Object.keys(config).length > 1) {
-                        fs.writeFileSync(this.homebridgeConfigPath, JSON.stringify(config, null, 4), 'utf8');
+
+                        function sortConfig(config: Record<string, any>): Record<string, any> {
+                            const result: Record<string, any> = {};
+
+                            const isPrimitive = (val: any): boolean =>
+                                val === null || ["string", "number", "boolean"].includes(typeof val);
+
+                            const reservedKeys = ["accessories", "platforms", "bridge", "disabledPlugins"];
+                            const primitiveKeys: string[] = [];
+
+                            // Utility: Sort object keys alphabetically with optional prioritized key first
+                            const sortObjectKeys = (obj: Record<string, any>, prioritizeKey?: string): Record<string, any> => {
+                                const sorted: Record<string, any> = {};
+                                const keys = Object.keys(obj).sort();
+
+                                if (prioritizeKey && keys.includes(prioritizeKey)) {
+                                    sorted[prioritizeKey] = obj[prioritizeKey];
+                                }
+
+                                for (const key of keys) {
+                                    if (key === prioritizeKey) continue;
+                                    const value = obj[key];
+                                    if (Array.isArray(value)) {
+                                        sorted[key] = value.map((item) => {
+                                            if (item && typeof item === 'object' && !Array.isArray(item)) {
+                                                return sortObjectKeys(item);
+                                            }
+                                            return item;
+                                        });
+                                    } else if (value && typeof value === 'object') {
+                                        sorted[key] = sortObjectKeys(value);
+                                    } else {
+                                        sorted[key] = value;
+                                    }
+                                }
+                                return sorted;
+                            };
+
+                            // 1. accessories
+                            if (Array.isArray(config.accessories)) {
+                                result.accessories = [...config.accessories].sort((a, b) =>
+                                    (a.name || "").localeCompare(b.name || "")
+                                ).map(({ accessory, name, ...rest }) => {
+                                    const sortedRest = sortObjectKeys(rest);
+                                    return { accessory, name, ...sortedRest };
+                                });
+                            }
+
+                            // 2. platforms
+                            if (Array.isArray(config.platforms)) {
+                                result.platforms = [...config.platforms].sort((a, b) => {
+                                    const platformA = a.platform || "";
+                                    const platformB = b.platform || "";
+
+                                    if (platformA === "pioneerAvr2025") return -1;
+                                    if (platformB === "pioneerAvr2025") return 1;
+                                    if (platformA === "config") return 1;
+                                    if (platformB === "config") return -1;
+
+                                    return platformA.localeCompare(platformB);
+                                }).map((platformObj) => {
+                                    const { platform, name, _bridge, ...rest } = platformObj;
+
+                                    const minMaxPairs: Record<string, string> = {};
+                                    const otherKeys: string[] = [];
+
+                                    const keys = Object.keys(rest);
+                                    keys.forEach((key) => {
+                                        if (key.startsWith("min")) {
+                                            const maxKey = key.replace(/^min/, "max");
+                                            if (keys.includes(maxKey)) {
+                                                minMaxPairs[key] = maxKey;
+                                            } else {
+                                                otherKeys.push(key);
+                                            }
+                                        } else if (!Object.values(minMaxPairs).includes(key)) {
+                                            otherKeys.push(key);
+                                        }
+                                    });
+
+                                    const orderedKeys: string[] = [];
+                                    for (const minKey of Object.keys(minMaxPairs).sort()) {
+                                        orderedKeys.push(minKey, minMaxPairs[minMaxPairs[minKey]]);
+                                    }
+
+                                    otherKeys.sort();
+
+                                    const sortedObj: Record<string, any> = { platform, name };
+                                    for (const key of [...orderedKeys, ...otherKeys]) {
+                                        let value = rest[key];
+
+                                        // Special case: discoveredDevices
+                                        if (key === "discoveredDevices" && Array.isArray(value)) {
+                                            value = value
+                                                .sort((a, b) => (a.host || "").localeCompare(b.host || ""))
+                                                .map((device) => sortObjectKeys(device, "host"));
+                                        } else if (Array.isArray(value)) {
+                                            value = value.map((item) =>
+                                                typeof item === "object" && item !== null && !Array.isArray(item)
+                                                    ? sortObjectKeys(item)
+                                                    : item
+                                            );
+                                        } else if (typeof value === "object" && value !== null) {
+                                            value = sortObjectKeys(value);
+                                        }
+
+                                        sortedObj[key] = value;
+                                    }
+
+                                    if (_bridge) {
+                                        sortedObj._bridge = sortObjectKeys(_bridge);
+                                    }
+
+                                    return sortedObj;
+                                });
+                            }
+
+                            // 3. Other config keys (non-reserved)
+                            for (const key of Object.keys(config)) {
+                                if (reservedKeys.includes(key)) continue;
+
+                                const value = config[key];
+                                if (isPrimitive(value)) {
+                                    primitiveKeys.push(key);
+                                } else {
+                                    result[key] = value;
+                                }
+                            }
+
+                            // 4. bridge
+                            if (config.bridge) {
+                                result.bridge = config.bridge;
+                            }
+
+                            // 5. disabledPlugins
+                            if (config.disabledPlugins) {
+                                result.disabledPlugins = config.disabledPlugins;
+                            }
+
+                            // 6. primitives (like insecure: true)
+                            for (const key of primitiveKeys.sort()) {
+                                result[key] = config[key];
+                            }
+
+                            return result;
+                        }
+
+
+
+
+
+
+                        fs.writeFileSync(this.homebridgeConfigPath, JSON.stringify(sortConfig(config), null, 4), 'utf8');
                         this.log.debug('Successfully updated discoveredDevices in config.json.', this.homebridgeConfigPath);
                     }
                 } catch (error) {
