@@ -564,7 +564,7 @@ class PioneerAvrAccessory {
                               clearTimeout(this.telnetConnectedServiceSwitchDisconnectTimeout);
                           }
 
-                          if (this.avr?.telnetAvr?.connection && 'forcedDisconnect' in this.avr.telnetAvr.connection) {
+                          if (timeoutToDisconnect < (60 * 1000) && this.avr?.telnetAvr?.connection && 'forcedDisconnect' in this.avr.telnetAvr.connection) {
                               this.avr.telnetAvr.connection.forcedDisconnect = true;
                           }
 
