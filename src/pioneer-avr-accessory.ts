@@ -594,7 +594,9 @@ class PioneerAvrAccessory {
                                       }
 
                                       if (this.avr?.telnetAvr?.connection?.disconnect) {
-                                          this.avr.telnetAvr.connection.disconnect();
+                                          setTimeout(() => {
+                                              this.avr.telnetAvr.connection.disconnect();
+                                          }, 100);
                                       }
                                   }
                               } else if (this.avr?.state?.on) {

@@ -343,9 +343,9 @@ export class Connection {
                 }
 
                 if (this.reconnectCounter > 1) {
-                    this.log.debug('Attempting reconnection...', this.reconnectCounter);
+                    this.log.debug(`telnet> Attempting ${this.reconnectCounter}. reconnection to ${this.avr.device.name} ...`);
                 }else{
-                    this.log.info('Attempting reconnection...');
+                    this.log.info(`telnet> Attempting reconnection to ${this.avr.device.name} ...`);
                 }
                 this.reconnect(()=>{});
             }, delay * 1000);
