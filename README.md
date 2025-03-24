@@ -188,7 +188,7 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > If port 23 does not work, try port 8102.  
 > Alternatively, enable Web Interface (see user manual) and then try opening in your web browser something like:
 > `http://vsx-922.local/1000/port_number.asp` or  
-> `http://192.168.178.99/1000/port_number.asp`  
+> `http://192.168.178.99/1000/<wbr>port_number.asp`  
 > to find the correct port.
 
 > **maxVolume:**  
@@ -215,8 +215,8 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > The alternative listening mode that is toggled via HomeKit switch or the iOS Remote app. Default 0112 EXTENDED STEREO   
 
 > **listeningModeFallback:**
-> A backup listening mode used when the Primary Listening Mode is unavailable (e.g., due to input signal restrictions). This mode should be **different** from the Primary Listening Mode and should be chosen based on what is likely to be supported. Default 0101 ACTION
-> Available modes can be found in the list at the bottom of this page.   
+> A backup listening mode used when the Primary Listening Mode is unavailable (e.g., due to input signal restrictions). This mode should be **different** from the Primary Listening Mode and should be chosen based on what is likely to be supported. Default 0101 ACTION  
+> Available modes can be found in the list at the bottom of this page.  
 
 > **inputSwitches:**
 > Set up to 5 inputs to expose as switches in HomeKit   
