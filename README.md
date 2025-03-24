@@ -187,8 +187,7 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > The port used for Telnet to connect to your receiver.  
 > If port 23 does not work, try port 8102.  
 > Alternatively, enable Web Interface (see user manual) and then try opening in your web browser something like:
-> `http://vsx-922.local/1000/port_number.asp` or  
-> `http://192.168.178.99/``1000/port_number.asp`  
+> `http://vsx-922.local/1000/port_number.asp`
 > to find the correct port.
 
 > **maxVolume:**  
