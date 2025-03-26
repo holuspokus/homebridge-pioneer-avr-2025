@@ -101,7 +101,7 @@
                 "default": 2880,
                 "minimum": 5,
                 "maximum": 20160,
-                "description": "Set the send keep alive timeout in minutes. The value is clamped between 5 minutes and two weeks, defaults to 48 hours (2880 minutes)."
+                "description": "Sets the keepalive timeout in minutes. After the receiver is turned off, the Telnet connection remains active for the specified duration, potentially until the user powers it on via HomeKit. This allows the plugin and receiver to react immediately without needing to reconnect. If the Telnet connection is disconnected, a button press in HomeKit may take up to 30 seconds to register. Without an active Telnet connection, the plugin cannot detect if the receiver is off or has been turned on locally or via the remote, and thus cannot show it as on in HomeKit."
             },
             "telnetSwitch": {
                 "title": "Telnet Switch",

@@ -238,7 +238,8 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > Set the maximum number of reconnect attempts before triggering a device rediscovery process.
 
 > **sendKeepAliveTimeoutMinutes:**  
-> Set the send keep alive timeout in minutes. This value determines how long after a user interaction the keepalive should be sent to maintain the connection. The timeout is clamped between 5 minutes and two weeks, with a default of 48 hours (2880 minutes).  
+> Set the keepalive timeout in minutes. After the receiver is turned off, the Telnet connection remains active for the defined duration (even though the receiver stays off), potentially until the user powers it on via HomeKit. This ensures that the plugin and receiver react immediately without needing to reconnect. If the Telnet connection is disconnected, a button press in HomeKit may take up to 30 seconds to register. Without an active Telnet connection, the plugin cannot determine if the receiver is off or has been turned on locally or via the remote, and thus cannot display it as on in HomeKit.  
+> The timeout is clamped between 5 minutes and two weeks, with a default of 48 hours (2880 minutes).  
 > Examples:  
 > - 4 hours: 240 minutes  
 > - 2 days: 2880 minutes  
@@ -477,6 +478,7 @@ Set input switches for discovered devices:
 
 
 ## Release Notes
+- **v0.2.16**: Improved the plugin's handling when HomeKit simultaneously issues commands to turn off the receiver and disable Telnet.
 - **v0.2.15**: Minor stability improvements, including a small fix to the keepalive behavior.
 - **v0.2.14**: Enhanced the ListeningMode switch's reliability when the current value couldn't be retrieved, and stabilized reconnect behavior.
 - **v0.2.13**: Fixed an issue where the state of the input switches did not always reflect whether the receiver was on or off.
