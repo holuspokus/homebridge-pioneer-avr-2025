@@ -226,6 +226,12 @@ export function VolumeManagementMixin<
                 } catch (e) {
                     this.log.debug('functionSetLightbulbVolume error', e);
                 }
+
+                try {
+                    this.functionSetSwitchListeningMode?.();
+                } catch (e) {
+                    this.log.debug('functionSetSwitchListeningMode error', e);
+                }
             }, this);
 
         }

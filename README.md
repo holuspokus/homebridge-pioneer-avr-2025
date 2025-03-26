@@ -30,7 +30,7 @@ This plugin allows you to control various aspects of your Pioneer AVR directly f
 ## Installation
 1. **Install Homebridge**: Follow the [Homebridge Installation Guide](https://github.com/homebridge/homebridge/wiki).
 2. **Install the Plugin**: Use the Homebridge Web Interface (Config-UI) to install **homebridge-pioneer-avr-2025**.
-3. **Configure and Restart**: There's no need for manual configuration at this stage - simply save the default settings and restart Homebridge. Once restarted, the plugin will automatically search for your receiver.
+3. **Configure and Restart**: There's no need for manual configuration at this stage – simply save the default settings and restart Homebridge. Once restarted, the plugin will automatically search for your receiver and discover the available inputs, allowing you to configure the plugin and select input switches via the config UI.
 4. **Connect to HomeKit**: Open the Home app on your iOS device, tap Add Accessory, and scan the QR code displayed in the Homebridge Web Interface (Config-UI).
 
 <table style="border: none; border-collapse: collapse;">
@@ -84,6 +84,8 @@ To ensure proper connectivity for the plugin, connect the receiver to the networ
 
 After confirming the network connection, restart the plugin to enable communication with the receiver.
 <br><br>
+
+**Note:** When starting the plugin and using discovery (default configuration), the file `./homebridge-pioneer-avr-2025/config.schema.json` as well as Homebridge's `config.json` will be modified. Ensure that your file system permissions allow these files to be written (typically, they are set correctly by default, so no changes are necessary).
 
 ## Manual Installation
 1. **Install the Homebridge framework:**
@@ -187,8 +189,7 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > The port used for Telnet to connect to your receiver.  
 > If port 23 does not work, try port 8102.  
 > Alternatively, enable Web Interface (see user manual) and then try opening in your web browser something like:
-> `http://vsx-922.local/1000/port_number.asp` or  
-> `http://192.168.178.99/1000/port_number.asp`  
+> `http://vsx-922.local/1000/port_number.asp`
 > to find the correct port.
 
 > **maxVolume:**  
@@ -215,8 +216,8 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > The alternative listening mode that is toggled via HomeKit switch or the iOS Remote app. Default 0112 EXTENDED STEREO   
 
 > **listeningModeFallback:**
-> A backup listening mode used when the Primary Listening Mode is unavailable (e.g., due to input signal restrictions). This mode should be **different** from the Primary Listening Mode and should be chosen based on what is likely to be supported. Default 0101 ACTION
-> Available modes can be found in the list at the bottom of this page.   
+> A backup listening mode used when the Primary Listening Mode is unavailable (e.g., due to input signal restrictions). This mode should be **different** from the Primary Listening Mode and should be chosen based on what is likely to be supported. Default 0101 ACTION  
+> Available modes can be found in the list at the bottom of this page.  
 
 > **inputSwitches:**
 > Set up to 5 inputs to expose as switches in HomeKit   
@@ -239,7 +240,8 @@ This setup simplifies installation and leverages the plugin's automatic discover
 > Set the maximum number of reconnect attempts before triggering a device rediscovery process.
 
 > **sendKeepAliveTimeoutMinutes:**  
-> Set the send keep alive timeout in minutes. This value determines how long after a user interaction the keepalive should be sent to maintain the connection. The timeout is clamped between 5 minutes and two weeks, with a default of 48 hours (2880 minutes).  
+> Set the keepalive timeout in minutes. After the receiver is turned off, the Telnet connection remains active for the defined duration (even though the receiver stays off), potentially until the user powers it on via HomeKit. This ensures that the plugin and receiver react immediately without needing to reconnect. If the Telnet connection is disconnected, a button press in HomeKit may take up to 30 seconds to register. Without an active Telnet connection, the plugin cannot determine if the receiver is off or has been turned on locally or via the remote, and thus cannot display it as on in HomeKit.  
+> The timeout is clamped between 5 minutes and two weeks, with a default of 48 hours (2880 minutes).  
 > Examples:  
 > - 4 hours: 240 minutes  
 > - 2 days: 2880 minutes  
@@ -478,6 +480,7 @@ Set input switches for discovered devices:
 
 
 ## Release Notes
+- **v0.2.16**: Improved the plugin's handling when HomeKit simultaneously issues commands to turn off the receiver and disable Telnet.
 - **v0.2.15**: Minor stability improvements, including a small fix to the keepalive behavior.
 - **v0.2.14**: Enhanced the ListeningMode switch's reliability when the current value couldn't be retrieved, and stabilized reconnect behavior.
 - **v0.2.13**: Fixed an issue where the state of the input switches did not always reflect whether the receiver was on or off.

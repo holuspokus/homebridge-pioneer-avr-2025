@@ -564,7 +564,7 @@ class PioneerAvrAccessory {
                               clearTimeout(this.telnetConnectedServiceSwitchDisconnectTimeout);
                           }
 
-                          if (this.avr?.telnetAvr?.connection && 'forcedDisconnect' in this.avr.telnetAvr.connection) {
+                          if (timeoutToDisconnect < (60 * 1000) && this.avr?.telnetAvr?.connection && 'forcedDisconnect' in this.avr.telnetAvr.connection) {
                               this.avr.telnetAvr.connection.forcedDisconnect = true;
                           }
 
@@ -594,7 +594,9 @@ class PioneerAvrAccessory {
                                       }
 
                                       if (this.avr?.telnetAvr?.connection?.disconnect) {
-                                          this.avr.telnetAvr.connection.disconnect();
+                                          setTimeout(() => {
+                                              this.avr.telnetAvr.connection.disconnect();
+                                          }, 100);
                                       }
                                   }
                               } else if (this.avr?.state?.on) {
@@ -1029,9 +1031,13 @@ class PioneerAvrAccessory {
         //     return;
         // }
         if (on) {
-            this.avr.powerOn();
+            if (!this.avr?.state?.on) {
+                this.avr.powerOn();
+            }
         } else {
-            this.avr.powerOff();
+            if (this.avr?.state?.on) {
+                this.avr.powerOff();
+            }
         }
     }
 
