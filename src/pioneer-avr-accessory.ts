@@ -1031,9 +1031,13 @@ class PioneerAvrAccessory {
         //     return;
         // }
         if (on) {
-            this.avr.powerOn();
+            if (!this.avr?.state?.on) {
+                this.avr.powerOn();
+            }
         } else {
-            this.avr.powerOff();
+            if (this.avr?.state?.on) {
+                this.avr.powerOff();
+            }
         }
     }
 
