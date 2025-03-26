@@ -85,6 +85,8 @@ To ensure proper connectivity for the plugin, connect the receiver to the networ
 After confirming the network connection, restart the plugin to enable communication with the receiver.
 <br><br>
 
+**Note:** When starting the plugin and using discovery (default configuration), the file `./homebridge-pioneer-avr-2025/config.schema.json` as well as Homebridge's `config.json` will be modified. Ensure that your file system permissions allow these files to be written (typically, they are set correctly by default, so no changes are necessary).
+
 ## Manual Installation
 1. **Install the Homebridge framework:**
    ```bash
