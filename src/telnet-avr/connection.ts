@@ -494,6 +494,11 @@ export class Connection {
     }
 
     disconnect() {
+
+        if (this?.socket?.readyState === 'open') {
+            this.log.info(`telnet> ${this.avr.device.name} disconnected`);
+        }
+
         // this.log.debug('disconnect() called');
         // this.reconnectFunctionFlag = false;
         this.lastMessageReceived = null;
@@ -510,7 +515,6 @@ export class Connection {
             this.socket.end();
             this.socket.destroy();
             this.socket = null;
-            this.log.info(`telnet> ${this.avr.device.name} disconnected`);
         }
     }
 
