@@ -191,7 +191,7 @@ export function InitializeMixin<
                             this.isReady &&
                             this.telnetAvr.connectionReady &&
                             this.telnetAvr.connection.lastMessageReceived !== null &&
-                            Date.now() - this.telnetAvr.connection.lastMessageReceived > 29000 &&
+                            Date.now() - this.telnetAvr.connection.lastMessageReceived > 22000 &&
                             (this.state.on || this.telnetAvr.connection.forcedDisconnect !== true)
                         ) {
 
