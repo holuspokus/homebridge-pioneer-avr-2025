@@ -30,7 +30,8 @@ This plugin allows you to control various aspects of your Pioneer AVR directly f
 ## Installation
 1. **Install Homebridge**: Follow the [Homebridge Installation Guide](https://github.com/homebridge/homebridge/wiki).
 2. **Install the Plugin**: Use the Homebridge Web Interface (Config-UI) to install **homebridge-pioneer-avr-2025**.
-3. **Configure and Restart**: There's no need for manual configuration at this stage – simply save the default settings and restart Homebridge. Once restarted, the plugin will automatically search for your receiver and discover the available inputs, allowing you to configure the plugin and select input switches via the config UI.
+3. **Configure and Restart**: There's no need for manual configuration at this stage – simply save the default settings and restart Homebridge. Once restarted, the plugin will automatically search for your receiver and discover the available inputs, allowing you to configure the plugin and select input switches via the config UI.  
+![Plugin configuration](https://github.com/holuspokus/homebridge-pioneer-avr-2025/raw/main/screenshots/image4_plugin_config-min.png)  
 4. **Connect to HomeKit**: Open the Home app on your iOS device, tap Add Accessory, and scan the QR code displayed in the Homebridge Web Interface (Config-UI).
 
 <table style="border: none; border-collapse: collapse;">
@@ -480,6 +481,7 @@ Set input switches for discovered devices:
 
 
 ## Release Notes
+- **v0.2.17**: Fixed a reconnect bug causing immediate disconnect and reconnect even after a successful connection.
 - **v0.2.16**: Improved the plugin's handling when HomeKit simultaneously issues commands to turn off the receiver and disable Telnet.
 - **v0.2.15**: Minor stability improvements, including a small fix to the keepalive behavior.
 - **v0.2.14**: Enhanced the ListeningMode switch's reliability when the current value couldn't be retrieved, and stabilized reconnect behavior.

@@ -197,6 +197,7 @@ export class Connection {
             setTimeout(() => {
                 this.sendMessage('?P', 'PWR', async () => {
                     this.setConnectionReady(true);
+                    this.lastConnect = Date.now();
 
                     if (!this.isReconnect) {
                         try {
@@ -451,22 +452,39 @@ export class Connection {
                         `Updated device ${this.avr.device.name} connection info: ${this.host}:${this.port}`,
                     );
                     this.reconnectCounter = 0; // Reset counter after successful discovery
+                    await new Promise((resolve) => setTimeout(resolve, 1201));
                 }
             } else {
                 await new Promise((resolve) => setTimeout(resolve, 5000));
             }
         }
 
-        if (!this.socket) {
+        // sudo iptables -A OUTPUT -d 192.168.2.139 -j DROP
+        // sudo iptables -F
+
+        if (this.socket && (this.socket.connecting || this.socket.readyState !== 'closed')) {
+            let wc = 0;
+            while (wc++ < 100 && this?.socket?.readyState !== 'open'){
+                await new Promise((resolve) => setTimeout(resolve, 180));
+            }
+            if (this?.socket?.readyState === 'open') {
+                try {
+                    callback();
+                } catch (error) {
+                    this.log.debug('reconnect callback error', error);
+                }
+            }
+        } else if (!this.socket) {
             this.initializeSocket(callback);
         } else if (
             !this.lastConnect ||
-            Date.now() - (this.lastConnect ?? 0) > 15 * 1000
+            Date.now() - (this.lastConnect ?? 0) > 40 * 1000
         ) {
 
             if (this.connectionReady) {
                 this.connectionReady = false;
                 this.disconnect();
+
             }
 
             this.log.debug('Reconnecting socket.');
