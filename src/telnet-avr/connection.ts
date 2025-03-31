@@ -459,9 +459,6 @@ export class Connection {
             }
         }
 
-        // sudo iptables -A OUTPUT -d 192.168.2.139 -j DROP
-        // sudo iptables -F
-
         if (this.socket && (this.socket.connecting || this.socket.readyState !== 'closed')) {
             let wc = 0;
             while (wc++ < 100 && this?.socket?.readyState !== 'open'){
