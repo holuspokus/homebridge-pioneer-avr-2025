@@ -1,6 +1,6 @@
 # homebridge-pioneer-avr-2025
 
-A [Homebridge](https://github.com/nfarina/homebridge) plugin that integrates your Pioneer AVR as a TV accessory in HomeKit. This project supports Node.js versions up to 22 and is compatible with Homebridge version 2 and earlier. Developed in TypeScript and as a Platform, it incorporates modern Homebridge practices and methods to provide a seamless setup process with optional manual configuration. With automatic receiver detection, the plugin enhances reliability and user-friendliness.
+A [Homebridge](https://github.com/nfarina/homebridge) plugin that integrates your Pioneer AVR as a TV accessory in HomeKit. This project supports Node.js versions up to 24 and is compatible with Homebridge version 2 and earlier. Developed in TypeScript and as a Platform, it incorporates modern Homebridge practices and methods to provide a seamless setup process with optional manual configuration. With automatic receiver detection, the plugin enhances reliability and user-friendliness.
 
 While the plugin is not perfect, I hope it provides a dependable way to connect your receiver to HomeKit.
 
@@ -481,6 +481,7 @@ Set input switches for discovered devices:
 
 
 ## Release Notes
+- **v0.2.18**: Added support for Node.js v24
 - **v0.2.17**: Fixed a reconnect bug causing immediate disconnect and reconnect even after a successful connection.
 - **v0.2.16**: Improved the plugin's handling when HomeKit simultaneously issues commands to turn off the receiver and disable Telnet.
 - **v0.2.15**: Minor stability improvements, including a small fix to the keepalive behavior.
